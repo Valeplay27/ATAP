@@ -1,0 +1,7 @@
+.ranking-card { display: flex; align-items: center; gap: 8px; min-height: 59px; background: #002033; border-radius: 3px; overflow: hidden; position: relative; padding-right: 32px; }
+.ranking-card img { width: 54px; height: 54px; object-fit: cover; border-radius: 50%; margin-left: 8px; }
+.ranking-position { display: flex; align-items: center; gap: 3px; color: var(--lime); font: 700 10px 'Montserrat', sans-serif; min-width: 27px; }
+.ranking-info { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.ranking-info h3 { font: 600 12px 'Montserrat', sans-serif; margin: 0; }
+.ranking-info small { color: var(--text-light); font: 8px 'Montserrat', sans-serif; }
+.ranking-info small:last-child { color: var(--green); font-weight: 700; }

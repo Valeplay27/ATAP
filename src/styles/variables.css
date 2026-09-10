@@ -1,17 +1,25 @@
 :root {
-  --bg-main: #002A43;
+  /* FONDO GENERAL */
+  --bg-main: #001C2D;
+
+  /* CARDS */
   --bg-card: #001827;
   --bg-card-blue: #00304A;
   --bg-card-secondary: #00283D;
+
+  /* VERDES */
   --green: #00A86B;
   --green-dark: #063B35;
+
+  /* ACCENTO */
   --lime: #C6FF00;
   --lime-soft: #A8F34A;
+
+  /* TEXTOS */
   --white: #FFFFFF;
   --text-light: #D5E0E5;
   --text-muted: #8FA5B0;
+
+  /* BORDES */
   --border-green: rgba(0, 168, 107, 0.65);
-  --card-register: #00304A;
-  --card-tournaments: #001827;
-  --card-social: #00283D;
 }

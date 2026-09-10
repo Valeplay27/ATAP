@@ -8,7 +8,8 @@ export default function Footer() {
           <img className="brand-logo" src="/assets/logo.png" alt="" />
           <span>
             <strong>ASOCIACIÓN DE</strong>
-            <strong>TENIS DEL PERÚ</strong>
+            <strong>TENISTAS AMATEUR</strong>
+            <strong>DEL PERÚ</strong>
           </span>
         </a>
         <p>Impulsamos el tenis peruano y formamos jugadores preparados para competir.</p>
@@ -34,7 +35,7 @@ export default function Footer() {
         <p>Lima, Perú</p>
       </div>
       <div className="copyright">
-        © 2025 Asociación de Tenis del Perú. Todos los derechos reservados.
+        © 2025 Asociación de Tenistas Amateur del Perú. Todos los derechos reservados.
       </div>
     </footer>
   );

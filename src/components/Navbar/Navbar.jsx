@@ -10,7 +10,8 @@ export default function Navbar({ menuOpen, setMenuOpen }) {
         <img className="brand-logo" src="/assets/logo.png" alt="" />
         <span>
           <strong>ASOCIACIÓN DE</strong>
-          <strong>TENIS DEL PERÚ</strong>
+          <strong>TENISTAS AMATEUR</strong>
+          <strong>DEL PERÚ</strong>
         </span>
       </a>
       <nav className={menuOpen ? 'main-nav is-open' : 'main-nav'} aria-label="Navegación principal">

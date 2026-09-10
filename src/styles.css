@@ -1,7 +1,7 @@
 @import './styles/variables.css';
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 :root { --green-primary:#063B35; --green-secondary:#0F7655; --green-logo:#00A86B; --lime:#C6FF00; --navy:#0A263D; --blue-secondary:#0A3D62; --cream:#F7F5EA; --white:#FFFFFF; --text-dark:#17201E; --muted:#687280; --ink:var(--white); --deep:var(--navy); --panel:var(--green-primary); --teal:var(--green-logo); }
-* { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; background:var(--deep); color:var(--ink); font-family:'Playfair Display',serif; font-size:13px; } a { color:inherit; text-decoration:none; } button { color:inherit; font:inherit; }
+* { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; background:linear-gradient(180deg, #001827 0%, #062D4D 52%, #1D5C96 100%); background-attachment:fixed; color:var(--ink); font-family:'Playfair Display',serif; font-size:13px; } a { color:inherit; text-decoration:none; } button { color:inherit; font:inherit; }
 .site-header { height:62px; display:flex; align-items:center; justify-content:space-between; padding:0 max(28px,calc((100% - 1180px)/2)); background:var(--navy); border-bottom:1px solid #ffffff14; position:relative; z-index:5; }.brand { display:flex; align-items:center; gap:9px; min-width:170px; }.brand-logo { width:30px; height:30px; object-fit:contain; display:block; }.brand span:last-child { display:flex; flex-direction:column; gap:1px; font-family:'Playfair Display',serif; font-size:9px; line-height:1; letter-spacing:.04em; }.brand strong:last-child { color:var(--green-logo); }.main-nav { display:flex; align-items:center; gap:29px; height:100%; }.main-nav a { color:var(--muted); font-size:11px; height:100%; display:grid; place-items:center; border-bottom:2px solid transparent; }.main-nav a:hover,.main-nav a.active { color:var(--ink); border-color:var(--lime); }.header-actions { display:flex; gap:8px; }.icon-button { display:grid; place-items:center; border:0; background:transparent; cursor:pointer; padding:6px; color:var(--muted); }.icon-button:hover { color:var(--lime); }.menu-toggle { display:none; }
 .hero { min-height:350px; position:relative; overflow:hidden; display:flex; align-items:center; padding:48px max(32px,calc((100% - 1180px)/2)); background:var(--navy); }.hero-image { position:absolute; inset:0; z-index:0; overflow:hidden; }.hero-image::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,#0A263Df7 0%,#0A263Dc2 43%,#0A263D0d 82%); }.hero-image img { width:100%; height:100%; display:block; object-fit:cover; object-position:center center; }.hero::after { content:''; position:absolute; right:-9%; bottom:-43%; width:52%; aspect-ratio:1; border:1px solid #00A86Ba6; border-radius:50%; box-shadow:0 0 0 28px #00A86B0f,0 0 0 58px #00A86B0a; transform:rotate(-22deg); z-index:1; }.hero-copy { position:relative; z-index:2; max-width:470px; }.eyebrow { margin:0 0 8px; color:var(--green-logo); text-transform:uppercase; letter-spacing:.06em; font-family:'Playfair Display',serif; font-weight:600; font-size:11px; } h1,h2,h3,p { margin-top:0; } h1 { text-transform:uppercase; font:700 clamp(42px,5vw,64px)/.88 'Playfair Display',serif; letter-spacing:.02em; margin-bottom:18px; } em { color:var(--lime); font-style:normal; }.hero-text { max-width:390px; color:var(--cream); font-size:12px; line-height:1.6; margin-bottom:20px; }.hero-actions { display:flex; align-items:center; gap:22px; }.button { display:inline-flex; gap:11px; align-items:center; padding:10px 16px; border-radius:20px; font-size:11px; font-weight:700; }.button-lime { background:var(--lime); color:var(--text-dark); }.button-lime:hover { background:#d9ff4d; transform:translateY(-1px); }.watch-link { color:var(--white); font-size:11px; display:flex; align-items:center; gap:9px; }.play { width:26px; height:26px; border:1px solid var(--cream); border-radius:50%; display:grid; place-items:center; font-size:9px; padding-left:2px; }.hero-event { position:absolute; z-index:2; right:max(32px,calc((100% - 1180px)/2)); top:43%; display:flex; gap:9px; font-family:'Playfair Display',serif; font-size:12px; }.hero-event>span { color:var(--lime); font-size:27px; line-height:.7; }.hero-event div { display:flex; flex-direction:column; gap:2px; }.hero-event small { color:var(--cream); font:10px 'Playfair Display',serif; }.hero-dots { position:absolute; z-index:2; right:max(32px,calc((100% - 1180px)/2)); bottom:18px; display:flex; gap:8px; }.hero-dots span { width:7px; height:7px; border-radius:50%; background:var(--muted); }.hero-dots .selected { background:var(--lime); }
 .page-shell { max-width:1180px; margin:auto; padding:16px 20px 30px; }.quick-nav { display:grid; grid-template-columns:repeat(6,1fr); background:var(--panel); border-radius:6px; margin-bottom:12px; }.quick-item { min-height:72px; display:flex; justify-content:center; align-items:center; gap:10px; border-right:1px solid #ffffff14; color:var(--teal); }.quick-item:last-child { border:0; }.quick-item:hover { background:#0a3a4d; }.quick-item span { display:flex; flex-direction:column; gap:4px; }.quick-item strong { color:var(--ink); font:600 12px 'Barlow Condensed'; }.quick-item small { color:#7f9ba1; font-size:7px; }.content-grid { display:grid; grid-template-columns:1.04fr .96fr; gap:12px; }.left-column { display:grid; gap:12px; }.panel { border:1px solid #23aaa05a; border-radius:6px; overflow:hidden; background:var(--panel); }.signup-panel { min-height:173px; position:relative; padding:18px 13px; display:flex; }.signup-panel h2 { font:700 21px/.93 'Barlow Condensed'; text-transform:uppercase; margin:0 0 11px; }.signup-panel>div:first-child { position:relative; z-index:1; }.signup-panel p:not(.eyebrow) { max-width:220px; color:#adbec0; font-size:8px; line-height:1.35; }.signup-photo { position:absolute; inset:0 0 0 52%; background:linear-gradient(90deg,var(--panel) 0%,transparent 65%),url('https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=700&q=85') center/cover; }.chips { display:flex; gap:4px; margin:10px 0; }.chips span { background:#01142099; border:1px solid #45747a; padding:4px 6px; color:#c1d5d4; border-radius:9px; font-size:7px; }.signup-panel .button { padding:8px 12px; font-size:9px; }.social-panel { min-height:92px; padding:14px; display:flex; justify-content:space-between; position:relative; overflow:hidden; background:linear-gradient(90deg,#073a4b,#052837); }.social-panel h2 { font:600 17px 'Barlow Condensed'; margin-bottom:12px; }.social-icons { display:flex; gap:8px; }.social-icons a { display:grid; place-items:center; border:1px solid #51818a; width:22px; height:22px; border-radius:50%; }.social-icons a:hover { color:var(--lime); border-color:var(--lime); }.phone { width:56px; height:80px; border:2px solid #10202a; background:#071b28; border-radius:9px; align-self:end; transform:rotate(5deg); padding:10px 4px 4px; position:relative; margin-right:11%; margin-top:-10px; box-shadow:0 0 0 1px #3e8a84; }.phone-screen { background:#075a62; height:100%; text-align:center; font:700 11px 'Barlow Condensed'; padding-top:16px; }.phone-screen small { font-size:7px; color:var(--lime); }
@@ -9,6 +9,113 @@
 .site-footer { padding:26px max(28px,calc((100% - 1180px)/2)); background:#021b29; border-top:1px solid #0a3d4b; display:grid; grid-template-columns:2fr 1fr 1fr 1.3fr; gap:35px; position:relative; }.site-footer h3 { color:#c9dedb; font:600 11px 'Barlow Condensed'; margin-bottom:10px; }.site-footer>div:not(.footer-brand):not(.copyright) { display:flex; flex-direction:column; gap:6px; }.site-footer a,.site-footer p { color:#78949a; font-size:8px; }.footer-brand p { max-width:180px; line-height:1.5; margin-top:13px; }.copyright { grid-column:1/-1; padding-top:12px; border-top:1px solid #123a43; color:#59777c; font-size:7px; }
 @media (max-width:800px) { .site-header { padding:0 18px; }.main-nav { display:none; position:absolute; top:61px; left:0; right:0; height:auto; padding:12px 20px; background:var(--navy); flex-direction:column; align-items:stretch; gap:0; box-shadow:0 8px 20px #0004; }.main-nav.is-open { display:flex; }.main-nav a { height:38px; justify-content:flex-start; }.menu-toggle { display:grid; }.hero { min-height:415px; padding:42px 22px; align-items:flex-end; background-position:63% center; }.hero-event { display:none; }.hero-dots { right:22px; bottom:15px; }.quick-nav { grid-template-columns:repeat(3,1fr); }.quick-item { min-height:65px; }.quick-item small { display:none; }.quick-item strong { font-size:11px; }.content-grid { grid-template-columns:1fr; }.site-footer { grid-template-columns:repeat(2,1fr); padding:28px 22px; gap:25px; }.footer-brand { grid-column:1/-1; } }
 @media (max-width:430px) { h1 { font-size:46px; }.hero-text { max-width:270px; }.quick-item { gap:6px; }.quick-item strong { font-size:10px; }.signup-photo { left:48%; opacity:.65; }.signup-panel { min-height:188px; }.chips { max-width:205px; flex-wrap:wrap; }.site-footer { grid-template-columns:1fr 1fr; }.tournament-card img { width:70px; } }
+
+.event-copy { max-width: 100%; padding: 18px 20px 0; }
+.event-copy p { margin-bottom: 7px; font-size: clamp(9px, 1.1vw, 13px); }
+.event-copy h2 { font-size: clamp(22px, 2.8vw, 34px); line-height: .98; letter-spacing: -.04em; }
+.event-copy h2 em { white-space: nowrap; }
+@media (min-width: 801px) { .event-copy h2 { white-space: nowrap; } }
+@media (max-width: 430px) {
+	.event-copy { max-width: 78%; padding: 14px 12px 0; }
+	.event-copy h2 { font-size: 17px; }
+	.event-copy h2 em { white-space: normal; }
+}
+
+.information-grid,
+.sponsors-card { grid-column: 1 / -1; }
+.information-grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 12px; }
+.faq-card,
+.rules-card { min-height: 190px; padding: 18px; border-radius: 16px; }
+.faq-card { background: linear-gradient(135deg, #00A86B 0%, #00CFA4 100%); color: var(--navy); border-color: var(--green); }
+.faq-card img { width: 48px; height: 48px; object-fit: contain; display: block; margin-bottom: 10px; filter: brightness(0) invert(1); }
+.faq-card h2 { margin: 0 0 8px; font: 800 clamp(24px, 3vw, 38px)/.95 'Montserrat', sans-serif; text-transform: uppercase; }
+.faq-card p { margin: 0 0 8px; font: 600 9px 'Montserrat', sans-serif; }
+.whatsapp-button { display: inline-flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 14px; background: var(--navy); color: var(--white); font: 700 8px 'Montserrat', sans-serif; }
+.rules-card { background: linear-gradient(135deg, #00CFA4 0%, #00A86B 100%); border-color: var(--green); }
+.rules-card .eyebrow { color: var(--navy); margin-bottom: 4px; }
+.rules-card h2 { margin: 0 0 10px; color: var(--navy); font: 800 20px 'Montserrat', sans-serif; text-transform: uppercase; }
+.rules-list { display: grid; gap: 5px; }
+.rules-list a { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; border-radius: 9px; background: #006941; color: var(--white); font: 600 9px 'Montserrat', sans-serif; text-transform: uppercase; }
+.rules-list a:hover { background: var(--green-dark); }
+.sponsors-card { min-height: 190px; padding: 24px; border-radius: 16px; background: var(--cream); color: var(--navy); border-color: rgba(255,255,255,.8); text-align: center; }
+.sponsor-kicker { margin: 0 0 8px; font: 800 9px 'Montserrat', sans-serif; text-transform: uppercase; }
+.sponsors-card h2 { margin: 0 0 20px; font: 700 clamp(22px, 3vw, 34px) 'Playfair Display', serif; }
+.sponsors-card h2 span { color: var(--green); }
+.platino-logo { display: block; width: min(260px, 70%); height: auto; margin: 0 auto 20px; }
+.sponsor-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 28px; max-width: 520px; margin: auto; color: #596064; font: 800 11px 'Montserrat', sans-serif; }
+.sponsors-card { min-height: 0; padding: 16px 24px 18px; }
+.platino-logo { width: min(230px, 64%); margin-bottom: 12px; }
+.sponsors-card h2 { margin-bottom: 12px; }
+.sponsor-kicker { margin-bottom: 5px; }
+.sponsor-list { gap: 8px 28px; }
+
+.phone {
+	width: 92px;
+	height: 158px;
+	margin-right: 9%;
+	border: 3px solid #111b21;
+	border-radius: 17px;
+	background: #071923;
+	padding: 13px 5px 6px;
+	box-shadow: 7px 9px 0 rgba(0, 37, 55, .18), 0 0 0 2px var(--green), 0 12px 20px rgba(0, 20, 30, .22);
+	transform: rotate(5deg);
+}
+.phone::before {
+	top: 6px;
+	width: 27px;
+	height: 5px;
+	background: #0d171c;
+	z-index: 2;
+}
+.phone::after {
+	content: '';
+	position: absolute;
+	left: -5px;
+	top: 42px;
+	width: 3px;
+	height: 20px;
+	border-radius: 3px 0 0 3px;
+	background: #18252b;
+}
+.phone-screen {
+	position: relative;
+	height: 100%;
+	overflow: hidden;
+	border-radius: 10px;
+	padding-top: 42px;
+	background: linear-gradient(145deg, #075e4e 0%, #063b35 47%, #061c2a 100%);
+}
+.phone-screen::after {
+	content: '';
+	position: absolute;
+	top: -25%;
+	right: -34%;
+	width: 80%;
+	height: 145%;
+	background: rgba(255, 255, 255, .08);
+	transform: rotate(24deg);
+}
+.phone-screen img { position: relative; z-index: 1; width: 48px; max-height: 52px; margin-bottom: 13px; }
+.phone-screen span { position: relative; z-index: 1; font-size: 8px; letter-spacing: .03em; }
+
+@media (max-width: 430px) {
+	.phone { width: 76px; height: 132px; margin-right: 5%; }
+	.phone-screen img { width: 40px; }
+}
+.ranking-heading { text-align: center; margin-bottom: 12px; }
+.ranking-heading p { margin: 0 0 3px; color: var(--white); font: 700 9px 'Montserrat', sans-serif; text-transform: uppercase; }
+.ranking-heading h2 { margin: 0; color: var(--white); font: 800 21px 'Montserrat', sans-serif; text-transform: uppercase; }
+@media (max-width: 800px) {
+	.information-grid { grid-template-columns: 1fr; }
+	.sponsor-list { gap: 10px; font-size: 8px; }
+}
+
+/* Fondo continuo para unir navbar, contenido y footer. */
+body,
+.page-shell,
+.site-footer {
+	background: var(--navy);
+}
 
 /* Tipografia de marca: titulos editoriales y una interfaz deportiva limpia. */
 body { font-family:'Montserrat',sans-serif; }
@@ -18,8 +125,8 @@ h1, .signup-panel h2, .section-heading h2, .social-panel h2 { font-family:'Playf
 .hero h1 { font-weight:700; letter-spacing:0; }
 .signup-panel h2, .section-heading h2, .social-panel h2 { font-weight:700; letter-spacing:0; }
 
-body { background: var(--bg-main); }
-.page-shell { background: var(--bg-main); }
+body { background: linear-gradient(180deg, #001827 0%, #062D4D 52%, #1D5C96 100%); background-attachment: fixed; }
+.page-shell { background: transparent; }
 .quick-nav { background: linear-gradient(145deg, #00344C 0%, #001D30 100%); }
 .signup-panel { background: linear-gradient(135deg, #003A55 0%, #00243A 100%); border-color: var(--green); border-radius: 16px; }
 .tournaments { background: linear-gradient(145deg, #002033 0%, #001421 100%); border-color: var(--border-green); border-radius: 16px; }
@@ -27,3 +134,141 @@ body { background: var(--bg-main); }
 .tournament-card { background: #002033; }
 .tag { background: var(--lime-soft); color: #06251D; }
 .button-lime { background: var(--lime); color: #001827; }
+.quick-nav { gap: 8px; padding: 8px; background: transparent; overflow: hidden; }
+.quick-item { border: 0; border-radius: 12px; min-height: 94px; }
+.quick-item:hover { filter: brightness(1.1); }
+.information-panel { background: linear-gradient(135deg, #00A86B 0%, #00CFA4 100%); border-color: #00A86B; }
+.information-panel .eyebrow, .information-panel h2, .information-panel p { color: #FFFFFF; }
+.information-panel h2 em { color: #063B35; }
+.signup-panel { min-height: 220px; padding: 0; position: relative; overflow: hidden; }
+.event-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+.event-register-button { position: absolute; left: 18px; bottom: 16px; z-index: 1; }
+
+.event-image { object-position: center; }
+.event-copy { position: relative; z-index: 1; max-width: 62%; padding: 20px 14px 0; color: var(--white); }
+.event-copy p { margin: 0 0 6px; color: var(--green-logo); font: 700 10px 'Montserrat', sans-serif; text-transform: uppercase; }
+.event-copy h2 { margin: 0 0 9px; color: var(--white); font: 800 clamp(17px, 2vw, 25px)/.98 'Montserrat', sans-serif; text-transform: uppercase; }
+.event-copy h2 em { color: var(--lime-soft); }
+.event-copy span { display: block; color: var(--white); font: 500 clamp(9px, 1vw, 12px)/1.35 'Montserrat', sans-serif; }
+
+@media (max-width: 800px) {
+	.event-copy { max-width: 70%; padding-top: 18px; }
+	.event-copy h2 { font-size: 19px; }
+	.event-register-button { bottom: 14px; left: 14px; }
+}
+
+@media (max-width: 430px) {
+	.event-copy { max-width: 76%; padding: 14px 12px 0; }
+	.event-copy p { font-size: 8px; }
+	.event-copy h2 { font-size: 16px; }
+	.event-copy span { font-size: 8px; }
+	.desktop-break { display: none; }
+}
+.social-icons a { width: 28px; height: 28px; color: var(--white); }
+.social-icons a:hover { transform: translateY(-2px); }
+.social-icons i { display: block; font-size: 14px; line-height: 1; }
+.social-panel { min-height: 178px; align-items: center; padding: 18px 14px; background: var(--white); border-color: rgba(255, 255, 255, .72); }
+.social-copy { color: var(--text-dark); z-index: 1; }
+.social-copy .eyebrow { color: var(--green-dark); }
+.social-copy h2 { color: var(--navy); font: 700 17px 'Montserrat', sans-serif; margin-bottom: 10px; }
+.social-icons { flex-direction: column; align-items: flex-start; gap: 5px; }
+.social-icons a { display: flex; align-items: center; width: 128px; min-width: 128px; height: 22px; justify-content: flex-start; gap: 7px; padding: 0 8px; border: 0; border-radius: 4px; background: var(--navy); color: var(--white); }
+.social-icons a span { display: inline-block; color: var(--white); font: 600 7px 'Montserrat', sans-serif; white-space: nowrap; }
+.social-icons i { font-size: 11px; }
+.phone { width: 68px; height: 116px; margin-right: 8%; margin-top: 0; transform: rotate(5deg); border: 2px solid var(--green); border-radius: 11px; background: var(--navy); padding: 12px 5px 5px; box-shadow: 0 3px 0 rgba(0, 168, 107, .2); }
+.phone::before { content: ''; position: absolute; top: 5px; left: 50%; width: 18px; height: 3px; transform: translateX(-50%); border-radius: 4px; background: #41606a; }
+.phone-screen { background: linear-gradient(160deg, var(--green) 0%, var(--navy) 42%); border-radius: 4px; color: var(--white); padding-top: 30px; font: 700 13px 'Montserrat', sans-serif; }
+.phone-screen small { color: var(--lime); font: 700 6px 'Montserrat', sans-serif; }
+.phone-screen img { display: block; width: 34px; height: auto; max-height: 38px; object-fit: contain; margin: 0 auto 5px; }
+.phone-screen span { display: block; color: var(--lime); text-align: center; font: 700 6px 'Montserrat', sans-serif; }
+
+/* Navbar inspirado en la referencia: marca libre y navegación en cápsula. */
+.site-header {
+	height: 84px;
+	padding: 0 max(36px, calc((100% - 1180px) / 2));
+	background: transparent;
+	border-bottom: 0;
+	gap: 24px;
+}
+
+.site-header .brand {
+	min-width: 170px;
+}
+
+.site-header .brand-logo {
+	width: 42px;
+	height: 42px;
+}
+
+.site-header .brand span:last-child {
+	color: var(--white);
+	font-size: 8px;
+}
+
+.site-header .main-nav {
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	height: 42px;
+	padding: 0 22px;
+	gap: 25px;
+	background: var(--white);
+	border-radius: 9px;
+	box-shadow: 0 8px 20px rgba(0, 20, 35, .16);
+}
+
+.site-header .main-nav a {
+	height: 100%;
+	color: var(--text-dark);
+	font-size: 10px;
+	font-weight: 700;
+	border-bottom: 3px solid transparent;
+}
+
+.site-header .main-nav a:hover,
+.site-header .main-nav a.active {
+	color: var(--text-dark);
+	border-color: var(--lime);
+}
+
+.site-header .header-actions {
+	gap: 4px;
+	margin-left: auto;
+}
+
+.site-header .icon-button {
+	color: var(--white);
+	border-radius: 50%;
+}
+
+.site-header .icon-button:hover {
+	color: var(--lime);
+	background: rgba(255, 255, 255, .08);
+}
+
+@media (max-width: 800px) {
+	.site-header {
+		height: 72px;
+		padding: 0 18px;
+	}
+
+	.site-header .brand-logo {
+		width: 36px;
+		height: 36px;
+	}
+
+	.site-header .main-nav {
+	position: absolute;
+	left: 0;
+	transform: none;
+		top: 66px;
+		height: auto;
+		padding: 10px 18px;
+		background: var(--white);
+		border-radius: 12px;
+	}
+
+	.site-header .main-nav a {
+		height: 36px;
+	}
+}
