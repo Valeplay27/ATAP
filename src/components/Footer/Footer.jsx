@@ -1,32 +1,33 @@
+import { NavLink } from 'react-router-dom'
 import './Footer.css'
 
 export default function Footer() {
   return (
     <footer className="site-footer">
       <div className="footer-brand">
-        <a className="brand" href="#inicio">
+        <NavLink className="brand" to="/">
           <img className="brand-logo" src="/assets/logo.png" alt="" />
           <span>
             <strong>ASOCIACIÓN DE</strong>
             <strong>TENISTAS AMATEUR</strong>
             <strong>DEL PERÚ</strong>
           </span>
-        </a>
+        </NavLink>
         <p>Impulsamos el tenis peruano y formamos jugadores preparados para competir.</p>
       </div>
       <div>
         <h3>Enlaces rápidos</h3>
-        <a href="#inicio">Inicio</a>
-        <a href="#torneos">Torneos</a>
-        <a href="#jugadores">Jugadores</a>
-        <a href="#ranking">Ranking</a>
+        <NavLink to="/">Inicio</NavLink>
+        <NavLink to="/torneos">Torneos</NavLink>
+        <NavLink to="/jugadores">Jugadores</NavLink>
+        <NavLink to="/ranking">Ranking</NavLink>
       </div>
       <div>
         <h3>Información</h3>
-        <a href="#nosotros">Sobre nosotros</a>
-        <a href="#reglamento">Reglamento</a>
-        <a href="#contacto">Contacto</a>
-        <a href="#prensa">Prensa</a>
+        <NavLink to="/comunidad">Sobre nosotros</NavLink>
+        <NavLink to="/comunidad">Reglamento</NavLink>
+        <NavLink to="/contacto">Contacto</NavLink>
+        <NavLink to="/comunidad">Prensa</NavLink>
       </div>
       <div>
         <h3>Contáctanos</h3>

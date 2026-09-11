@@ -1,25 +1,25 @@
 :root {
   /* FONDO GENERAL */
-  --bg-main: #001C2D;
+  --bg-main: #BFF7D8;
 
   /* CARDS */
-  --bg-card: #001827;
-  --bg-card-blue: #00304A;
-  --bg-card-secondary: #00283D;
+  --bg-card: #FFFFFF;
+  --bg-card-blue: #29005C;
+  --bg-card-secondary: #F1FFF8;
 
   /* VERDES */
-  --green: #00A86B;
-  --green-dark: #063B35;
+  --green: #00D99B;
+  --green-dark: #29005C;
 
   /* ACCENTO */
-  --lime: #C6FF00;
-  --lime-soft: #A8F34A;
+  --lime: #C9FF00;
+  --lime-soft: #8EF0B6;
 
   /* TEXTOS */
   --white: #FFFFFF;
-  --text-light: #D5E0E5;
-  --text-muted: #8FA5B0;
+  --text-light: #29005C;
+  --text-muted: #5F5171;
 
   /* BORDES */
-  --border-green: rgba(0, 168, 107, 0.65);
+  --border-green: rgba(41, 0, 92, 0.16);
 }

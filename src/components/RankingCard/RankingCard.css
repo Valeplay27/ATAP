@@ -1,7 +1,130 @@
-.ranking-card { display: flex; align-items: center; gap: 8px; min-height: 59px; background: #002033; border-radius: 3px; overflow: hidden; position: relative; padding-right: 32px; }
-.ranking-card img { width: 54px; height: 54px; object-fit: cover; border-radius: 50%; margin-left: 8px; }
-.ranking-position { display: flex; align-items: center; gap: 3px; color: var(--lime); font: 700 10px 'Montserrat', sans-serif; min-width: 27px; }
-.ranking-info { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
-.ranking-info h3 { font: 600 12px 'Montserrat', sans-serif; margin: 0; }
-.ranking-info small { color: var(--text-light); font: 8px 'Montserrat', sans-serif; }
-.ranking-info small:last-child { color: var(--green); font-weight: 700; }
+.ranking-card {
+	display: grid;
+	grid-template-columns: 36px 68px 42px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 10px;
+	min-height: 82px;
+	padding: 10px 16px 10px 8px;
+	background: #FFFFFF;
+	border-bottom: 2px solid #D9C6E3;
+	color: #29005C;
+}
+
+.ranking-card:first-child {
+	border-radius: 12px 12px 0 0;
+}
+
+.ranking-card:last-child {
+	border-bottom: 0;
+	border-radius: 0 0 12px 12px;
+}
+
+.ranking-card img {
+	width: 68px;
+	height: 68px;
+	object-fit: cover;
+	border-radius: 10px;
+	background: #00D99B;
+}
+
+.ranking-position {
+	color: #29005C;
+	font: 700 25px/.9 'Barlow Condensed', sans-serif;
+	text-align: center;
+}
+
+.ranking-favorite {
+	display: grid;
+	width: 38px;
+	height: 38px;
+	place-items: center;
+	border: 1px solid #DED5E5;
+	border-radius: 50%;
+	color: #29005C;
+	background: #F4F0F6;
+}
+
+.ranking-favorite:hover {
+	color: #FFFFFF;
+	background: #29005C;
+}
+
+.ranking-info {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	justify-content: center;
+	gap: 6px;
+}
+
+.ranking-info h3 {
+	overflow: hidden;
+	margin: 0;
+	color: #29005C;
+	font: 700 17px/1.1 'Montserrat', sans-serif;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ranking-info small {
+	color: #5F5171;
+	font: 500 12px 'Montserrat', sans-serif;
+}
+
+.ranking-country {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.country-flag {
+	display: inline-block;
+	width: 24px;
+	height: 15px;
+	border: 1px solid rgba(41, 0, 92, .12);
+	border-radius: 2px;
+	background: linear-gradient(
+		90deg,
+		#D91023 0 33.33%,
+		#FFFFFF 33.33% 66.66%,
+		#D91023 66.66% 100%
+	);
+	box-shadow: 0 1px 2px rgba(41, 0, 92, .12);
+}
+
+.country-code {
+	color: #5F5171;
+}
+
+.ranking-points {
+	color: #29005C;
+	font: 700 28px/.9 'Barlow Condensed', sans-serif;
+	white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+	.ranking-card {
+		grid-template-columns: 26px 52px 34px minmax(0, 1fr);
+		gap: 7px;
+		padding-right: 10px;
+	}
+
+	.ranking-card img {
+		width: 52px;
+		height: 52px;
+	}
+
+	.ranking-favorite {
+		width: 32px;
+		height: 32px;
+	}
+
+	.ranking-points {
+		grid-column: 4;
+		font-size: 19px;
+	}
+
+	.ranking-info h3 {
+		font-size: 13px;
+	}
+}

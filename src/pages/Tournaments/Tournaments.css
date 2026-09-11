@@ -1,0 +1,117 @@
+.tournaments-page {
+  max-width: none;
+  padding: 34px 20px 72px;
+  background: #00E599;
+}
+
+.tournaments-content-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 26px 20px 30px;
+  border-radius: 28px;
+  background: #FFFFFF;
+}
+
+.tournaments-page .page-heading {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 12px 0 30px;
+}
+
+.tournaments-page .page-heading h1 {
+  color: #29005C;
+}
+
+.tournaments-page .page-heading > p:last-child {
+  color: #29005C;
+}
+
+.tournaments-wrapper {
+  margin: 0 auto;
+  padding: 18px 0 0;
+  border-radius: 20px;
+  background: #FFFFFF;
+}
+
+.tournaments-page-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tournament-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tournaments-page-list .tournament-card {
+  min-height: 180px;
+  flex-direction: column;
+  background: #29005C;
+  color: #FFFFFF;
+  border: 0;
+  box-shadow: 0 8px 18px rgba(41, 0, 92, .16);
+}
+
+.tournaments-page-list .tournament-card img {
+  width: 100%;
+  height: 118px;
+}
+
+.tournaments-page-list .tournament-info {
+  min-height: 86px;
+  padding: 12px 42px 12px 14px;
+}
+
+.tournaments-page-list .tournament-info h3 {
+  font-size: 17px;
+  color: #FFFFFF;
+}
+
+.tournaments-page-list .tournament-info small {
+  font-size: 10px;
+  color: #E9DFFF;
+}
+
+.tournaments-page-list .tag {
+  background: #C9FF00;
+  color: #29005C;
+}
+
+.tournaments-page-list .round-arrow {
+  border-color: #8EF0B6;
+  color: #C9FF00;
+}
+
+.tournaments-page-list .round-arrow {
+  top: auto;
+  right: 14px;
+  bottom: 14px;
+}
+
+
+@media (max-width: 650px) {
+  .tournaments-page {
+    padding: 18px 12px 48px;
+  }
+
+  .tournaments-content-shell {
+    padding: 18px 12px 22px;
+    border-radius: 20px;
+  }
+
+  .tournaments-page .page-heading {
+    padding: 10px 8px 26px;
+  }
+
+  .tournaments-wrapper {
+    padding: 10px 0 0;
+    border-radius: 16px;
+  }
+
+  .tournaments-page-list {
+    grid-template-columns: 1fr;
+  }
+}
