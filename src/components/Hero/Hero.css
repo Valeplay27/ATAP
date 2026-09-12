@@ -1,5 +1,6 @@
 .hero.hero {
   position: relative;
+  display: flex;
   width: min(1180px, calc(100% - 28px));
   height: clamp(360px, 34vw, 500px);
   min-height: 0;
@@ -8,6 +9,23 @@
   overflow: hidden;
   border-radius: 26px;
   align-items: flex-end;
+}
+
+.hero .hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.hero .play {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 9px;
+  padding-left: 2px;
 }
 
 .hero .hero-image {
@@ -63,7 +81,11 @@
 }
 
 .hero .watch-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   color: #FFFFFF;
+  font-size: 11px;
 }
 
 .hero-dots {

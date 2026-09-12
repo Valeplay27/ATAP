@@ -123,19 +123,17 @@ function InformationSection() {
 }
 
 function SponsorsSection() {
+	const partners = ['GemLab', 'Tennis Merits', 'Puerto Norte', 'Bordiani', 'noi', 'Up Beast', 'Head']
+
 	return (
 		<section className="sponsors-card panel">
 			<p className="sponsor-kicker">Main sponsor</p>
 			<img className="platino-logo" src="/assets/Logo%20Platino.png" alt="Platino Perú" />
 			<p className="sponsor-kicker">Partners and suppliers</p>
 			<div className="sponsor-list">
-				<strong>◈ GemLab</strong>
-				<strong>TENNIS MERITS</strong>
-				<strong>PUERTO NORTE</strong>
-				<strong>◉ BORDIANI</strong>
-				<strong>noi</strong>
-				<strong>UP BEAST</strong>
-				<strong>HEAD</strong>
+				{partners.map((partner) => (
+					<strong key={partner}>{partner}</strong>
+				))}
 			</div>
 		</section>
 	)

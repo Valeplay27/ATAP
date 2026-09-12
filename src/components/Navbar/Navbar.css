@@ -7,6 +7,7 @@
 	width: min(1180px, calc(100% - 28px));
 	align-items: center;
 	margin: 0 auto;
+	justify-content: space-between;
 	padding: 24px 0;
 	height: 104px;
     border: none;
@@ -14,18 +15,16 @@
 }
 
 .navbar-surface {
-    display: flex;
-	position: static;
-	flex: 0 1 760px;
-	width: min(760px, calc(100% - 188px));
-    height: 52px; /* Cambia este valor a uno más pequeño como 52px o 48px */
-	margin-left: auto;
-	transform: none;
+   display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
-	gap: 16px;
-	padding: 0 22px;
-    border-radius: 26px; /* Ajusta la mitad de la altura para mantener la forma de píldora */
+    position: relative;
+    width: min(760px, calc(100% - 188px));
+    height: 52px; 
+    margin-left: auto;
+    transform: none;
+    padding: 0 22px;
+    border-radius: 26px; 
     background: #FFFFFF;
     box-shadow: 0 8px 24px rgba(41, 0, 92, .08);
 }
@@ -42,26 +41,39 @@
 .navbar-pill .brand-logo {
 	width: 38px;
 	height: 38px;
-	filter: brightness(0) invert(1) !important;
+	filter: brightness(0) invert(1);
 }
 
 .navbar-pill .brand span:last-child {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
 	color: #063B78;
-	color: #FFFFFF;
-	font-size: 8px;
+	font-family: 'General Sans', Arial, Helvetica, sans-serif;
+	font-size: 9px;
+	font-weight: 800;
+	line-height: 1.05;
+	letter-spacing: .02em;
+	white-space: nowrap;
+}
+
+.navbar-pill .brand span:last-child strong {
+	display: block;
+	font: inherit;
 }
 
 .navbar-pill .main-nav {
-	position: static;
-	display: flex;
-	height: 100%;
-	align-items: center;
-	justify-content: center;
-	gap: clamp(12px, 1.8vw, 24px);
-	padding: 0;
-	background: transparent;
-	box-shadow: none;
-	flex: 1;
+	grid-column: 2;
+    position: static;
+    transform: none;
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(12px, 1.8vw, 24px);
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .navbar-pill .main-nav a {
@@ -70,15 +82,17 @@
 	align-items: center;
 	justify-content: center;
 	color: #29005C;
-	font-size: 30px;
-	font-weight: 800;
-	letter-spacing: .01em;
+	font-family: 'DM Sans', Arial, Helvetica, sans-serif;
+	font-size: 14px;
+	font-weight: 700;
+	letter-spacing: 0;
 	border-bottom: 0;
 	text-decoration: none;
+	white-space: nowrap;
 }
 
 .navbar-pill .main-nav .nav-link {
-	font-size: 13px;
+	font-size: 14px;
 }
 
 .navbar-pill .main-nav a.active {
@@ -95,20 +109,35 @@
 }
 
 .navbar-pill .header-actions {
-	gap: 4px;
+	grid-column: 3;
+	justify-self: end;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	min-width: 64px;
 	flex-shrink: 0;
-	justify-content: flex-end;
 }
 
 .navbar-pill .icon-button {
-	color: #29005C;
+	display: grid;
+	width: 36px;
+	height: 36px;
+	place-items: center;
+	border: 1px solid rgba(41, 0, 92, .14);
 	border-radius: 50%;
+	background: #F4F0F6;
+	color: #29005C;
+	transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.navbar-pill .icon-button.menu-toggle {
+	display: none;
 }
 
 .navbar-pill .icon-button:hover {
-	color: var(--lime);
-	background: rgba(255, 255, 255, .08);
+	background: #29005C;
+	border-color: #29005C;
+	color: #FFFFFF;
 }
 
 @media (max-width: 800px) {
@@ -128,6 +157,10 @@
 		transform: none;
 		padding: 0 16px;
 		border-radius: 24px;
+	}
+
+	.navbar-pill .icon-button.menu-toggle {
+		display: grid;
 	}
 
 	.navbar-pill .brand-logo {

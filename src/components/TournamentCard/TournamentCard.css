@@ -1,1 +1,45 @@
-.tournament-card img { display: block; }
+.tournament-card {
+	display: flex;
+	position: relative;
+	min-height: 59px;
+	overflow: hidden;
+	background: #FFFFFF;
+	color: #29005C;
+	border-radius: 12px;
+	box-shadow: 0 8px 18px rgba(41, 0, 92, .08);
+}
+
+.tournament-card img { display: block; width: 83px; object-fit: cover; }
+
+.tournament-info {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 2px;
+	padding: 6px 8px;
+}
+
+.tournament-info h3 { margin: 0; font: 600 12px 'Barlow Condensed', sans-serif; }
+.tournament-info small { display: flex; align-items: center; gap: 4px; color: #6E6479; font-size: 7px; }
+
+.tag {
+	width: fit-content;
+	padding: 2px 5px;
+	background: #C9FF00;
+	color: #29005C;
+	border-radius: 2px;
+	font: 600 7px 'DM Sans', sans-serif;
+}
+
+.round-arrow {
+	position: absolute;
+	top: 21px;
+	right: 10px;
+	display: grid;
+	width: 17px;
+	height: 17px;
+	place-items: center;
+	border: 1px solid #29005C;
+	border-radius: 50%;
+	color: #29005C;
+}

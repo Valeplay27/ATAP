@@ -11,6 +11,7 @@ import Tournaments from './pages/Tournaments/Tournaments'
 
 function SiteLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [usuarioAutenticado, setUsuarioAutenticado] = useState(false)
 
   return (
     <>

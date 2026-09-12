@@ -22,4 +22,14 @@
 
   /* BORDES */
   --border-green: rgba(41, 0, 92, 0.16);
+
+  /* Heredadas de componentes que aun usan la paleta original */
+  --green-primary: #063B35;
+  --green-secondary: #0F7655;
+  --green-logo: #00A86B;
+  --navy: #0A263D;
+  --blue-secondary: #0A3D62;
+  --cream: #F7F5EA;
+  --text-dark: #17201E;
+  --muted: #687280;
 }
