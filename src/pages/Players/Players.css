@@ -1,0 +1,494 @@
+/* ============================================================
+   PÁGINA DE JUGADORES - ESTILO OFICIAL ATAP / WTA PRO CARDS
+   Referencia visual: media_1789321996820.png
+   ============================================================ */
+
+/* Tarjeta de usuario registrado */
+.players-my-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 20px 26px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(41, 0, 92, 0.08);
+  flex-wrap: wrap;
+}
+
+.players-my-card-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.players-my-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #063B78, #29005C);
+  color: #00E599;
+  font-size: 22px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  border: 3px solid #00E599;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.players-my-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.players-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  color: #009865;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+}
+
+.players-my-card h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 24px;
+  color: #063B78;
+  margin: 2px 0 4px;
+}
+
+.players-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.player-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #00E599;
+  color: #063B78;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.player-subbadge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #F4F0F6;
+  color: #29005C;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------
+   Barra de herramientas (FILTER y SEARCH)
+   ------------------------------------------------------------ */
+.players-toolbar-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.players-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 20px;
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.players-filter-btn:hover {
+  border-color: #00E599;
+  color: #009865;
+  background: #F6FDF9;
+}
+
+.players-filter-btn.active {
+  border-color: #00E599;
+  background: #E8FCF4;
+  color: #00875A;
+}
+
+.players-category-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-chip {
+  padding: 5px 12px;
+  border-radius: 14px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-chip:hover {
+  border-color: #00E599;
+  background: #F0FDF8;
+}
+
+.filter-chip.active {
+  background: #00E599;
+  color: #063B78;
+  border-color: #00E599;
+  font-weight: 800;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.players-search-circle-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #063B78;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.players-search-circle-btn:hover {
+  border-color: #00E599;
+  color: #009865;
+  transform: scale(1.05);
+}
+
+.players-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 20px;
+  border: 1.5px solid #00E599;
+  background: #FFFFFF;
+  box-shadow: 0 2px 10px rgba(0, 229, 153, 0.15);
+  animation: searchExpand 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes searchExpand {
+  from {
+    width: 38px;
+    opacity: 0;
+  }
+  to {
+    width: 220px;
+    opacity: 1;
+  }
+}
+
+.players-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #063B78;
+  width: 140px;
+}
+
+.search-icon {
+  color: #009865;
+  flex-shrink: 0;
+}
+
+.search-close-btn {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.search-close-btn:hover {
+  color: #063B78;
+}
+
+/* ------------------------------------------------------------
+   Grilla de 4 Columnas: Tarjetas Pro (media_1789321996820.png)
+   ------------------------------------------------------------ */
+.players-pro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+.player-pro-card {
+  background: #FFFFFF;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  box-shadow: 0 10px 28px rgba(41, 0, 92, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.player-pro-card:hover {
+  transform: translateY(-6px);
+  border-color: #00E599;
+  box-shadow: 0 18px 36px rgba(0, 229, 153, 0.2);
+}
+
+/* Tarjeta destacada con borde verde flúor (como Card 2 en la imagen) */
+.player-pro-card.is-highlighted {
+  border: 2.5px solid #00E599;
+  box-shadow: 0 12px 32px rgba(0, 229, 153, 0.25);
+}
+
+/* Banner superior morado oscuro (#1F033D) */
+.player-pro-banner {
+  position: relative;
+  background: linear-gradient(180deg, #250449 0%, #16022B 100%);
+  border-radius: 18px 18px 0 0;
+  height: 215px;
+  overflow: hidden;
+  margin: 6px 6px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Bloque RANK + Número en verde flúor */
+.player-pro-rank-block {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  z-index: 3;
+}
+
+.player-rank-label {
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.player-rank-num {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-size: 44px;
+  font-weight: 900;
+  color: #00E599;
+  line-height: 0.88;
+}
+
+/* Botón Favorito estrella */
+.player-fav-star-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.player-fav-star-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.1);
+}
+
+.player-fav-star-btn.is-fav {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: #FFD700;
+}
+
+/* Foto del jugador centrada */
+.player-pro-photo-wrap {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 165px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 2;
+}
+
+.player-pro-photo {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+}
+
+/* Franja inferior con puntos */
+.player-pro-points-strip {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  background: rgba(10, 1, 20, 0.94);
+  padding: 7px 0;
+  text-align: center;
+}
+
+.player-pro-points-strip span {
+  font-family: 'General Sans', Arial, sans-serif;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Footer con Nombre y Bandera */
+.player-pro-footer {
+  padding: 16px 14px 18px;
+  text-align: center;
+  background: #FFFFFF;
+}
+
+.player-pro-name {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #063B78;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.player-pro-country-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5F7180;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.country-flag {
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------
+   Diseño Responsivo
+   ------------------------------------------------------------ */
+@media (max-width: 1120px) {
+  .players-pro-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 820px) {
+  .players-pro-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .players-my-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .players-pro-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .players-toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+  }
+
+  .players-filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .players-search-circle-btn {
+    width: 100%;
+    border-radius: 20px;
+  }
+
+  .players-search-box {
+    width: 100% !important;
+  }
+
+  .players-search-box input {
+    width: 100%;
+  }
+}

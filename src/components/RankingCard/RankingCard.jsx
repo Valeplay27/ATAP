@@ -5,7 +5,14 @@ export default function RankingCard({ player }) {
   return (
     <article className="ranking-card">
       <div className="ranking-position">{player.position}</div>
-      <img src={player.image} alt={player.name} />
+      <img
+        src={player.image}
+        alt={player.name}
+        onError={(e) => {
+          e.target.onerror = null
+          e.target.src = '/assets/logo.png'
+        }}
+      />
       <a
         className="ranking-favorite"
         href="#ranking"

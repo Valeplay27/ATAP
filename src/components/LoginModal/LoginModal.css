@@ -127,14 +127,33 @@
   color: #91A4AC;
 }
 
-.login-forgot {
+.login-error-message {
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: #FFE4E6;
+  border: 1px solid #FDA4AF;
+  color: #BE123C;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.login-forgot,
+.login-forgot-button {
   justify-self: end;
   margin: 3px 0 10px;
+  background: none;
+  border: none;
+  padding: 0;
   color: #00E599;
   font: 700 11px 'General Sans', Arial, sans-serif;
+  cursor: pointer;
 }
 
 .login-forgot:hover,
+.login-forgot-button:hover,
 .login-register a:hover {
   color: #063B78;
   text-decoration: underline;
@@ -153,11 +172,18 @@
   color: #FFFFFF;
   cursor: pointer;
   font: 800 13px 'General Sans', Arial, sans-serif;
+  transition: all .2s ease;
 }
 
-.login-submit:hover {
+.login-submit:hover:not(:disabled) {
   background: #00E599;
   color: #063B78;
+}
+
+.login-submit:disabled,
+.login-socials button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .login-divider {

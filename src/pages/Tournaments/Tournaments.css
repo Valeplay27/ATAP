@@ -33,85 +33,302 @@
   background: #FFFFFF;
 }
 
+/* WTA-STYLE CARDS GRID */
 .tournaments-page-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 290px));
+  gap: 28px;
+  justify-content: flex-start;
 }
 
-.tournament-card {
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+@media (max-width: 640px) {
+  .tournaments-page-list {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
 }
 
-.tournaments-page-list .tournament-card {
-  min-height: 180px;
+/* WTA CARD WRAPPER */
+.wta-tourney-card-wrap {
+  display: flex;
   flex-direction: column;
-  background: #29005C;
-  color: #FFFFFF;
-  border: 0;
-  box-shadow: 0 8px 18px rgba(41, 0, 92, .16);
+  gap: 12px;
 }
 
-.tournaments-page-list .tournament-card img {
+/* WTA TOURNAMENT POSTER */
+.wta-tourney-poster {
+  position: relative;
   width: 100%;
-  height: 118px;
+  aspect-ratio: 4 / 5.2;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #180036;
+  box-shadow: 0 12px 28px rgba(41, 0, 92, 0.18);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+  box-sizing: border-box;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  border: 1.5px solid rgba(41, 0, 92, 0.08);
 }
 
-.tournaments-page-list .tournament-info {
-  min-height: 86px;
-  padding: 12px 42px 12px 14px;
+.wta-tourney-poster:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 38px rgba(41, 0, 92, 0.32);
+  border-color: rgba(0, 229, 153, 0.5);
 }
 
-.tournaments-page-list .tournament-info h3 {
-  font-size: 17px;
-  color: #FFFFFF;
+/* POSTER BACKGROUND IMAGE */
+.wta-poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transition: transform 0.4s ease;
 }
 
-.tournaments-page-list .tournament-info small {
-  font-size: 10px;
-  color: #E9DFFF;
+.wta-tourney-poster:hover .wta-poster-img {
+  transform: scale(1.05);
 }
 
-.tournaments-page-list .tag {
-  background: #C9FF00;
+/* DARK GRADIENT OVERLAY FOR MAXIMUM LEGIBILITY */
+.wta-poster-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 2, 26, 0.45) 0%,
+    rgba(10, 2, 26, 0.12) 30%,
+    rgba(10, 2, 26, 0.65) 60%,
+    rgba(10, 2, 26, 0.96) 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* TOP BADGES ROW */
+.wta-poster-top-row {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wta-status-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.wta-status-badge.in-progress {
+  background: #FFFFFF;
   color: #29005C;
 }
 
-.tournaments-page-list .round-arrow {
-  border-color: #8EF0B6;
-  color: #C9FF00;
+.wta-status-badge.upcoming {
+  background: #FFFFFF;
+  color: #063B78;
 }
 
-.tournaments-page-list .round-arrow {
-  top: auto;
-  right: 14px;
-  bottom: 14px;
+.wta-price-badge-top {
+  background: rgba(6, 59, 120, 0.9);
+  backdrop-filter: blur(4px);
+  color: #00E599;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 229, 153, 0.4);
 }
 
+/* BOTTOM OVERLAY INFO */
+.wta-poster-bottom-info {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+}
 
-@media (max-width: 650px) {
-  .tournaments-page {
-    padding: 18px 12px 48px;
-  }
+.wta-date-pill {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  width: fit-content;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
 
-  .tournaments-content-shell {
-    padding: 18px 12px 22px;
-    border-radius: 20px;
-  }
+.wta-tourney-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  line-height: 1.1;
+  margin: 0 0 4px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.3px;
+}
 
-  .tournaments-page .page-heading {
-    padding: 10px 8px 26px;
-  }
+.wta-tourney-place {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #D5CEE4;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+}
 
-  .tournaments-wrapper {
-    padding: 10px 0 0;
-    border-radius: 16px;
-  }
+/* FOOTER ROW INSIDE POSTER */
+.wta-poster-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
 
-  .tournaments-page-list {
-    grid-template-columns: 1fr;
-  }
+.wta-surface-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.wta-level-badge {
+  background: #C9FF00;
+  color: #29005C;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ACTION BUTTONS BELOW POSTER */
+.wta-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-wta-register {
+  flex: 1;
+  background: #00E599;
+  color: #022013;
+  border: none;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 229, 153, 0.25);
+  text-align: center;
+}
+
+.btn-wta-register:hover {
+  background: #00ffaa;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 229, 153, 0.4);
+}
+
+.btn-wta-bracket {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #29005C;
+  border: none;
+  color: #00E599;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-wta-bracket:hover {
+  background: #3B0082;
+  color: #FFFFFF;
+}
+
+/* EMPTY STATE */
+.tourneys-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #29005C;
+}
+
+.tourneys-empty-state h3 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 24px;
+  margin: 12px 0 6px 0;
+}
+
+.tourneys-empty-state p {
+  font-size: 14px;
+  color: #6C5F80;
+  margin: 0;
+}
+
+/* BRACKET MODAL FULL */
+.tourney-bracket-modal-card {
+  width: 100%;
+  max-width: 960px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 20px 45px rgba(6, 59, 120, 0.25);
+  color: #29005C;
+}
+
+.bracket-modal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid #F0ECF6;
+}
+
+.bracket-modal-top h2 {
+  margin: 2px 0 0 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 26px;
+  color: #29005C;
 }

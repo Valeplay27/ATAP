@@ -1,33 +1,46 @@
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import Hero from '../../components/Hero/Hero'
 import QuickNav from '../../components/QuickNav/QuickNav'
 import RankingCard from '../../components/RankingCard/RankingCard'
-import { rankingPlayers } from '../../data/ranking'
+import { getRanking, getSiteImages } from '../../services/atapStorage'
 import './Home.css'
 
-function SignupPanel() {
+function SignupPanel({ onOpenRegister, eventImage }) {
 	return (
 		<article className="signup-panel information-panel panel">
 			<img
 				className="event-image"
-				src="/assets/Evento.png"
+				src={eventImage || '/assets/Evento.png'}
 				alt="Cancha de tenis preparada para un evento"
 			/>
+			<div className="event-overlay" />
 			<div className="event-copy">
-				<p>Regístrate ahora</p>
+				<p className="event-kicker">Regístrate ahora</p>
 				<h2>
 					Inscripciones abiertas
 					<br />
 					<em>torneos de tenis</em>
 				</h2>
-				<span>
+				<span className="event-desc">
 					Participa en nuestros torneos y demuestra
 					<br className="desktop-break" /> tu talento en la cancha.
 				</span>
+				{onOpenRegister ? (
+					<button
+						type="button"
+						className="button button-lime event-register-button"
+						onClick={onOpenRegister}
+					>
+						Registrarse <ArrowRight size={15} />
+					</button>
+				) : (
+					<a href="#registro" className="button button-lime event-register-button">
+						Registrarse <ArrowRight size={15} />
+					</a>
+				)}
 			</div>
-			<a href="#registro" className="button button-lime event-register-button">
-				Registrarse <ArrowRight size={15} />
-			</a>
 		</article>
 	)
 }
@@ -36,48 +49,104 @@ function SocialPanel() {
 	return (
 		<article className="social-panel panel">
 			<div className="social-copy">
-				<p className="eyebrow">Síguenos en redes</p>
-				<h2>Todo el tenis, en un solo lugar.</h2>
+				<p className="eyebrow">
+					<span className="eyebrow-accent">//</span> SÍGUENOS EN REDES
+				</p>
+				<h2>
+					Todo el tenis,
+					<br />
+					en un solo lugar.
+				</h2>
+				<p className="social-subtext">
+					Mantente al día con los torneos, resultados, noticias y mucho más. ¡Sé parte de nuestra comunidad!
+				</p>
 				<div className="social-icons">
-					<a href="#facebook" aria-label="Facebook">
-						<i className="fi fi-brands-facebook" />
-						<span>Facebook ATAP</span>
+					<a
+						href="https://facebook.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="social-btn"
+						aria-label="Facebook"
+					>
+						<span className="social-btn-icon">
+							<i className="fi fi-brands-facebook" />
+						</span>
+						<span className="social-btn-label">Facebook</span>
 					</a>
-					<a href="#twitter" aria-label="Twitter">
-						<i className="fi fi-brands-twitter" />
-						<span>Twitter ATAP</span>
+					<a
+						href="https://twitter.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="social-btn"
+						aria-label="Twitter / X"
+					>
+						<span className="social-btn-icon">
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+								<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+							</svg>
+						</span>
+						<span className="social-btn-label">Twitter / X</span>
 					</a>
-					<a href="#instagram" aria-label="Instagram">
-						<i className="fi fi-brands-instagram" />
-						<span>Instagram ATAP</span>
+					<a
+						href="https://instagram.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="social-btn"
+						aria-label="Instagram"
+					>
+						<span className="social-btn-icon">
+							<i className="fi fi-brands-instagram" />
+						</span>
+						<span className="social-btn-label">Instagram</span>
 					</a>
-					<a href="#youtube" aria-label="Youtube">
-						<i className="fi fi-brands-youtube" />
-						<span>YouTube ATAP</span>
+					<a
+						href="https://youtube.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="social-btn"
+						aria-label="YouTube"
+					>
+						<span className="social-btn-icon">
+							<i className="fi fi-brands-youtube" />
+						</span>
+						<span className="social-btn-label">YouTube</span>
 					</a>
 				</div>
 			</div>
-			<div className="phone">
-				<div className="phone-screen">
-					<img src="/assets/logo.png" alt="ATAP" />
-					<span>TORNEOS</span>
-				</div>
+			<div className="social-artwork">
+				<img
+					src="public/assets/redes.png"
+					alt="ATAP en Redes Sociales"
+					className="social-artwork-img"
+				/>
 			</div>
 		</article>
 	)
 }
 
-function RankingSection() {
+function RankingSection({ players = [] }) {
+	// En el inicio mostramos las 4 primeras promesas para un equilibrio estético perfecto con las tarjetas de la izquierda
+	const featuredPlayers = players.slice(0, 4)
+
 	return (
 		<section className="tournaments ranking-section panel" id="ranking">
-			<div className="ranking-heading">
-				<p>Jugadores destacados</p>
-				<h2>Promesas ATAP</h2>
+			<div className="ranking-heading-row">
+				<div className="ranking-heading">
+					<p>Jugadores destacados</p>
+					<h2>Promesas ATAP</h2>
+				</div>
+				<span className="ranking-top-badge">Top 4</span>
 			</div>
 			<div className="tournament-list">
-				{rankingPlayers.map((player) => (
-					<RankingCard player={player} key={player.position} />
+				{featuredPlayers.map((player) => (
+					<RankingCard player={player} key={player.id || player.position} />
 				))}
+			</div>
+			<div className="ranking-footer-row">
+				<Link to="/ranking" className="ranking-view-all-link">
+					<span>Ver ranking completo ({players.length} jugadores)</span>
+					<ArrowRight size={14} />
+				</Link>
 			</div>
 		</section>
 	)
@@ -122,13 +191,13 @@ function InformationSection() {
 	)
 }
 
-function SponsorsSection() {
+function SponsorsSection({ platinoLogo }) {
 	const partners = ['GemLab', 'Tennis Merits', 'Puerto Norte', 'Bordiani', 'noi', 'Up Beast', 'Head']
 
 	return (
 		<section className="sponsors-card panel">
 			<p className="sponsor-kicker">Main sponsor</p>
-			<img className="platino-logo" src="/assets/Logo%20Platino.png" alt="Platino Perú" />
+			<img className="platino-logo" src={platinoLogo || '/assets/Logo Platino.png'} alt="Platino Perú" />
 			<p className="sponsor-kicker">Partners and suppliers</p>
 			<div className="sponsor-list">
 				{partners.map((partner) => (
@@ -139,7 +208,19 @@ function SponsorsSection() {
 	)
 }
 
-export default function Home() {
+export default function Home({ onOpenRegister }) {
+	const [rankingList, setRankingList] = useState(() => getRanking())
+	const [siteImages, setSiteImages] = useState(() => getSiteImages())
+
+	useEffect(() => {
+		function handleUpdate() {
+			setRankingList(getRanking())
+			setSiteImages(getSiteImages())
+		}
+		window.addEventListener('atap_data_updated', handleUpdate)
+		return () => window.removeEventListener('atap_data_updated', handleUpdate)
+	}, [])
+
 	return (
 		<main>
 			<Hero />
@@ -147,12 +228,15 @@ export default function Home() {
 				<QuickNav />
 				<div className="content-grid">
 					<div className="left-column">
-						<SignupPanel />
+						<SignupPanel
+							onOpenRegister={onOpenRegister}
+							eventImage={siteImages.eventoBanner}
+						/>
 						<SocialPanel />
 					</div>
-					<RankingSection />
+					<RankingSection players={rankingList} />
 					<InformationSection />
-					<SponsorsSection />
+					<SponsorsSection platinoLogo={siteImages.logoPlatino} />
 				</div>
 			</div>
 		</main>

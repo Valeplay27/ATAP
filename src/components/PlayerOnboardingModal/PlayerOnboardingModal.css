@@ -1,0 +1,959 @@
+.onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(6, 26, 43, 0.78);
+  backdrop-filter: blur(5px);
+  overflow-y: auto;
+}
+
+.onboarding-modal {
+  position: relative;
+  width: min(100%, 430px);
+  max-height: 94vh;
+  padding: 24px 22px 28px;
+  border-radius: 26px;
+  background: #FFFFFF;
+  box-shadow: 0 24px 60px rgba(6, 26, 43, 0.35);
+  display: flex;
+  flex-direction: column;
+  color: #063B78;
+  overflow-y: auto;
+  animation: modalScaleIn 0.22s ease-out forwards;
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Barra superior */
+.onboarding-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 12px;
+  min-height: 32px;
+}
+
+.onboarding-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.onboarding-back-btn:hover {
+  background: #F4F0F6;
+  color: #00E599;
+}
+
+.onboarding-steps-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.onboarding-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  transition: all 0.2s ease;
+}
+
+.onboarding-step-dot.active {
+  width: 24px;
+  border-radius: 12px;
+  background: #00E599;
+}
+
+.onboarding-step-dot.completed {
+  background: #063B78;
+}
+
+.onboarding-close-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(6, 59, 120, 0.08);
+  color: #063B78;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.onboarding-close-btn:hover {
+  background: #063B78;
+  color: #FFFFFF;
+}
+
+/* Contenedor del paso */
+.onboarding-step-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+/* Cabecera de marca en Paso 1 */
+.onboarding-brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.onboarding-brand-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.onboarding-brand-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: #063B78;
+}
+
+.onboarding-step-icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+/* Títulos y subtítulos */
+.onboarding-title {
+  margin: 0 0 4px;
+  color: #063B78;
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.onboarding-title.welcome-title {
+  font-size: 34px;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+
+.onboarding-title .highlight-name {
+  color: #063B78;
+}
+
+.onboarding-subtitle {
+  margin: 0 0 20px;
+  color: #5F7180;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.onboarding-section-label {
+  align-self: flex-start;
+  margin: 8px 0 10px;
+  color: #17201E;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.onboarding-field-tag {
+  display: block;
+  width: 100%;
+  margin-bottom: 7px;
+  color: #687280;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.onboarding-block {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* Inputs píldora grises (como en imágenes 1 y 2) */
+.onboarding-form-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.onboarding-pill-input-wrap {
+  width: 100%;
+}
+
+.onboarding-pill-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 24px;
+  border: 1px solid transparent;
+  background: #C4D1DE;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.onboarding-pill-input::placeholder {
+  color: #4B637B;
+}
+
+.onboarding-pill-input:focus {
+  background: #FFFFFF;
+  border-color: #00E599;
+  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.2);
+}
+
+/* Selector de Género (Paso 2) */
+.onboarding-toggle-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.onboarding-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-toggle-btn .symbol {
+  font-size: 15px;
+}
+
+.onboarding-toggle-btn.selected {
+  border-color: #00E599;
+  background: #E8FCF4;
+  color: #009865;
+}
+
+/* Selector de Fecha de Nacimiento (Paso 2) */
+.onboarding-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.onboarding-date-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.onboarding-date-field input {
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  color: #063B78;
+  text-align: center;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.onboarding-date-field input:focus {
+  border-color: #00E599;
+  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.18);
+}
+
+.onboarding-date-field.date-year {
+  flex: 1.4;
+}
+
+.onboarding-date-field small {
+  margin-top: 4px;
+  color: #91A4AC;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.date-separator {
+  color: #D4E3E0;
+  font-size: 18px;
+  font-weight: 300;
+  margin-bottom: 16px;
+}
+
+/* Chips de Categoría (Paso 2) */
+.onboarding-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  width: 100%;
+}
+
+.onboarding-category-chip {
+  padding: 8px 14px;
+  border-radius: 18px;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-category-chip:hover {
+  border-color: #00E599;
+}
+
+.onboarding-category-chip.selected {
+  border-color: #00E599;
+  background: #00E599;
+  color: #063B78;
+  font-weight: 800;
+}
+
+/* Uploader de Avatar (Paso 3) */
+.onboarding-avatar-uploader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px 0 28px;
+}
+
+.onboarding-avatar-circle {
+  position: relative;
+  width: 136px;
+  height: 136px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 50%, #94A3B8 100%);
+  padding: 7px;
+  box-shadow: 0 10px 25px rgba(6, 38, 61, 0.14);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.onboarding-avatar-circle:hover {
+  transform: scale(1.03);
+}
+
+.avatar-preview-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-placeholder-content {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #0D223A;
+  display: grid;
+  place-items: center;
+}
+
+.avatar-placeholder-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 229, 153, 0.4));
+}
+
+.avatar-add-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #C9FF00;
+  border: 3px solid #FFFFFF;
+  color: #001827;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.onboarding-avatar-hint {
+  margin: 14px 0 0;
+  color: #5F7180;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.onboarding-avatar-hint:hover {
+  color: #063B78;
+  text-decoration: underline;
+}
+
+/* Perfil Físico (Paso 4) */
+.onboarding-phys-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.onboarding-phys-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-phys-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  border-radius: 14px;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  padding: 0 14px;
+}
+
+.onboarding-phys-box input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.phys-edit-icon {
+  color: #91A4AC;
+  flex-shrink: 0;
+}
+
+.onboarding-phys-box:focus-within {
+  border-color: #00E599;
+  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.18);
+}
+
+/* ============================================================
+   PASO 4: TU TRAYECTORIA (media_1789315732287.png)
+   ============================================================ */
+.onboarding-trajectory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.trajectory-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  border-radius: 16px;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.trajectory-card:hover {
+  border-color: #00E599;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 59, 120, 0.08);
+}
+
+.trajectory-card.selected {
+  border-color: #00E599;
+  background: #E8FCF4;
+  color: #009865;
+  box-shadow: 0 4px 14px rgba(0, 229, 153, 0.25);
+}
+
+.trajectory-trophy-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.trajectory-medal-svg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+/* Tarjetas de Golpes (Paso 5) */
+.onboarding-strokes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.stroke-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 84px;
+  padding: 8px 4px;
+  border-radius: 14px;
+  border: 1.5px solid #E2E8F0;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-sizing: border-box;
+}
+
+.stroke-card:hover {
+  border-color: #00E599;
+}
+
+.stroke-card.selected {
+  border-color: #00E599;
+  background: #E8FCF4;
+  box-shadow: 0 4px 12px rgba(0, 229, 153, 0.15);
+}
+
+.stroke-icon-wrap {
+  display: grid;
+  place-items: center;
+  color: #009865;
+}
+
+.stroke-svg {
+  width: 32px;
+  height: 32px;
+}
+
+.stroke-label {
+  color: #063B78;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+
+/* Preferencias (Paso 5) */
+.onboarding-zones-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  width: 100%;
+}
+
+.onboarding-zone-chip {
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-zone-chip.selected {
+  border-color: #00E599;
+  background: #E8FCF4;
+  color: #009865;
+}
+
+.onboarding-dominant-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.onboarding-dominant-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-dominant-btn.selected {
+  border-color: #00E599;
+  background: #E8FCF4;
+  color: #009865;
+}
+
+.onboarding-days-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 4px;
+}
+
+.onboarding-day-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #D4E3E0;
+  background: #FFFFFF;
+  color: #063B78;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-day-circle.selected {
+  border-color: #00E599;
+  background: #00E599;
+  color: #063B78;
+  font-weight: 800;
+}
+
+/* Botones principales de acción */
+.onboarding-submit-btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 10px;
+  border-radius: 24px;
+  border: none;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+/* Botón Dark Navy (como en pasos 1 y 2) */
+.onboarding-submit-btn.navy-btn {
+  background: #152238;
+  color: #FFFFFF;
+}
+
+.onboarding-submit-btn.navy-btn:hover {
+  background: #00E599;
+  color: #063B78;
+}
+
+/* Botón Verde Oscuro (como en pasos 3, 5 y 6) */
+.onboarding-submit-btn.green-btn {
+  background: #055838;
+  color: #FFFFFF;
+}
+
+.onboarding-submit-btn.green-btn:hover {
+  background: #00E599;
+  color: #063B78;
+}
+
+/* Botón Verde Bosque (Paso 4: Calibra tus Golpes) */
+.onboarding-submit-btn.forest-green-btn {
+  background: #064E3B;
+  color: #FFFFFF;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 14px rgba(6, 78, 59, 0.22);
+}
+
+.onboarding-submit-btn.forest-green-btn:hover {
+  background: #04382A;
+  box-shadow: 0 6px 18px rgba(6, 78, 59, 0.32);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Paso 4: Calibra tus Golpes (Sliding Percentage Cards)
+   ========================================================================== */
+.step-calibra {
+  padding-top: 4px;
+}
+
+.calib-trophy-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 4px 10px rgba(251, 191, 36, 0.25));
+  animation: trophyFloat 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes trophyFloat {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-4px);
+  }
+}
+
+.calib-title {
+  color: #0F4F2D;
+  font-family: 'Barlow Condensed', 'General Sans', Arial, sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.calib-sparkle {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.calib-subtitle {
+  color: #5F7180;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0 0 16px;
+}
+
+/* Grilla de los 5 golpes */
+.calib-strokes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+/* 5to golpe (Slice) en la columna izquierda */
+.calib-stroke-card.grid-col-left {
+  grid-column: 1 / 2;
+}
+
+/* Tarjeta individual de golpe */
+.calib-stroke-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1.5px solid #D9F99D;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Estado calibrado con porcentaje */
+.calib-stroke-card.calibrated {
+  border-color: #CBD5E1;
+  box-shadow: 0 3px 10px rgba(15, 79, 45, 0.05);
+}
+
+.calib-stroke-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.calib-stroke-name {
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #1E293B;
+  text-transform: uppercase;
+}
+
+.calib-stroke-value {
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0F4F2D;
+}
+
+.calib-stroke-value.uncalibrated {
+  color: #1E293B;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* Contenedor del Slider */
+.calib-slider-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Input Range Estilizado */
+.calib-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 9px;
+  border-radius: 999px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+/* Track en Webkit */
+.calib-range-slider::-webkit-slider-runnable-track {
+  height: 9px;
+  border-radius: 999px;
+}
+
+/* Track en Firefox */
+.calib-range-slider::-moz-range-track {
+  height: 9px;
+  border-radius: 999px;
+}
+
+/* Thumb Pelota de Tenis (Webkit) */
+.calib-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #C3F23A;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23C3F23A' stroke='%23ffffff' stroke-width='1.5'/%3E%3Cpath d='M4 9.5C8 10.5 10 13.5 10.5 19.5M20 14.5C16 13.5 14 10.5 13.5 4.5' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 0 2.5px #FFFFFF, 0 3px 7px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+  margin-top: -5.5px;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.calib-range-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3.5px #FFFFFF, 0 0 10px rgba(195, 242, 58, 0.6);
+}
+
+/* Thumb Pelota de Tenis (Firefox) */
+.calib-range-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background-color: #C3F23A;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23C3F23A' stroke='%23ffffff' stroke-width='1.5'/%3E%3Cpath d='M4 9.5C8 10.5 10 13.5 10.5 19.5M20 14.5C16 13.5 14 10.5 13.5 4.5' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 0 2.5px #FFFFFF, 0 3px 7px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.calib-range-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3.5px #FFFFFF, 0 0 10px rgba(195, 242, 58, 0.6);
+}
+
+@media (max-width: 480px) {
+  .onboarding-modal {
+    padding: 20px 16px 24px;
+    border-radius: 22px;
+  }
+
+  .calib-title {
+    font-size: 24px;
+  }
+
+  .calib-strokes-grid {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .calib-stroke-card {
+    padding: 8px 10px 10px;
+  }
+
+  .onboarding-strokes-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .onboarding-day-circle {
+    width: 34px;
+    height: 34px;
+    font-size: 10px;
+  }
+}

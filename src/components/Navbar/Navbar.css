@@ -15,15 +15,15 @@
 }
 
 .navbar-surface {
-   display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     position: relative;
-    width: min(760px, calc(100% - 188px));
+    width: min(840px, calc(100% - 188px));
     height: 52px; 
     margin-left: auto;
     transform: none;
-    padding: 0 22px;
+    padding: 0 16px 0 24px;
     border-radius: 26px; 
     background: #FFFFFF;
     box-shadow: 0 8px 24px rgba(41, 0, 92, .08);
@@ -63,14 +63,13 @@
 }
 
 .navbar-pill .main-nav {
-	grid-column: 2;
     position: static;
     transform: none;
     display: flex;
     height: 100%;
     align-items: center;
     justify-content: center;
-    gap: clamp(12px, 1.8vw, 24px);
+    gap: clamp(8px, 1.5vw, 20px);
     padding: 0;
     background: transparent;
     box-shadow: none;
@@ -109,12 +108,10 @@
 }
 
 .navbar-pill .header-actions {
-	grid-column: 3;
-	justify-self: end;
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	min-width: 64px;
+	min-width: 80px;
 	flex-shrink: 0;
 }
 
@@ -138,6 +135,157 @@
 	background: #29005C;
 	border-color: #29005C;
 	color: #FFFFFF;
+}
+
+/* Menú de usuario autenticado */
+.user-menu-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.user-profile-button {
+	display: grid;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	place-items: center;
+	border: 2px solid rgba(6, 59, 120, 0.2);
+	border-radius: 50%;
+	background: #E8FCF4;
+	color: #063B78;
+	cursor: pointer;
+	overflow: hidden;
+	transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.user-profile-button.is-admin {
+	border: 2px solid #00E599;
+	box-shadow: 0 0 0 2px rgba(0, 229, 153, 0.35);
+}
+
+.user-profile-button:hover {
+	transform: scale(1.06);
+	border-color: #00E599;
+	box-shadow: 0 0 0 3px rgba(0, 229, 153, .4);
+}
+
+.user-avatar {
+	display: grid;
+	width: 100%;
+	height: 100%;
+	place-items: center;
+	border-radius: 50%;
+	background: #00E599;
+	color: #063B78;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: .02em;
+	overflow: hidden;
+}
+
+.user-avatar-img {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+	display: block;
+}
+
+.user-dropdown-menu {
+	position: absolute;
+	top: calc(100% + 10px);
+	right: 0;
+	width: 220px;
+	padding: 10px;
+	background: #FFFFFF;
+	border: 1px solid rgba(41, 0, 92, .12);
+	border-radius: 16px;
+	box-shadow: 0 14px 36px rgba(41, 0, 92, .14);
+	z-index: 50;
+	animation: dropdownFade .18s ease forwards;
+}
+
+@keyframes dropdownFade {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.user-dropdown-header {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 6px 8px 10px;
+	text-align: left;
+}
+
+.user-dropdown-name {
+	color: #29005C;
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.user-dropdown-email {
+	color: #687280;
+	font-size: 11px;
+	word-break: break-all;
+}
+
+.user-dropdown-badge {
+	display: inline-block;
+	align-self: flex-start;
+	margin-top: 6px;
+	padding: 2px 8px;
+	background: #E8FCF4;
+	color: #009865;
+	font-size: 10px;
+	font-weight: 700;
+	border-radius: 10px;
+}
+
+.user-dropdown-divider {
+	border: 0;
+	border-top: 1px solid rgba(41, 0, 92, .08);
+	margin: 6px 0;
+}
+
+.user-dropdown-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: #29005C;
+	font-family: 'General Sans', Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background .15s ease;
+	box-sizing: border-box;
+}
+
+.user-dropdown-item:hover {
+	background: #F4F0F6;
+}
+
+.user-dropdown-item.logout {
+	color: #E11D48;
+}
+
+.user-dropdown-item.logout:hover {
+	background: #FFE4E6;
 }
 
 @media (max-width: 800px) {
@@ -182,5 +330,12 @@
 
 	.navbar-pill .main-nav a {
 		height: 36px;
+	}
+}
+
+@media (max-width: 520px) {
+	.user-dropdown-menu {
+		right: -10px;
+		width: 210px;
 	}
 }

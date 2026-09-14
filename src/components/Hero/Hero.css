@@ -28,26 +28,45 @@
   padding-left: 2px;
 }
 
-.hero .hero-image {
+.hero .hero-slider-wrapper {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
 }
 
-.hero .hero-image::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(0deg, rgba(5, 8, 29, .95) 0%, rgba(5, 8, 29, .48) 46%, rgba(5, 8, 29, .08) 82%);
+.hero .hero-slider-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
 }
 
-.hero .hero-image img {
+.hero .hero-slide-item {
+  position: relative;
+  min-width: 100%;
+  width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.hero .hero-slide-item img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
   object-position: 62% center;
+}
+
+.hero .hero-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: 
+    linear-gradient(90deg, rgba(5, 8, 29, 0.94) 0%, rgba(5, 8, 29, 0.72) 42%, rgba(5, 8, 29, 0.25) 75%, rgba(5, 8, 29, 0.1) 100%),
+    linear-gradient(0deg, rgba(5, 8, 29, 0.88) 0%, rgba(5, 8, 29, 0.2) 50%, rgba(5, 8, 29, 0.3) 100%);
 }
 
 .hero .hero-copy {
@@ -88,24 +107,87 @@
   font-size: 11px;
 }
 
-.hero-dots {
+/* SLIDER CONTROLS: ARROWS (VISIBLE ON HOVER) */
+.hero-nav-arrows {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.hero:hover .hero-nav-arrows {
+  opacity: 1;
+}
+
+.hero-arrow-btn {
+  pointer-events: auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(5, 8, 29, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hero-arrow-btn:hover {
+  background: #00E599;
+  color: #063B78;
+  border-color: #00E599;
+  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(0, 229, 153, 0.4);
+}
+
+/* INTERACTIVE INDICATOR DOTS CAPSULE (MATCHING MOCKUP) */
+.hero-dots-capsule {
   position: absolute;
   right: 28px;
   bottom: 24px;
   z-index: 3;
   display: flex;
-  gap: 7px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(5, 8, 29, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
-.hero-dots span {
-  width: 7px;
-  height: 7px;
+.hero-dot-btn {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, .45);
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.hero-dots .selected {
+.hero-dot-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  transform: scale(1.2);
+}
+
+.hero-dot-btn.active {
+  width: 20px;
+  border-radius: 999px;
   background: #C9FF00;
+  box-shadow: 0 0 10px rgba(201, 255, 0, 0.7);
 }
 
 @media (max-width: 800px) {
@@ -126,12 +208,18 @@
     font-size: clamp(32px, 9vw, 48px);
   }
 
-  .hero .hero-image img {
+  .hero .hero-slide-item img {
     object-position: 56% center;
   }
 
-  .hero-dots {
-    right: 22px;
+  .hero-dots-capsule {
+    right: 18px;
     bottom: 18px;
+    padding: 5px 10px;
+    gap: 6px;
+  }
+
+  .hero-nav-arrows {
+    display: none;
   }
 }

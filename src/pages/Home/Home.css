@@ -36,20 +36,13 @@
 .signup-panel {
 	display: flex;
 	position: relative;
-	min-height: 180px;
+	min-height: 230px;
 	padding: 0;
 	overflow: hidden;
-	background: #29005C;
-}
-
-.information-panel .eyebrow,
-.information-panel h2,
-.information-panel p {
-	color: #FFFFFF;
-}
-
-.information-panel h2 em {
-	color: #063B35;
+	background: #170038;
+	border-radius: 16px;
+	border: 1.5px solid #E8E3F0;
+	box-shadow: 0 4px 16px rgba(41, 0, 92, 0.04);
 }
 
 .event-image {
@@ -59,219 +52,338 @@
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	object-position: center;
+	object-position: center right;
 }
 
-.event-register-button {
+.event-overlay {
 	position: absolute;
-	left: 18px;
-	bottom: 16px;
+	inset: 0;
+	background: linear-gradient(90deg, rgba(16, 0, 42, 0.9) 0%, rgba(16, 0, 42, 0.68) 50%, rgba(16, 0, 42, 0.1) 100%);
 	z-index: 1;
+	pointer-events: none;
 }
 
 .event-copy {
 	position: relative;
-	z-index: 1;
-	max-width: 62%;
-	padding: 20px 14px 0;
-	color: #FFFFFF;
+	z-index: 2;
+	max-width: 65%;
+	padding: 24px 22px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
 }
 
-.event-copy p {
-	margin: 0 0 6px;
-	color: #8EF0B6;
-	font: 700 10px 'General Sans', Arial, sans-serif;
+.event-copy .event-kicker {
+	margin: 0 0 6px 0;
+	color: #00E599;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.8px;
 	text-transform: uppercase;
 }
 
 .event-copy h2 {
-	margin: 0 0 9px;
+	margin: 0 0 8px 0;
 	color: #FFFFFF;
-	font: 800 clamp(17px, 2vw, 25px)/.98 'General Sans', Arial, sans-serif;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: clamp(22px, 2.3vw, 29px);
+	font-weight: 800;
+	line-height: 1.05;
 	text-transform: uppercase;
+	letter-spacing: -0.3px;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .event-copy h2 em {
 	color: #C9FF00;
+	font-style: normal;
 }
 
-.event-copy span {
+.event-copy .event-desc {
 	display: block;
-	color: #FFFFFF;
-	font: 500 clamp(9px, 1vw, 12px)/1.35 'General Sans', Arial, sans-serif;
+	color: #F0ECF8;
+	font-family: 'General Sans', Arial, sans-serif;
+	font-size: clamp(11px, 1.1vw, 13px);
+	font-weight: 500;
+	line-height: 1.45;
+	margin-bottom: 16px;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.event-register-button {
+	position: static;
+	margin-top: auto;
+	box-shadow: 0 4px 14px rgba(201, 255, 0, 0.35);
 }
 
 @media (max-width: 800px) {
-	.event-copy { max-width: 70%; padding-top: 18px; }
-	.event-copy h2 { font-size: 19px; }
-	.event-register-button { bottom: 14px; left: 14px; }
+	.event-copy { max-width: 80%; padding: 18px 16px; }
+	.event-copy h2 { font-size: 20px; }
 }
 
-@media (max-width: 430px) {
-	.event-copy { max-width: 76%; padding: 14px 12px 0; }
-	.event-copy p { font-size: 8px; }
-	.event-copy h2 { font-size: 16px; }
-	.event-copy span { font-size: 8px; }
+@media (max-width: 480px) {
+	.event-copy { max-width: 90%; padding: 16px 14px; }
+	.event-copy .event-kicker { font-size: 11px; }
+	.event-copy h2 { font-size: 18px; }
+	.event-copy .event-desc { font-size: 10px; margin-bottom: 12px; }
 	.desktop-break { display: none; }
 }
 
-/* Tarjeta de redes sociales */
+/* Tarjeta de redes sociales (Diseño Oficial Banner Redes) */
 .social-panel {
 	display: flex;
-	min-height: 148px;
+	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	gap: 18px;
-	padding: 18px 20px;
-	background: #F8FFFB;
-	border-color: rgba(41, 0, 92, .12);
+	padding: 24px 22px 20px;
+	background: #FFFFFF;
+	border: 1.5px solid #E8E3F0;
+	border-radius: 16px;
+	box-shadow: 0 4px 16px rgba(41, 0, 92, 0.04);
+	position: relative;
+	overflow: hidden;
+	gap: 14px;
+	min-height: 290px;
 }
 
 .social-copy {
-	z-index: 1;
-	color: #29005C;
+	flex: 1;
+	min-width: 0;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
 }
 
 .social-copy .eyebrow {
-	color: #6A3A91;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 0 6px 0;
+	color: #29005C;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+}
+
+.eyebrow-accent {
+	color: #00E599;
+	font-weight: 900;
+	font-size: 15px;
+	letter-spacing: -1px;
 }
 
 .social-copy h2 {
-	margin-bottom: 10px;
-	color: #29005C;
-	font: 700 17px 'General Sans', Arial, sans-serif;
+	margin: 0 0 8px 0;
+	color: #160438;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: clamp(24px, 2.5vw, 32px);
+	font-weight: 800;
+	line-height: 1.05;
+	letter-spacing: -0.3px;
+}
+
+.social-subtext {
+	margin: 0 0 16px 0;
+	color: #6A5D82;
+	font-family: 'General Sans', Arial, sans-serif;
+	font-size: 12px;
+	line-height: 1.45;
+	font-weight: 500;
+	max-width: 310px;
 }
 
 .social-icons {
 	display: flex;
 	flex-direction: column;
-	align-items: flex-start;
-	gap: 5px;
+	gap: 7px;
+	width: 100%;
+	max-width: 205px;
 }
 
-.social-icons a {
+.social-btn {
 	display: flex;
 	align-items: center;
-	width: 128px;
-	min-width: 128px;
-	height: 22px;
-	justify-content: flex-start;
-	gap: 7px;
-	padding: 0 8px;
-	border: 0;
-	border-radius: 4px;
-	background: #29005C;
+	gap: 12px;
+	background: #150033;
 	color: #FFFFFF;
+	padding: 7px 14px;
+	border-radius: 10px;
+	text-decoration: none;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 6px rgba(21, 0, 51, 0.15);
+	box-sizing: border-box;
 }
 
-.social-icons a:hover {
-	transform: translateY(-2px);
+.social-btn:hover {
+	background: #2D0566;
+	transform: translateX(4px);
+	box-shadow: 0 4px 12px rgba(45, 5, 102, 0.25);
 }
 
-.social-icons a span {
-	display: inline-block;
+.social-btn-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
 	color: #FFFFFF;
-	font: 600 7px 'General Sans', Arial, sans-serif;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.social-btn-icon svg {
+	display: block;
+}
+
+.social-btn-label {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 14px;
+	font-weight: 700;
+	letter-spacing: 0.3px;
+	color: #FFFFFF;
 	white-space: nowrap;
 }
 
-.social-icons i {
-	display: block;
-	font-size: 11px;
-	line-height: 1;
-}
-
-.phone {
-	flex-shrink: 0;
-	width: 68px;
-	height: 116px;
-	transform: rotate(5deg);
-	border: 2px solid #29005C;
-	border-radius: 11px;
-	background: #29005C;
-	padding: 12px 5px 5px;
-	box-shadow: 0 3px 0 rgba(0, 168, 107, .2);
-}
-
-.phone::before {
-	content: '';
-	position: absolute;
-	top: 5px;
-	left: 50%;
-	width: 18px;
-	height: 3px;
-	transform: translateX(-50%);
-	border-radius: 4px;
-	background: #41606a;
-}
-
-.phone-screen {
+.social-artwork {
+	flex: 0 0 44%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	position: relative;
-	height: 100%;
-	overflow: hidden;
-	padding-top: 30px;
-	border-radius: 4px;
-	background: linear-gradient(160deg, #00D99B 0%, #29005C 68%);
-	color: #FFFFFF;
-	font: 700 13px 'General Sans', Arial, sans-serif;
+	z-index: 1;
+	align-self: center;
 }
 
-.phone-screen small {
-	color: #C9FF00;
-	font: 700 6px 'General Sans', Arial, sans-serif;
-}
-
-.phone-screen img {
-	display: block;
-	width: 34px;
-	height: auto;
-	max-height: 38px;
-	margin: 0 auto 5px;
+.social-artwork-img {
+	width: 140%;
+	max-width: 500px;
+	max-height: 500px;
 	object-fit: contain;
-}
-
-.phone-screen span {
 	display: block;
-	text-align: center;
-	color: #C9FF00;
-	font: 700 6px 'General Sans', Arial, sans-serif;
+	filter: drop-shadow(0 10px 24px rgba(41, 0, 92, 0.08));
+	transition: transform 0.3s ease;
 }
 
-@media (max-width: 430px) {
-	.phone { width: 76px; height: 132px; }
-	.phone-screen img { width: 40px; }
+.social-panel:hover .social-artwork-img {
+	transform: scale(1.03) rotate(-1deg);
 }
 
-/* Ranking de jugadores destacados */
+@media (max-width: 768px) {
+	.social-panel {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 16px;
+	}
+	.social-artwork {
+		width: 100%;
+		max-height: 200px;
+		order: -1;
+		align-self: center;
+	}
+	.social-artwork-img {
+		max-height: 190px;
+	}
+	.social-icons {
+		max-width: 100%;
+	}
+}
+
+/* Ranking de jugadores destacados (Promesas ATAP en Home) */
 .ranking-section {
-	padding: 20px 16px 16px;
+	padding: 20px 18px 18px;
 	background: #FFFFFF;
-	border-color: rgba(41, 0, 92, .12);
+	border: 1.5px solid #E8E3F0;
+	border-radius: 16px;
+	box-shadow: 0 4px 16px rgba(41, 0, 92, 0.04);
+	display: flex;
+	flex-direction: column;
 }
 
-.ranking-heading {
-	text-align: left;
-	padding: 0 8px 8px;
+.ranking-heading-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 4px 10px;
 	margin-bottom: 12px;
+	border-bottom: 1.5px solid #F0ECF6;
+}
+
+.ranking-heading-row .ranking-heading {
+	padding: 0;
+	margin: 0;
 }
 
 .ranking-heading p {
 	margin: 0 0 2px;
 	color: #6A3A91;
-	font: 700 8px 'General Sans', Arial, sans-serif;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 11px;
+	font-weight: 700;
 	text-transform: uppercase;
+	letter-spacing: 0.5px;
 }
 
 .ranking-heading h2 {
 	margin: 0;
 	color: #29005C;
-	font: 800 25px 'General Sans', Arial, sans-serif;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 26px;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.ranking-top-badge {
+	background: #00E599;
+	color: #063B78;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 11px;
+	font-weight: 800;
+	padding: 2px 8px;
+	border-radius: 999px;
+	letter-spacing: 0.5px;
 	text-transform: uppercase;
 }
 
 .tournament-list {
 	display: grid;
-	gap: 7px;
+	gap: 8px;
+}
+
+.ranking-footer-row {
+	margin-top: auto;
+	padding-top: 14px;
+	border-top: 1.5px solid #F0ECF6;
+	display: flex;
+	justify-content: center;
+}
+
+.ranking-view-all-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: #063B78;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 13px;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	text-decoration: none;
+	padding: 8px 16px;
+	border-radius: 8px;
+	background: #FAF8FD;
+	border: 1px solid #E2DDF0;
+	transition: all 0.2s ease;
+}
+
+.ranking-view-all-link:hover {
+	background: #00E599;
+	border-color: #00E599;
+	color: #063B78;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(0, 229, 153, 0.2);
 }
 
 /* Preguntas frecuentes y reglas de torneos */
