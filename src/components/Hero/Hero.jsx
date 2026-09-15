@@ -123,7 +123,7 @@ export default function Hero() {
             'Sé parte de la comunidad de tenis más grande del Perú. Compite, mejora tu ranking y vive la emoción de cada torneo.'}
         </p>
         <div className="hero-actions">
-          <a href="/torneos" className="button button-lime">
+          <a href="/torneos" className="button button-turquesa">
             Ver torneos <ArrowRight size={15} />
           </a>
           <a href="/comunidad" className="watch-link">

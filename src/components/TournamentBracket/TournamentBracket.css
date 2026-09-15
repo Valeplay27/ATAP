@@ -1,7 +1,7 @@
 .bracket-container {
   width: 100%;
   padding: 10px 0;
-  color: #29005C;
+  color: #001827;
 }
 
 .bracket-empty-state {
@@ -12,11 +12,11 @@
   padding: 40px 20px;
   background: #FFFFFF;
   border-radius: 16px;
-  border: 1.5px dashed #D5CEE4;
+  border: 1.5px dashed #E8EEEE;
 }
 
 .bracket-empty-icon {
-  color: #063B78;
+  color: #00304A;
   margin-bottom: 12px;
   opacity: 0.6;
 }
@@ -26,12 +26,12 @@
   font-size: 22px;
   font-weight: 700;
   margin: 0 0 6px 0;
-  color: #29005C;
+  color: #25005C;
 }
 
 .bracket-empty-state p {
   margin: 0;
-  color: #6C5F80;
+  color: #64727A;
   font-size: 13px;
   max-width: 380px;
 }
@@ -42,13 +42,13 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
-  background: linear-gradient(135deg, #063B78 0%, #29005C 100%);
+  background: linear-gradient(135deg, #00304A 0%, #25005C 100%);
   color: #FFFFFF;
   border-radius: 16px;
   padding: 20px 24px;
   margin-bottom: 24px;
-  box-shadow: 0 10px 30px rgba(6, 59, 120, 0.25);
-  border: 2px solid #00E599;
+  box-shadow: 0 10px 30px rgba(0, 48, 74, 0.25);
+  border: 2px solid #00CFA0;
 }
 
 .champion-badge {
@@ -67,7 +67,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #00E599;
+  color: #C6FF00;
   text-transform: uppercase;
 }
 
@@ -82,16 +82,16 @@
 
 .champion-category {
   font-size: 11px;
-  color: #D3CCE3;
+  color: #DDF8EF;
 }
 
 .champion-points-tag {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(0, 229, 153, 0.2);
-  border: 1px solid #00E599;
-  color: #00E599;
+  background: rgba(0, 207, 160, 0.2);
+  border: 1px solid #00CFA0;
+  color: #00CFA0;
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
   font-size: 15px;
@@ -128,15 +128,15 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #063B78;
-  background: #E8F0FE;
+  color: #00304A;
+  background: #DDF8EF;
   padding: 4px 10px;
   border-radius: 6px;
 }
 
 .round-matches-count {
   font-size: 11px;
-  color: #796E8A;
+  color: #64727A;
 }
 
 .round-matches-list {
@@ -150,20 +150,20 @@
 .match-node-card {
   background: #FFFFFF;
   border-radius: 12px;
-  border: 1.5px solid #E2DDF0;
+  border: 1.5px solid #E8EEEE;
   padding: 12px;
-  box-shadow: 0 4px 14px rgba(41, 0, 92, 0.05);
+  box-shadow: 0 4px 14px rgba(0, 24, 39, 0.04);
   transition: all 0.2s ease;
 }
 
 .match-node-card:hover {
-  border-color: #063B78;
-  box-shadow: 0 6px 18px rgba(6, 59, 120, 0.12);
+  border-color: #00304A;
+  box-shadow: 0 6px 18px rgba(0, 48, 74, 0.12);
 }
 
 .match-node-card.match-completed {
-  border-color: #00E599;
-  background: #FAFEFC;
+  border-color: #00CFA0;
+  background: #FFFFFF;
 }
 
 .match-node-header {
@@ -172,15 +172,15 @@
   justify-content: space-between;
   font-size: 10px;
   font-weight: 700;
-  color: #796E8A;
+  color: #64727A;
   text-transform: uppercase;
   margin-bottom: 8px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #F0ECF6;
+  border-bottom: 1px solid #E8EEEE;
 }
 
 .match-final-score {
-  color: #00875A;
+  color: #00CFA0;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 13px;
   font-weight: 800;
@@ -197,15 +197,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px;
-  background: #F8F6FA;
+  background: #FFFFFF;
   border-radius: 6px;
+  border: 1px solid #E8EEEE;
   border-left: 3px solid transparent;
   transition: all 0.2s;
 }
 
 .player-slot.is-winner {
-  background: #E6FBF2;
-  border-left-color: #00E599;
+  background: #DDF8EF;
+  border-left-color: #00CFA0;
   font-weight: 700;
 }
 
@@ -221,12 +222,12 @@
 
 .player-slot-name {
   font-size: 12px;
-  color: #29005C;
+  color: #001827;
 }
 
 .player-slot-cat {
   font-size: 9px;
-  color: #796E8A;
+  color: #64727A;
 }
 
 .winner-tick {
@@ -236,15 +237,15 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #00E599;
-  color: #063B78;
+  background: #00CFA0;
+  color: #001827;
 }
 
 .match-vs-divider {
   text-align: center;
   font-size: 9px;
   font-weight: 800;
-  color: #C0B7D1;
+  color: #64727A;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -252,7 +253,7 @@
 .match-admin-actions {
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px dashed #E5DFEE;
+  border-top: 1px dashed #E8EEEE;
 }
 
 .btn-enter-score {
@@ -261,7 +262,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: #063B78;
+  background: #00304A;
   color: #FFFFFF;
   border: none;
   font-family: 'Barlow Condensed', sans-serif;
@@ -275,14 +276,14 @@
 }
 
 .btn-enter-score:hover {
-  background: #042750;
+  background: #001827;
 }
 
 .btn-edit-score {
   width: 100%;
   background: transparent;
-  border: 1px solid #C0B7D1;
-  color: #29005C;
+  border: 1px solid #E8EEEE;
+  color: #00304A;
   font-size: 10px;
   font-weight: 600;
   padding: 4px;
@@ -291,5 +292,5 @@
 }
 
 .btn-edit-score:hover {
-  background: #F3EEFA;
+  background: #DDF8EF;
 }

@@ -38,7 +38,7 @@ export default function RegistroModal({ onClose }) {
           <i className="fi fi-rr-user-add" />
         </div>
         <p className="login-modal-kicker"></p>
-        <h2 id="register-title" style={{ color: '#00E599', textAlign: 'center' }}>DATOS DEL JUGADOR</h2>
+        <h2 id="register-title" style={{ color: '#25005C', textAlign: 'center' }}>DATOS DEL JUGADOR</h2>
         <p className="login-modal-description" style={{ textAlign: 'center' }}>
           Completa tu perfil de jugador
         </p>

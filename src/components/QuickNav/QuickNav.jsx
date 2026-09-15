@@ -22,7 +22,7 @@ export default function QuickNav() {
 
   if (!tournaments || tournaments.length === 0) return null
 
-  // Mostrar los torneos registrados (hasta 6 en la fila principal)
+  // Mostrar los torneos registrados desde el admin (hasta 6 en la fila principal)
   const displayTourneys = tournaments.slice(0, 6)
 
   return (
@@ -54,8 +54,8 @@ export default function QuickNav() {
           <div className="quick-tourney-overlay" />
           <div className="quick-tourney-content">
             <div className="quick-tourney-top">
-              <span className={`quick-tourney-badge ${t.modalidad === 'dobles' ? 'is-duo' : 'is-singles'}`}>
-                {t.modalidad === 'dobles' ? 'Dúo' : 'Singles'}
+              <span className={`quick-tourney-badge ${t.modalidad === 'dobles' ? 'is-duo' : 'is-level'}`}>
+                {t.modalidad === 'dobles' ? 'Dúo' : (t.level || 'Singles')}
               </span>
               {t.precio && (
                 <span className="quick-tourney-price">S/ {t.precio}</span>

@@ -22,9 +22,9 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 10px 28px rgba(41, 0, 92, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 24, 39, 0.05);
   width: 220px;
-  border: 2px solid transparent;
+  border: 1.5px solid #E8EEEE;
   transition: transform 0.2s ease;
 }
 
@@ -33,10 +33,10 @@
 }
 
 .podium-step.step-1 {
-  background: linear-gradient(135deg, #063B78 0%, #29005C 100%);
+  background: linear-gradient(135deg, #00304A 0%, #25005C 100%);
   color: #FFFFFF;
-  border-color: #00E599;
-  box-shadow: 0 14px 36px rgba(6, 59, 120, 0.28);
+  border-color: #00CFA0;
+  box-shadow: 0 14px 36px rgba(0, 48, 74, 0.25);
   padding: 32px 22px;
   z-index: 2;
 }
@@ -44,7 +44,7 @@
 .podium-crown {
   position: absolute;
   top: -18px;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+  filter: drop-shadow(0 0 10px rgba(198, 255, 0, 0.6));
 }
 
 .podium-medal {
@@ -60,13 +60,13 @@
 }
 
 .podium-medal.gold {
-  background: #FFD700;
-  color: #29005C;
+  background: #C6FF00;
+  color: #25005C;
 }
 
 .podium-medal.silver {
-  background: #E2E8F0;
-  color: #475569;
+  background: #E8EEEE;
+  color: #64727A;
 }
 
 .podium-medal.bronze {
@@ -79,14 +79,14 @@
   height: 68px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #E2DDF0;
+  border: 3px solid #E8EEEE;
   margin-bottom: 10px;
 }
 
 .podium-avatar.champ {
   width: 82px;
   height: 82px;
-  border-color: #00E599;
+  border-color: #00CFA0;
 }
 
 .podium-step h3 {
@@ -94,6 +94,7 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 20px;
   font-weight: 700;
+  color: #00304A;
 }
 
 .step-1 h3 {
@@ -102,23 +103,23 @@
 
 .podium-cat {
   font-size: 11px;
-  color: #796E8A;
+  color: #64727A;
   margin-bottom: 8px;
 }
 
 .step-1 .podium-cat {
-  color: #C2BAE0;
+  color: #DDF8EF;
 }
 
 .podium-points {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 18px;
   font-weight: 800;
-  color: #063B78;
+  color: #00304A;
 }
 
 .champ-pts {
-  color: #00E599;
+  color: #C6FF00;
   font-size: 22px;
 }
 
@@ -133,7 +134,8 @@
   border-radius: 16px;
   padding: 14px 18px;
   margin-bottom: 24px;
-  box-shadow: 0 6px 20px rgba(41, 0, 92, 0.05);
+  border: 1.5px solid #E8EEEE;
+  box-shadow: 0 4px 14px rgba(0, 24, 39, 0.04);
 }
 
 .ranking-cat-pills {
@@ -143,9 +145,9 @@
 }
 
 .cat-pill {
-  background: #F4EFFC;
+  background: #DDF8EF;
   border: none;
-  color: #29005C;
+  color: #00304A;
   font-size: 12px;
   font-weight: 600;
   padding: 6px 14px;
@@ -155,12 +157,13 @@
 }
 
 .cat-pill:hover {
-  background: #E8DEFA;
+  background: #00CFA0;
+  color: #001827;
 }
 
 .cat-pill.active {
-  background: #00E599;
-  color: #063B78;
+  background: #00CFA0;
+  color: #001827;
   font-weight: 700;
 }
 
@@ -168,8 +171,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #F8F6FC;
-  border: 1.5px solid #E2DDF0;
+  background: #FFFFFF;
+  border: 1.5px solid #E8EEEE;
   border-radius: 999px;
   padding: 6px 14px;
 }
@@ -179,7 +182,7 @@
   background: transparent;
   outline: none;
   font-size: 13px;
-  color: #29005C;
+  color: #00304A;
   width: 180px;
 }
 
@@ -188,7 +191,8 @@
   background: #FFFFFF;
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 8px 26px rgba(41, 0, 92, 0.06);
+  border: 1.5px solid #E8EEEE;
+  box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
 }
 
 .ranking-main-table {
@@ -196,44 +200,44 @@
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;
-  color: #29005C;
+  color: #001827;
 }
 
 .ranking-main-table th {
-  background: #F8F6FC;
+  background: #DDF8EF;
   padding: 14px 16px;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #063B78;
-  border-bottom: 2px solid #E4DFEF;
+  color: #00304A;
+  border-bottom: 2px solid #E8EEEE;
 }
 
 .ranking-main-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #F0ECF6;
+  border-bottom: 1px solid #E8EEEE;
   vertical-align: middle;
 }
 
 .ranking-main-table tr:hover {
-  background: #FAF9FD;
+  background: #F4FDF9;
 }
 
 .ranking-main-table tr.row-leader {
-  background: #F4FAF7;
+  background: #EDFAF4;
 }
 
 .rank-num-badge {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 18px;
   font-weight: 800;
-  color: #063B78;
+  color: #00304A;
 }
 
 .rank-num-badge.gold {
-  color: #D97706;
+  color: #00CFA0;
   font-size: 20px;
 }
 
@@ -253,17 +257,17 @@
 .player-cell strong {
   display: block;
   font-size: 14px;
-  color: #29005C;
+  color: #001827;
 }
 
 .table-country {
   font-size: 11px;
-  color: #796E8A;
+  color: #64727A;
 }
 
 .table-cat-badge {
-  background: #EFEAF7;
-  color: #29005C;
+  background: #DDF8EF;
+  color: #00304A;
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
@@ -274,5 +278,5 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 18px;
   font-weight: 800;
-  color: #00875A;
+  color: #00CFA0;
 }

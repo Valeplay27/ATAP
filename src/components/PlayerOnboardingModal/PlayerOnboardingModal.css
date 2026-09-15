@@ -20,7 +20,7 @@
   box-shadow: 0 24px 60px rgba(6, 26, 43, 0.35);
   display: flex;
   flex-direction: column;
-  color: #063B78;
+  color: #001827;
   overflow-y: auto;
   animation: modalScaleIn 0.22s ease-out forwards;
 }
@@ -53,7 +53,7 @@
   background: none;
   border: none;
   padding: 4px 8px;
-  color: #063B78;
+  color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -63,8 +63,8 @@
 }
 
 .onboarding-back-btn:hover {
-  background: #F4F0F6;
-  color: #00E599;
+  background: #DDF8EF;
+  color: #00CFA0;
 }
 
 .onboarding-steps-indicator {
@@ -77,18 +77,18 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #E2E8F0;
+  background: #E8EEEE;
   transition: all 0.2s ease;
 }
 
 .onboarding-step-dot.active {
   width: 24px;
   border-radius: 12px;
-  background: #00E599;
+  background: #00CFA0;
 }
 
 .onboarding-step-dot.completed {
-  background: #063B78;
+  background: #00304A;
 }
 
 .onboarding-close-btn {
@@ -98,14 +98,14 @@
   height: 30px;
   border: 0;
   border-radius: 50%;
-  background: rgba(6, 59, 120, 0.08);
-  color: #063B78;
+  background: rgba(0, 48, 74, 0.08);
+  color: #00304A;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .onboarding-close-btn:hover {
-  background: #063B78;
+  background: #00304A;
   color: #FFFFFF;
 }
 
@@ -142,7 +142,7 @@
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: 0.02em;
-  color: #063B78;
+  color: #00304A;
 }
 
 .onboarding-step-icon {
@@ -154,7 +154,7 @@
 /* Títulos y subtítulos */
 .onboarding-title {
   margin: 0 0 4px;
-  color: #063B78;
+  color: #25005C;
   font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   font-size: 30px;
   font-weight: 800;
@@ -169,12 +169,12 @@
 }
 
 .onboarding-title .highlight-name {
-  color: #063B78;
+  color: #00CFA0;
 }
 
 .onboarding-subtitle {
   margin: 0 0 20px;
-  color: #5F7180;
+  color: #64727A;
   font-size: 13px;
   font-weight: 500;
 }
@@ -182,7 +182,7 @@
 .onboarding-section-label {
   align-self: flex-start;
   margin: 8px 0 10px;
-  color: #17201E;
+  color: #001827;
   font-size: 13px;
   font-weight: 700;
   text-align: left;
@@ -222,11 +222,11 @@
 .onboarding-pill-input {
   width: 100%;
   height: 48px;
-  padding: 0 20px;
+  padding: 0 16px;
   border-radius: 24px;
-  border: 1px solid transparent;
-  background: #C4D1DE;
-  color: #063B78;
+  border: 1.5px solid #E8EEEE;
+  background: #FFFFFF;
+  color: #001827;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 14px;
   font-weight: 700;
@@ -236,13 +236,13 @@
 }
 
 .onboarding-pill-input::placeholder {
-  color: #4B637B;
+  color: #64727A;
 }
 
 .onboarding-pill-input:focus {
   background: #FFFFFF;
-  border-color: #00E599;
-  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.2);
+  border-color: #00CFA0;
+  box-shadow: 0 0 0 3px rgba(0, 207, 160, 0.2);
 }
 
 /* Selector de Género (Paso 2) */
@@ -260,9 +260,9 @@
   gap: 6px;
   height: 44px;
   border-radius: 14px;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -275,9 +275,9 @@
 }
 
 .onboarding-toggle-btn.selected {
-  border-color: #00E599;
-  background: #E8FCF4;
-  color: #009865;
+  border-color: #00CFA0;
+  background: #DDF8EF;
+  color: #00304A;
 }
 
 /* Selector de Fecha de Nacimiento (Paso 2) */
@@ -300,9 +300,9 @@
   width: 100%;
   height: 48px;
   border-radius: 14px;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   text-align: center;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 16px;
@@ -312,8 +312,8 @@
 }
 
 .onboarding-date-field input:focus {
-  border-color: #00E599;
-  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.18);
+  border-color: #00CFA0;
+  box-shadow: 0 0 0 3px rgba(0, 207, 160, 0.18);
 }
 
 .onboarding-date-field.date-year {
@@ -322,14 +322,14 @@
 
 .onboarding-date-field small {
   margin-top: 4px;
-  color: #91A4AC;
+  color: #64727A;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
 }
 
 .date-separator {
-  color: #D4E3E0;
+  color: #E8EEEE;
   font-size: 18px;
   font-weight: 300;
   margin-bottom: 16px;
@@ -346,9 +346,9 @@
 .onboarding-category-chip {
   padding: 8px 14px;
   border-radius: 18px;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 12px;
   font-weight: 700;
@@ -357,13 +357,13 @@
 }
 
 .onboarding-category-chip:hover {
-  border-color: #00E599;
+  border-color: #00CFA0;
 }
 
 .onboarding-category-chip.selected {
-  border-color: #00E599;
-  background: #00E599;
-  color: #063B78;
+  border-color: #00CFA0;
+  background: #00CFA0;
+  color: #001827;
   font-weight: 800;
 }
 
@@ -422,7 +422,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #C9FF00;
+  background: #C6FF00;
   border: 3px solid #FFFFFF;
   color: #001827;
   display: grid;
@@ -433,14 +433,14 @@
 
 .onboarding-avatar-hint {
   margin: 14px 0 0;
-  color: #5F7180;
+  color: #64727A;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .onboarding-avatar-hint:hover {
-  color: #063B78;
+  color: #00304A;
   text-decoration: underline;
 }
 
@@ -464,7 +464,7 @@
   align-items: center;
   height: 48px;
   border-radius: 14px;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
   padding: 0 14px;
 }
@@ -474,20 +474,20 @@
   border: none;
   background: transparent;
   outline: none;
-  color: #063B78;
+  color: #001827;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 15px;
   font-weight: 700;
 }
 
 .phys-edit-icon {
-  color: #91A4AC;
+  color: #64727A;
   flex-shrink: 0;
 }
 
 .onboarding-phys-box:focus-within {
-  border-color: #00E599;
-  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.18);
+  border-color: #00CFA0;
+  box-shadow: 0 0 0 3px rgba(0, 207, 160, 0.18);
 }
 
 /* ============================================================
@@ -506,9 +506,9 @@
   justify-content: center;
   height: 54px;
   border-radius: 16px;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 16px;
   font-weight: 800;
@@ -518,16 +518,16 @@
 }
 
 .trajectory-card:hover {
-  border-color: #00E599;
+  border-color: #00CFA0;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 59, 120, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 48, 74, 0.08);
 }
 
 .trajectory-card.selected {
-  border-color: #00E599;
-  background: #E8FCF4;
-  color: #009865;
-  box-shadow: 0 4px 14px rgba(0, 229, 153, 0.25);
+  border-color: #00CFA0;
+  background: #DDF8EF;
+  color: #00304A;
+  box-shadow: 0 4px 14px rgba(0, 207, 160, 0.25);
 }
 
 .trajectory-trophy-label {
@@ -557,7 +557,7 @@
   min-height: 84px;
   padding: 8px 4px;
   border-radius: 14px;
-  border: 1.5px solid #E2E8F0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
   cursor: pointer;
   transition: all 0.18s ease;
@@ -565,19 +565,19 @@
 }
 
 .stroke-card:hover {
-  border-color: #00E599;
+  border-color: #00CFA0;
 }
 
 .stroke-card.selected {
-  border-color: #00E599;
-  background: #E8FCF4;
-  box-shadow: 0 4px 12px rgba(0, 229, 153, 0.15);
+  border-color: #00CFA0;
+  background: #DDF8EF;
+  box-shadow: 0 4px 12px rgba(0, 207, 160, 0.15);
 }
 
 .stroke-icon-wrap {
   display: grid;
   place-items: center;
-  color: #009865;
+  color: #00CFA0;
 }
 
 .stroke-svg {
@@ -586,7 +586,7 @@
 }
 
 .stroke-label {
-  color: #063B78;
+  color: #00304A;
   font-size: 10px;
   font-weight: 700;
   line-height: 1.15;
@@ -604,9 +604,9 @@
 .onboarding-zone-chip {
   padding: 9px 14px;
   border-radius: 12px;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 12px;
   font-weight: 700;
@@ -615,9 +615,9 @@
 }
 
 .onboarding-zone-chip.selected {
-  border-color: #00E599;
-  background: #E8FCF4;
-  color: #009865;
+  border-color: #00CFA0;
+  background: #DDF8EF;
+  color: #00304A;
 }
 
 .onboarding-dominant-row {
@@ -634,9 +634,9 @@
   gap: 8px;
   height: 46px;
   border-radius: 14px;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -645,9 +645,9 @@
 }
 
 .onboarding-dominant-btn.selected {
-  border-color: #00E599;
-  background: #E8FCF4;
-  color: #009865;
+  border-color: #00CFA0;
+  background: #DDF8EF;
+  color: #00304A;
 }
 
 .onboarding-days-row {
@@ -662,9 +662,9 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1.5px solid #D4E3E0;
+  border: 1.5px solid #E8EEEE;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 11px;
   font-weight: 700;
@@ -675,9 +675,9 @@
 }
 
 .onboarding-day-circle.selected {
-  border-color: #00E599;
-  background: #00E599;
-  color: #063B78;
+  border-color: #00CFA0;
+  background: #00CFA0;
+  color: #001827;
   font-weight: 800;
 }
 
@@ -702,40 +702,38 @@
 
 /* Botón Dark Navy (como en pasos 1 y 2) */
 .onboarding-submit-btn.navy-btn {
-  background: #152238;
+  background: #00304A;
   color: #FFFFFF;
 }
 
 .onboarding-submit-btn.navy-btn:hover {
-  background: #00E599;
-  color: #063B78;
+  background: #001827;
 }
 
 /* Botón Verde Oscuro (como en pasos 3, 5 y 6) */
 .onboarding-submit-btn.green-btn {
-  background: #055838;
-  color: #FFFFFF;
+  background: #00CFA0;
+  color: #001827;
 }
 
 .onboarding-submit-btn.green-btn:hover {
-  background: #00E599;
-  color: #063B78;
+  background: #00b88e;
 }
 
 /* Botón Verde Bosque (Paso 4: Calibra tus Golpes) */
 .onboarding-submit-btn.forest-green-btn {
-  background: #064E3B;
-  color: #FFFFFF;
+  background: #00CFA0;
+  color: #001827;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  box-shadow: 0 4px 14px rgba(6, 78, 59, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 207, 160, 0.25);
 }
 
 .onboarding-submit-btn.forest-green-btn:hover {
-  background: #04382A;
-  box-shadow: 0 6px 18px rgba(6, 78, 59, 0.32);
+  background: #00b88e;
+  box-shadow: 0 6px 18px rgba(0, 207, 160, 0.35);
   transform: translateY(-1px);
 }
 
@@ -765,7 +763,7 @@
 }
 
 .calib-title {
-  color: #0F4F2D;
+  color: #25005C;
   font-family: 'Barlow Condensed', 'General Sans', Arial, sans-serif;
   font-size: 28px;
   font-weight: 800;
@@ -783,7 +781,7 @@
 }
 
 .calib-subtitle {
-  color: #5F7180;
+  color: #64727A;
   font-size: 13px;
   font-weight: 500;
   margin: 0 0 16px;
@@ -807,7 +805,7 @@
 .calib-stroke-card {
   background: #FFFFFF;
   border-radius: 16px;
-  border: 1.5px solid #D9F99D;
+  border: 1.5px solid #E8EEEE;
   padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
@@ -819,8 +817,8 @@
 
 /* Estado calibrado con porcentaje */
 .calib-stroke-card.calibrated {
-  border-color: #CBD5E1;
-  box-shadow: 0 3px 10px rgba(15, 79, 45, 0.05);
+  border-color: #00CFA0;
+  box-shadow: 0 3px 10px rgba(0, 207, 160, 0.08);
 }
 
 .calib-stroke-header {
@@ -835,7 +833,7 @@
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.05em;
-  color: #1E293B;
+  color: #001827;
   text-transform: uppercase;
 }
 
@@ -843,11 +841,11 @@
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 13px;
   font-weight: 800;
-  color: #0F4F2D;
+  color: #00CFA0;
 }
 
 .calib-stroke-value.uncalibrated {
-  color: #1E293B;
+  color: #64727A;
   font-weight: 700;
   font-size: 15px;
 }
@@ -891,8 +889,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: #C3F23A;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23C3F23A' stroke='%23ffffff' stroke-width='1.5'/%3E%3Cpath d='M4 9.5C8 10.5 10 13.5 10.5 19.5M20 14.5C16 13.5 14 10.5 13.5 4.5' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-color: #C6FF00;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23C6FF00' stroke='%23ffffff' stroke-width='1.5'/%3E%3Cpath d='M4 9.5C8 10.5 10 13.5 10.5 19.5M20 14.5C16 13.5 14 10.5 13.5 4.5' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
   background-size: cover;
   background-position: center;
   box-shadow: 0 0 0 2.5px #FFFFFF, 0 3px 7px rgba(0, 0, 0, 0.2);
@@ -904,7 +902,7 @@
 .calib-range-slider::-webkit-slider-thumb:active {
   cursor: grabbing;
   transform: scale(1.15);
-  box-shadow: 0 0 0 3.5px #FFFFFF, 0 0 10px rgba(195, 242, 58, 0.6);
+  box-shadow: 0 0 0 3.5px #FFFFFF, 0 0 10px rgba(198, 255, 0, 0.6);
 }
 
 /* Thumb Pelota de Tenis (Firefox) */
@@ -913,8 +911,8 @@
   height: 20px;
   border: none;
   border-radius: 50%;
-  background-color: #C3F23A;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23C3F23A' stroke='%23ffffff' stroke-width='1.5'/%3E%3Cpath d='M4 9.5C8 10.5 10 13.5 10.5 19.5M20 14.5C16 13.5 14 10.5 13.5 4.5' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-color: #C6FF00;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23C6FF00' stroke='%23ffffff' stroke-width='1.5'/%3E%3Cpath d='M4 9.5C8 10.5 10 13.5 10.5 19.5M20 14.5C16 13.5 14 10.5 13.5 4.5' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
   background-size: cover;
   background-position: center;
   box-shadow: 0 0 0 2.5px #FFFFFF, 0 3px 7px rgba(0, 0, 0, 0.2);
@@ -925,7 +923,7 @@
 .calib-range-slider::-moz-range-thumb:active {
   cursor: grabbing;
   transform: scale(1.15);
-  box-shadow: 0 0 0 3.5px #FFFFFF, 0 0 10px rgba(195, 242, 58, 0.6);
+  box-shadow: 0 0 0 3.5px #FFFFFF, 0 0 10px rgba(198, 255, 0, 0.6);
 }
 
 @media (max-width: 480px) {

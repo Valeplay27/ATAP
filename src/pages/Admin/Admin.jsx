@@ -202,7 +202,7 @@ export default function Admin({ usuario, onLoginSuccess }) {
         <div className="admin-portal-card panel">
           <div className="portal-header">
             <div className="portal-badge-icon">
-              <ShieldCheck size={36} color="#00E599" />
+              <ShieldCheck size={36} color="#00CFA0" />
             </div>
             <span className="portal-kicker">Panel Administrativo</span>
             <h1>Dashboard de Control ATAP</h1>
@@ -690,7 +690,7 @@ export default function Admin({ usuario, onLoginSuccess }) {
     <main className="page-content admin-page">
       {toastMessage && (
         <div className="admin-toast-banner" role="alert">
-          <CheckCircle2 size={20} color="#00E599" />
+          <CheckCircle2 size={20} color="#00CFA0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -1584,7 +1584,7 @@ export default function Admin({ usuario, onLoginSuccess }) {
               {/* LOGO PLATINO */}
               <div className="image-edit-card panel">
                 <h4>Logo Platino Sponsor</h4>
-                <div className="img-preview-box" style={{ background: '#063B78' }}>
+                <div className="img-preview-box" style={{ background: '#00304A' }}>
                   <img src={siteImageInputs.logoPlatino || siteImages.logoPlatino} alt="Logo Platino" />
                 </div>
                 <div className="img-input-controls">
@@ -1618,7 +1618,7 @@ export default function Admin({ usuario, onLoginSuccess }) {
               {/* LOGO ATAP */}
               <div className="image-edit-card panel">
                 <h4>Logo Oficial ATAP</h4>
-                <div className="img-preview-box" style={{ background: '#063B78' }}>
+                <div className="img-preview-box" style={{ background: '#00304A' }}>
                   <img src={siteImageInputs.logoAtap || siteImages.logoAtap} alt="Logo ATAP" />
                 </div>
                 <div className="img-input-controls">

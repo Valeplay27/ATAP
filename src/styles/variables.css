@@ -1,35 +1,40 @@
 :root {
-  /* FONDO GENERAL */
-  --bg-main: #BFF7D8;
+  /* PALETA OFICIAL ATAP */
+  --verde-turquesa: #00CFA0;      /* Color principal, botones y elementos destacados */
+  --verde-lima: #C6FF00;          /* CTAs, títulos importantes y pequeños detalles */
+  --verde-claro: #DDF8EF;         /* Fondos suaves de tarjetas */
+  --blanco: #FFFFFF;              /* Fondo principal */
+  --purpura-oscuro: #25005C;      /* Textos, banners y elementos de contraste */
+  --azul-petroleo: #00304A;       /* Banners oscuros y secciones deportivas */
+  --azul-muy-oscuro: #001827;     /* Navbar, footer y fondos premium */
+  --gris-claro: #E8EEEE;          /* Bordes y separadores */
+  --gris-texto: #64727A;          /* Textos secundarios */
 
-  /* CARDS */
+  /* MAPEO SEMÁNTICO Y HEREDADO */
+  --bg-main: #FFFFFF;
   --bg-card: #FFFFFF;
-  --bg-card-blue: #29005C;
-  --bg-card-secondary: #F1FFF8;
+  --bg-card-blue: #00304A;
+  --bg-card-secondary: #DDF8EF;
 
-  /* VERDES */
-  --green: #00D99B;
-  --green-dark: #29005C;
+  --green: #00CFA0;
+  --green-primary: #00CFA0;
+  --green-secondary: #00304A;
+  --green-dark: #25005C;
+  --green-logo: #00CFA0;
 
-  /* ACCENTO */
-  --lime: #C9FF00;
-  --lime-soft: #8EF0B6;
+  --lime: #C6FF00;
+  --lime-soft: #DDF8EF;
 
-  /* TEXTOS */
   --white: #FFFFFF;
-  --text-light: #29005C;
-  --text-muted: #5F5171;
+  --text-light: #25005C;
+  --text-dark: #001827;
+  --text-muted: #64727A;
+  --muted: #64727A;
 
-  /* BORDES */
-  --border-green: rgba(41, 0, 92, 0.16);
+  --border-green: #E8EEEE;
+  --border-light: #E8EEEE;
 
-  /* Heredadas de componentes que aun usan la paleta original */
-  --green-primary: #063B35;
-  --green-secondary: #0F7655;
-  --green-logo: #00A86B;
-  --navy: #0A263D;
-  --blue-secondary: #0A3D62;
-  --cream: #F7F5EA;
-  --text-dark: #17201E;
-  --muted: #687280;
+  --navy: #001827;
+  --blue-secondary: #00304A;
+  --cream: #DDF8EF;
 }

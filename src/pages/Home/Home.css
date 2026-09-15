@@ -19,7 +19,7 @@
 
 .panel {
 	overflow: hidden;
-	border: 1px solid rgba(41, 0, 92, .12);
+	border: 1.5px solid #E8EEEE;
 }
 
 .signup-panel,
@@ -39,10 +39,10 @@
 	min-height: 230px;
 	padding: 0;
 	overflow: hidden;
-	background: #170038;
+	background: #00304A; /* Azul petróleo */
 	border-radius: 16px;
-	border: 1.5px solid #E8E3F0;
-	box-shadow: 0 4px 16px rgba(41, 0, 92, 0.04);
+	border: 1.5px solid #E8EEEE;
+	box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
 }
 
 .event-image {
@@ -58,7 +58,7 @@
 .event-overlay {
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(90deg, rgba(16, 0, 42, 0.9) 0%, rgba(16, 0, 42, 0.68) 50%, rgba(16, 0, 42, 0.1) 100%);
+	background: linear-gradient(90deg, rgba(0, 48, 74, 0.92) 0%, rgba(0, 48, 74, 0.75) 50%, rgba(0, 48, 74, 0.2) 100%);
 	z-index: 1;
 	pointer-events: none;
 }
@@ -75,7 +75,7 @@
 
 .event-copy .event-kicker {
 	margin: 0 0 6px 0;
-	color: #00E599;
+	color: #00CFA0; /* Verde turquesa */
 	font-family: 'Barlow Condensed', sans-serif;
 	font-size: 13px;
 	font-weight: 800;
@@ -96,13 +96,13 @@
 }
 
 .event-copy h2 em {
-	color: #C9FF00;
+	color: #C6FF00; /* Verde lima */
 	font-style: normal;
 }
 
 .event-copy .event-desc {
 	display: block;
-	color: #F0ECF8;
+	color: #E8EEEE;
 	font-family: 'General Sans', Arial, sans-serif;
 	font-size: clamp(11px, 1.1vw, 13px);
 	font-weight: 500;
@@ -114,7 +114,16 @@
 .event-register-button {
 	position: static;
 	margin-top: auto;
-	box-shadow: 0 4px 14px rgba(201, 255, 0, 0.35);
+	background: #FFFFFF;
+	color: #00304A;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+	transition: all 0.2s ease;
+}
+
+.event-register-button:hover {
+	background: #00CFA0;
+	color: #FFFFFF;
+	transform: translateY(-1px);
 }
 
 @media (max-width: 800px) {
@@ -138,9 +147,9 @@
 	justify-content: space-between;
 	padding: 24px 22px 20px;
 	background: #FFFFFF;
-	border: 1.5px solid #E8E3F0;
+	border: 1.5px solid #E8EEEE;
 	border-radius: 16px;
-	box-shadow: 0 4px 16px rgba(41, 0, 92, 0.04);
+	box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
 	position: relative;
 	overflow: hidden;
 	gap: 14px;
@@ -160,7 +169,7 @@
 	align-items: center;
 	gap: 6px;
 	margin: 0 0 6px 0;
-	color: #29005C;
+	color: #00CFA0; /* Verde turquesa */
 	font-family: 'Barlow Condensed', sans-serif;
 	font-size: 13px;
 	font-weight: 800;
@@ -169,7 +178,7 @@
 }
 
 .eyebrow-accent {
-	color: #00E599;
+	color: #00CFA0;
 	font-weight: 900;
 	font-size: 15px;
 	letter-spacing: -1px;
@@ -177,7 +186,7 @@
 
 .social-copy h2 {
 	margin: 0 0 8px 0;
-	color: #160438;
+	color: #25005C; /* Púrpura oscuro */
 	font-family: 'Barlow Condensed', sans-serif;
 	font-size: clamp(24px, 2.5vw, 32px);
 	font-weight: 800;
@@ -187,7 +196,7 @@
 
 .social-subtext {
 	margin: 0 0 16px 0;
-	color: #6A5D82;
+	color: #64727A; /* Gris texto */
 	font-family: 'General Sans', Arial, sans-serif;
 	font-size: 12px;
 	line-height: 1.45;
@@ -207,20 +216,20 @@
 	display: flex;
 	align-items: center;
 	gap: 12px;
-	background: #150033;
+	background: #00304A; /* Azul petróleo */
 	color: #FFFFFF;
 	padding: 7px 14px;
 	border-radius: 10px;
 	text-decoration: none;
 	transition: all 0.2s ease;
-	box-shadow: 0 2px 6px rgba(21, 0, 51, 0.15);
+	box-shadow: 0 2px 6px rgba(0, 48, 74, 0.15);
 	box-sizing: border-box;
 }
 
 .social-btn:hover {
-	background: #2D0566;
+	background: #001827; /* Azul muy oscuro */
 	transform: translateX(4px);
-	box-shadow: 0 4px 12px rgba(45, 5, 102, 0.25);
+	box-shadow: 0 4px 12px rgba(0, 24, 39, 0.25);
 }
 
 .social-btn-icon {
@@ -263,7 +272,7 @@
 	max-height: 500px;
 	object-fit: contain;
 	display: block;
-	filter: drop-shadow(0 10px 24px rgba(41, 0, 92, 0.08));
+	filter: drop-shadow(0 10px 24px rgba(0, 24, 39, 0.08));
 	transition: transform 0.3s ease;
 }
 
@@ -295,9 +304,9 @@
 .ranking-section {
 	padding: 20px 18px 18px;
 	background: #FFFFFF;
-	border: 1.5px solid #E8E3F0;
+	border: 1.5px solid #E8EEEE;
 	border-radius: 16px;
-	box-shadow: 0 4px 16px rgba(41, 0, 92, 0.04);
+	box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
 	display: flex;
 	flex-direction: column;
 }
@@ -308,7 +317,7 @@
 	justify-content: space-between;
 	padding: 0 4px 10px;
 	margin-bottom: 12px;
-	border-bottom: 1.5px solid #F0ECF6;
+	border-bottom: 1.5px solid #E8EEEE;
 }
 
 .ranking-heading-row .ranking-heading {
@@ -318,7 +327,7 @@
 
 .ranking-heading p {
 	margin: 0 0 2px;
-	color: #6A3A91;
+	color: #64727A; /* Gris texto */
 	font-family: 'Barlow Condensed', sans-serif;
 	font-size: 11px;
 	font-weight: 700;
@@ -328,7 +337,7 @@
 
 .ranking-heading h2 {
 	margin: 0;
-	color: #29005C;
+	color: #25005C; /* Púrpura oscuro */
 	font-family: 'Barlow Condensed', sans-serif;
 	font-size: 26px;
 	font-weight: 800;
@@ -336,8 +345,8 @@
 }
 
 .ranking-top-badge {
-	background: #00E599;
-	color: #063B78;
+	background: #DDF8EF; /* Verde claro */
+	color: #00CFA0; /* Verde turquesa */
 	font-family: 'Barlow Condensed', sans-serif;
 	font-size: 11px;
 	font-weight: 800;
@@ -355,7 +364,7 @@
 .ranking-footer-row {
 	margin-top: auto;
 	padding-top: 14px;
-	border-top: 1.5px solid #F0ECF6;
+	border-top: 1.5px solid #E8EEEE;
 	display: flex;
 	justify-content: center;
 }
@@ -364,7 +373,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	color: #063B78;
+	color: #00304A; /* Azul petróleo */
 	font-family: 'Barlow Condensed', sans-serif;
 	font-size: 13px;
 	font-weight: 800;
@@ -373,17 +382,17 @@
 	text-decoration: none;
 	padding: 8px 16px;
 	border-radius: 8px;
-	background: #FAF8FD;
-	border: 1px solid #E2DDF0;
+	background: #DDF8EF; /* Verde claro */
+	border: 1px solid #00CFA0;
 	transition: all 0.2s ease;
 }
 
 .ranking-view-all-link:hover {
-	background: #00E599;
-	border-color: #00E599;
-	color: #063B78;
+	background: #00CFA0;
+	border-color: #00CFA0;
+	color: #FFFFFF;
 	transform: translateY(-1px);
-	box-shadow: 0 4px 12px rgba(0, 229, 153, 0.2);
+	box-shadow: 0 4px 12px rgba(0, 207, 160, 0.2);
 }
 
 /* Preguntas frecuentes y reglas de torneos */
@@ -401,9 +410,9 @@
 }
 
 .faq-card {
-	background: linear-gradient(135deg, #00A86B 0%, #00CFA4 100%);
-	color: var(--navy);
-	border-color: var(--green);
+	background: linear-gradient(135deg, #004838 0%, #00CFA0 100%);
+	color: #FFFFFF;
+	border-color: #00CFA0;
 }
 
 .faq-card img {
@@ -419,27 +428,35 @@
 	margin: 0 0 8px;
 	font: 800 clamp(24px, 3vw, 38px)/.95 'General Sans', Arial, sans-serif;
 	text-transform: uppercase;
+	color: #FFFFFF;
 }
 
 .faq-card p {
 	margin: 0 0 8px;
-	font: 600 9px 'General Sans', Arial, sans-serif;
+	font: 600 11px 'General Sans', Arial, sans-serif;
+	color: #DDF8EF;
 }
 
 .whatsapp-button {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	padding: 7px 10px;
+	padding: 7px 12px;
 	border-radius: 14px;
-	background: var(--navy);
+	background: #001827; /* Azul muy oscuro */
 	color: #FFFFFF;
-	font: 700 8px 'General Sans', Arial, sans-serif;
+	font: 700 10px 'General Sans', Arial, sans-serif;
+	text-decoration: none;
+	transition: background 0.2s ease;
+}
+
+.whatsapp-button:hover {
+	background: #00304A;
 }
 
 .rules-card {
-	background: #29005C;
-	border-color: #29005C;
+	background: #00304A; /* Azul petróleo */
+	border-color: #00304A;
 }
 
 .rules-card .eyebrow,
@@ -462,16 +479,20 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 7px 12px;
+	padding: 8px 12px;
 	border-radius: 9px;
-	background: rgba(255, 255, 255, .14);
+	background: rgba(255, 255, 255, .08);
+	border: 1px solid rgba(0, 207, 160, 0.25);
 	color: #FFFFFF;
-	font: 600 9px 'General Sans', Arial, sans-serif;
+	font: 600 10px 'General Sans', Arial, sans-serif;
 	text-transform: uppercase;
+	text-decoration: none;
+	transition: all 0.15s ease;
 }
 
 .rules-list a:hover {
-	background: var(--green-dark);
+	background: rgba(0, 207, 160, 0.18);
+	border-color: #00CFA0;
 }
 
 /* Patrocinadores */
@@ -480,7 +501,7 @@
 	min-height: 112px;
 	padding: 14px 0 8px;
 	text-align: center;
-	color: #29005C;
+	color: #001827;
 	background: transparent;
 	border: 0;
 	box-shadow: none;
@@ -488,19 +509,19 @@
 
 .sponsor-kicker {
 	margin: 0 0 5px;
-	color: #6A3A91;
+	color: #64727A;
 	font: 800 9px 'General Sans', Arial, sans-serif;
 	text-transform: uppercase;
 }
 
 .sponsors-card h2 {
 	margin: 0 0 12px;
-	color: #29005C;
+	color: #25005C;
 	font: 700 clamp(22px, 3vw, 34px) 'Barlow Condensed', sans-serif;
 }
 
 .sponsors-card h2 span {
-	color: var(--green);
+	color: #00CFA0;
 }
 
 .platino-logo {
@@ -516,7 +537,7 @@
 	gap: 12px 28px;
 	max-width: 520px;
 	margin: auto;
-	color: #29005C;
+	color: #00304A;
 	font: 800 11px 'General Sans', Arial, sans-serif;
 }
 
@@ -535,7 +556,7 @@
 	height: 5px;
 	flex-shrink: 0;
 	border-radius: 50%;
-	background: #29005C;
+	background: #00CFA0;
 }
 
 @media (max-width: 800px) {

@@ -37,7 +37,7 @@ export default function Tournaments({ usuario }) {
         <div className="tournaments-wrapper">
           {tourneyList.length === 0 ? (
             <div className="tourneys-empty-state">
-              <Trophy size={48} color="#063B78" />
+              <Trophy size={48} color="#00304A" />
               <h3>No hay torneos disponibles</h3>
               <p>Pronto se publicarán nuevas fechas en el calendario oficial ATAP.</p>
             </div>

@@ -9,10 +9,10 @@
 .contact-heading-card {
   background: #FFFFFF;
   border-radius: 20px;
-  border: 1.5px solid #E8E3F0;
+  border: 1.5px solid #E8EEEE;
   padding: 30px 34px;
   margin-bottom: 24px;
-  box-shadow: 0 8px 24px rgba(41, 0, 92, 0.04);
+  box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
   position: relative;
   overflow: hidden;
 }
@@ -24,7 +24,7 @@
   right: 0;
   width: 180px;
   height: 100%;
-  background: linear-gradient(135deg, rgba(0, 229, 153, 0.12) 0%, rgba(41, 0, 92, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(0, 207, 160, 0.1) 0%, rgba(0, 48, 74, 0.04) 100%);
   pointer-events: none;
   border-radius: 0 20px 20px 0;
 }
@@ -34,7 +34,7 @@
   align-items: center;
   gap: 6px;
   margin: 0 0 6px 0;
-  color: #29005C;
+  color: #00CFA0;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 13px;
   font-weight: 800;
@@ -43,7 +43,7 @@
 }
 
 .contact-eyebrow .eyebrow-slash {
-  color: #00E599;
+  color: #C6FF00;
   font-weight: 900;
   font-size: 15px;
 }
@@ -53,7 +53,7 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(32px, 3.2vw, 42px);
   font-weight: 800;
-  color: #29005C;
+  color: #25005C;
   line-height: 1.05;
   text-transform: uppercase;
   letter-spacing: -0.3px;
@@ -62,7 +62,7 @@
 .contact-heading-card p.contact-desc {
   max-width: 720px;
   margin: 0;
-  color: #6C5F80;
+  color: #64727A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -79,10 +79,10 @@
 
 .channel-card {
   background: #FFFFFF;
-  border: 1.5px solid #E8E3F0;
+  border: 1.5px solid #E8EEEE;
   border-radius: 16px;
   padding: 20px 18px;
-  box-shadow: 0 4px 14px rgba(41, 0, 92, 0.04);
+  box-shadow: 0 4px 14px rgba(0, 24, 39, 0.04);
   display: flex;
   flex-direction: column;
   transition: all 0.22s ease;
@@ -90,8 +90,8 @@
 }
 
 .channel-card:hover {
-  border-color: #00E599;
-  box-shadow: 0 8px 24px rgba(0, 229, 153, 0.16);
+  border-color: #00CFA0;
+  box-shadow: 0 8px 24px rgba(0, 207, 160, 0.16);
   transform: translateY(-3px);
 }
 
@@ -107,23 +107,23 @@
 }
 
 .channel-card.whatsapp .channel-icon-wrap {
-  background: #E6FCF2;
-  color: #00875A;
+  background: #DDF8EF;
+  color: #00CFA0;
 }
 
 .channel-card.email .channel-icon-wrap {
-  background: #F4EFFC;
-  color: #29005C;
+  background: #DDF8EF;
+  color: #00304A;
 }
 
 .channel-card.location .channel-icon-wrap {
-  background: #E8F0FE;
-  color: #063B78;
+  background: #DDF8EF;
+  color: #00304A;
 }
 
 .channel-card.hours .channel-icon-wrap {
-  background: #FEF2F2;
-  color: #EF4444;
+  background: #DDF8EF;
+  color: #00304A;
 }
 
 .channel-card h3 {
@@ -131,14 +131,14 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 19px;
   font-weight: 800;
-  color: #29005C;
+  color: #25005C;
 }
 
 .channel-primary-val {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 16px;
   font-weight: 700;
-  color: #063B78;
+  color: #00304A;
   margin: 0 0 4px 0;
   word-break: break-word;
 }
@@ -146,7 +146,7 @@
 .channel-card p.channel-sub {
   margin: 0 0 14px 0;
   font-size: 12px;
-  color: #796E8A;
+  color: #64727A;
   line-height: 1.4;
   flex: 1;
 }
@@ -172,30 +172,30 @@
 }
 
 .channel-card.whatsapp .channel-btn-action {
-  background: #00E599;
-  color: #022013;
+  background: #00CFA0;
+  color: #001827;
 }
 
 .channel-card.whatsapp .channel-btn-action:hover {
-  background: #00C782;
-  box-shadow: 0 4px 12px rgba(0, 229, 153, 0.3);
+  background: #00b88e;
+  box-shadow: 0 4px 12px rgba(0, 207, 160, 0.3);
 }
 
 .channel-card.email .channel-btn-action {
-  background: #29005C;
+  background: #00304A;
   color: #FFFFFF;
 }
 
 .channel-card.email .channel-btn-action:hover {
-  background: #3F0587;
-  box-shadow: 0 4px 12px rgba(41, 0, 92, 0.25);
+  background: #001827;
+  box-shadow: 0 4px 12px rgba(0, 48, 74, 0.25);
 }
 
 .channel-card.location .channel-btn-action,
 .channel-card.hours .channel-btn-action {
-  background: #FAF8FD;
-  border-color: #E2DDF0;
-  color: #29005C;
+  background: #DDF8EF;
+  border-color: #E8EEEE;
+  color: #00304A;
   cursor: default;
 }
 
@@ -216,16 +216,16 @@
 /* FORM PANEL */
 .contact-form-card {
   background: #FFFFFF;
-  border: 1.5px solid #E8E3F0;
+  border: 1.5px solid #E8EEEE;
   border-radius: 18px;
   padding: 26px 28px;
-  box-shadow: 0 8px 24px rgba(41, 0, 92, 0.04);
+  box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
 }
 
 .form-header-box {
   margin-bottom: 20px;
   padding-bottom: 14px;
-  border-bottom: 1.5px solid #F0ECF6;
+  border-bottom: 1.5px solid #E8EEEE;
 }
 
 .form-header-box h2 {
@@ -233,14 +233,14 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 26px;
   font-weight: 800;
-  color: #29005C;
+  color: #25005C;
   text-transform: uppercase;
 }
 
 .form-header-box p {
   margin: 0;
   font-size: 13px;
-  color: #6C5F80;
+  color: #64727A;
 }
 
 .contact-form {
@@ -270,7 +270,7 @@
 .contact-form .form-group label {
   font-size: 12px;
   font-weight: 700;
-  color: #29005C;
+  color: #25005C;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -279,12 +279,12 @@
 .contact-form .form-group input,
 .contact-form .form-group select,
 .contact-form .form-group textarea {
-  border: 1.5px solid #E2DDF0;
+  border: 1.5px solid #E8EEEE;
   border-radius: 10px;
   padding: 10px 14px;
   font-size: 13px;
-  color: #29005C;
-  background: #FAF8FD;
+  color: #001827;
+  background: #FFFFFF;
   outline: none;
   font-family: inherit;
   transition: all 0.2s ease;
@@ -294,9 +294,9 @@
 .contact-form .form-group input:focus,
 .contact-form .form-group select:focus,
 .contact-form .form-group textarea:focus {
-  border-color: #00E599;
+  border-color: #00CFA0;
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 207, 160, 0.15);
 }
 
 .contact-form .form-group textarea {
@@ -346,15 +346,15 @@
   align-items: center;
   gap: 12px;
   background: #FFFFFF;
-  border: 1.5px solid #E8E3F0;
-  border-left: 5px solid #00E599;
+  border: 1.5px solid #E8EEEE;
+  border-left: 5px solid #00CFA0;
   border-radius: 12px;
   padding: 14px 18px;
-  color: #063B78;
+  color: #00304A;
   font-size: 13.5px;
   font-weight: 600;
   margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(5, 8, 29, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 24px rgba(0, 24, 39, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
   animation: fadeIn 0.3s ease;
 }
 
@@ -366,10 +366,10 @@
 /* FAQ ACCORDION PANEL */
 .contact-faq-card {
   background: #FFFFFF;
-  border: 1.5px solid #E8E3F0;
+  border: 1.5px solid #E8EEEE;
   border-radius: 18px;
   padding: 24px 26px;
-  box-shadow: 0 8px 24px rgba(41, 0, 92, 0.04);
+  box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
   display: flex;
   flex-direction: column;
 }
@@ -377,7 +377,7 @@
 .faq-header-box {
   margin-bottom: 18px;
   padding-bottom: 12px;
-  border-bottom: 1.5px solid #F0ECF6;
+  border-bottom: 1.5px solid #E8EEEE;
 }
 
 .faq-header-box h2 {
@@ -385,14 +385,14 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 24px;
   font-weight: 800;
-  color: #29005C;
+  color: #25005C;
   text-transform: uppercase;
 }
 
 .faq-header-box p {
   margin: 0;
   font-size: 13px;
-  color: #6C5F80;
+  color: #64727A;
 }
 
 .faq-accordion-list {
@@ -402,17 +402,17 @@
 }
 
 .faq-item {
-  border: 1.5px solid #E8E3F0;
+  border: 1.5px solid #E8EEEE;
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.2s ease;
-  background: #FAF8FD;
+  background: #FFFFFF;
 }
 
 .faq-item.is-open {
-  border-color: #00E599;
+  border-color: #00CFA0;
   background: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(0, 229, 153, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 207, 160, 0.12);
 }
 
 .faq-question-btn {
@@ -429,38 +429,38 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 16px;
   font-weight: 700;
-  color: #29005C;
+  color: #25005C;
   line-height: 1.25;
 }
 
 .faq-item.is-open .faq-question-btn {
-  color: #063B78;
+  color: #00304A;
 }
 
 .faq-icon-arrow {
-  color: #796E8A;
+  color: #64727A;
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
 
 .faq-item.is-open .faq-icon-arrow {
   transform: rotate(180deg);
-  color: #00875A;
+  color: #00CFA0;
 }
 
 .faq-answer-content {
   padding: 0 16px 14px 16px;
   font-size: 13px;
   line-height: 1.5;
-  color: #5C5173;
-  border-top: 1px dashed #E8E3F0;
+  color: #64727A;
+  border-top: 1px dashed #E8EEEE;
   margin-top: 4px;
   padding-top: 10px;
 }
 
 /* BOTTOM WHATSAPP QUICK HELP CARD */
 .contact-quick-help-banner {
-  background: linear-gradient(135deg, #160438 0%, #29005C 100%);
+  background: linear-gradient(135deg, #00304A 0%, #25005C 100%);
   border-radius: 18px;
   padding: 24px 30px;
   color: #FFFFFF;
@@ -469,7 +469,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 20px;
-  box-shadow: 0 10px 28px rgba(41, 0, 92, 0.15);
+  box-shadow: 0 10px 28px rgba(0, 24, 39, 0.12);
 }
 
 .quick-help-text h3 {
@@ -483,7 +483,7 @@
 .quick-help-text p {
   margin: 0;
   font-size: 13px;
-  color: #D3CCE3;
+  color: #DDF8EF;
   max-width: 580px;
   line-height: 1.45;
 }
@@ -492,8 +492,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #00E599;
-  color: #022013;
+  background: #00CFA0;
+  color: #001827;
   padding: 12px 22px;
   border-radius: 10px;
   font-family: 'Barlow Condensed', sans-serif;
@@ -507,7 +507,8 @@
 }
 
 .btn-direct-chat:hover {
-  background: #C9FF00;
+  background: #C6FF00;
+  color: #25005C;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 229, 153, 0.4);
+  box-shadow: 0 6px 20px rgba(198, 255, 0, 0.3);
 }

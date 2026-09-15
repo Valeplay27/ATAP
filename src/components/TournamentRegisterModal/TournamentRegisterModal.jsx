@@ -195,7 +195,7 @@ export default function TournamentRegisterModal({
         ) : (
           <div className='tourney-success-content'>
             <div className='success-icon-badge'>
-              <CheckCircle2 size={46} color='#00E599' />
+              <CheckCircle2 size={46} color='#00CFA0' />
             </div>
             <span className='status-pill-warning'>ESTADO: PENDIENTE DE VALIDACIÓN</span>
             <h2>¡Inscripción Registrada!</h2>

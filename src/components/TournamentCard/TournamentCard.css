@@ -4,9 +4,10 @@
 	min-height: 59px;
 	overflow: hidden;
 	background: #FFFFFF;
-	color: #29005C;
+	color: #25005C;
+	border: 1px solid #E8EEEE;
 	border-radius: 12px;
-	box-shadow: 0 8px 18px rgba(41, 0, 92, .08);
+	box-shadow: 0 4px 12px rgba(0, 24, 39, 0.05);
 }
 
 .tournament-card img { display: block; width: 83px; object-fit: cover; }
@@ -19,14 +20,14 @@
 	padding: 6px 8px;
 }
 
-.tournament-info h3 { margin: 0; font: 600 12px 'Barlow Condensed', sans-serif; }
-.tournament-info small { display: flex; align-items: center; gap: 4px; color: #6E6479; font-size: 7px; }
+.tournament-info h3 { margin: 0; font: 600 12px 'Barlow Condensed', sans-serif; color: #25005C; }
+.tournament-info small { display: flex; align-items: center; gap: 4px; color: #64727A; font-size: 7px; }
 
 .tag {
 	width: fit-content;
 	padding: 2px 5px;
-	background: #C9FF00;
-	color: #29005C;
+	background: #C6FF00;
+	color: #001827;
 	border-radius: 2px;
 	font: 600 7px 'DM Sans', sans-serif;
 }
@@ -39,7 +40,7 @@
 	width: 17px;
 	height: 17px;
 	place-items: center;
-	border: 1px solid #29005C;
+	border: 1px solid #00CFA0;
 	border-radius: 50%;
-	color: #29005C;
+	color: #00CFA0;
 }

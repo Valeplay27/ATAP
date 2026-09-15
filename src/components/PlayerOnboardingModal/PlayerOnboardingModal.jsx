@@ -161,7 +161,7 @@ export default function PlayerOnboardingModal({
           <path d="M16 22l8-4 8 6-4 12" />
           <path d="M18 36l-4 6M28 36l4 6" />
           <path d="M32 24l8-8" />
-          <circle cx="42" cy="14" r="3" fill="#00E599" stroke="none" />
+          <circle cx="42" cy="14" r="3" fill="#00CFA0" stroke="none" />
         </svg>
       )
     },
@@ -174,7 +174,7 @@ export default function PlayerOnboardingModal({
           <path d="M14 22l6-4 8 4 2 14" />
           <path d="M16 36l-2 6M28 36l2 6" />
           <path d="M28 22l10-2" />
-          <circle cx="40" cy="20" r="3" fill="#00E599" stroke="none" />
+          <circle cx="40" cy="20" r="3" fill="#00CFA0" stroke="none" />
         </svg>
       )
     },
@@ -187,7 +187,7 @@ export default function PlayerOnboardingModal({
           <path d="M32 22l-8-4-6 6 2 12" />
           <path d="M20 36l-4 6M30 36l2 6" />
           <path d="M18 24l-8-8" />
-          <circle cx="8" cy="14" r="3" fill="#00E599" stroke="none" />
+          <circle cx="8" cy="14" r="3" fill="#00CFA0" stroke="none" />
         </svg>
       )
     },
@@ -200,7 +200,7 @@ export default function PlayerOnboardingModal({
           <path d="M30 22l-6-4-6 4 2 14" />
           <path d="M20 36l-3 6M28 36l3 6" />
           <path d="M20 22l-8-2M24 22l-8-4" />
-          <circle cx="10" cy="18" r="3" fill="#00E599" stroke="none" />
+          <circle cx="10" cy="18" r="3" fill="#00CFA0" stroke="none" />
         </svg>
       )
     },
@@ -214,7 +214,7 @@ export default function PlayerOnboardingModal({
           <path d="M16 38l-4 4M28 34l4 8" />
           <path d="M24 26l8 4" />
           <path d="M36 28q6-8 10 4" strokeDasharray="3 3" />
-          <circle cx="45" cy="32" r="2.5" fill="#00E599" stroke="none" />
+          <circle cx="45" cy="32" r="2.5" fill="#00CFA0" stroke="none" />
         </svg>
       )
     },
@@ -227,7 +227,7 @@ export default function PlayerOnboardingModal({
           <path d="M18 22l6-2 6 4-2 12" />
           <path d="M18 36l-3 6M28 36l3 6" />
           <path d="M30 24l8-4" />
-          <path d="M38 20q-12 8-24 4" stroke="#00E599" strokeWidth="2" strokeDasharray="2 2" />
+          <path d="M38 20q-12 8-24 4" stroke="#00CFA0" strokeWidth="2" strokeDasharray="2 2" />
         </svg>
       )
     },
@@ -240,7 +240,7 @@ export default function PlayerOnboardingModal({
           <path d="M22 24l2 6-2 12" />
           <path d="M22 42l-4 4M26 30l4 12" />
           <path d="M24 20l4-12 6-4" />
-          <circle cx="36" cy="4" r="3" fill="#00E599" stroke="none" />
+          <circle cx="36" cy="4" r="3" fill="#00CFA0" stroke="none" />
         </svg>
       )
     }
@@ -538,8 +538,8 @@ export default function PlayerOnboardingModal({
                 const currentVal = isCalibrated ? val : 0
 
                 const trackGradient = isCalibrated
-                  ? `linear-gradient(to right, #0F4F2D 0%, #16A34A ${Math.max(8, Math.round(currentVal * 0.6))}%, #84CC16 ${currentVal}%, #EDF2F7 ${currentVal}%, #EDF2F7 100%)`
-                  : '#EDF2F7'
+                  ? `linear-gradient(to right, #00304A 0%, #00CFA0 ${Math.max(8, Math.round(currentVal * 0.6))}%, #C6FF00 ${currentVal}%, #E8EEEE ${currentVal}%, #E8EEEE 100%)`
+                  : '#E8EEEE'
 
                 return (
                   <div

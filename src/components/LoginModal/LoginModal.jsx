@@ -161,7 +161,7 @@ export default function LoginModal({
             <div className="login-modal-icon" style={{ margin: '0 auto 18px' }} aria-hidden="true">
               <i className="fi fi-rr-envelope-check" />
             </div>
-            <p className="login-modal-kicker" style={{ color: '#00E599' }}>Área de jugadores ATAP</p>
+            <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Área de jugadores ATAP</p>
             <h2 id="login-title">¡REVISA TU CORREO!</h2>
             <p className="login-modal-description" style={{ margin: '0 auto 24px' }}>
               Hemos enviado un enlace de confirmación a tu bandeja de entrada ({usuarioRegistrado?.email}) para verificar tu cuenta.
@@ -185,7 +185,7 @@ export default function LoginModal({
             <div className="login-modal-icon" style={{ margin: '0 auto 18px' }} aria-hidden="true">
               <i className="fi fi-rr-lock" />
             </div>
-            <p className="login-modal-kicker" style={{ color: '#00E599' }}>Recuperación de cuenta</p>
+            <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Recuperación de cuenta</p>
             <h2 id="login-title">ENLACE ENVIADO</h2>
             <p className="login-modal-description" style={{ margin: '0 auto 24px' }}>
               Si el correo está registrado, recibirás un enlace seguro para restablecer tu contraseña en los próximos minutos.
@@ -203,7 +203,7 @@ export default function LoginModal({
             <div className="login-modal-icon" aria-hidden="true">
               <i className={mostrarRegistro ? "fi fi-rr-user-add" : "fi fi-rr-user"} />
             </div>
-            <p className="login-modal-kicker" style={{ color: '#00E599' }}>Área de jugadores ATAP</p>
+            <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Área de jugadores ATAP</p>
             <h2 id="login-title">{mostrarRegistro ? 'UN POCO SOBRE TI' : 'Bienvenido'}</h2>
             <p className="login-modal-description">
               {mostrarRegistro

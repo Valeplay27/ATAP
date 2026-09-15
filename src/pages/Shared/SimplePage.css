@@ -8,14 +8,15 @@
 .page-heading {
   background: #FFFFFF;
   border-radius: 22px;
+  border: 1.5px solid #E8EEEE;
   padding: 26px 32px;
   margin-bottom: 24px;
-  box-shadow: 0 10px 30px rgba(41, 0, 92, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
 }
 
 .page-heading .eyebrow {
   margin: 0 0 6px;
-  color: #009865;
+  color: #00CFA0;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 11px;
   font-weight: 800;
@@ -28,14 +29,14 @@
   font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   font-size: 38px;
   font-weight: 800;
-  color: #063B78;
+  color: #25005C;
   line-height: 1.05;
 }
 
 .page-heading > p:last-child {
   max-width: 680px;
   margin: 0;
-  color: #5F7180;
+  color: #64727A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -46,12 +47,12 @@
   display: grid;
   min-height: 220px;
   place-items: center;
-  border: 1px solid var(--border-green);
+  border: 1.5px solid #E8EEEE;
   border-radius: 16px;
   background: #FFFFFF;
-  color: #063B78;
+  color: #00304A;
   font: 600 14px 'General Sans', Arial, sans-serif;
-  box-shadow: 0 8px 24px rgba(41, 0, 92, 0.06);
+  box-shadow: 0 4px 16px rgba(0, 24, 39, 0.04);
 }
 
 @media (max-width: 800px) {

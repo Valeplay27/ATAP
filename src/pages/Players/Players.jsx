@@ -160,7 +160,7 @@ export default function Players({ usuario }) {
               className={`player-pro-card ${isHighlight ? 'is-highlighted' : ''}`}
             >
               <div className="player-pro-banner">
-                {/* RANK y número grande en verde (#00E599) */}
+                {/* RANK y número grande en verde lima (#C6FF00) */}
                 <div className="player-pro-rank-block">
                   <span className="player-rank-label">RANK</span>
                   <span className="player-rank-num">{rankNum}</span>

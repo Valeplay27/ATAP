@@ -12,21 +12,21 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 84px;
-  min-height: 84px;
+  height: 86px;
+  min-height: 86px;
   border-radius: 14px;
   overflow: hidden;
   text-decoration: none;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  background: #05081D;
-  box-shadow: 0 4px 16px rgba(5, 8, 29, 0.15);
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border: 1.5px solid #E8EEEE;
+  background: #001827;
+  box-shadow: 0 4px 14px rgba(0, 24, 39, 0.08);
+  transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .quick-tourney-card:hover {
   transform: translateY(-3px);
-  border-color: #00E599;
-  box-shadow: 0 8px 24px rgba(0, 229, 153, 0.25), 0 4px 12px rgba(5, 8, 29, 0.3);
+  border-color: #00CFA0;
+  box-shadow: 0 8px 24px rgba(0, 207, 160, 0.26), 0 4px 12px rgba(0, 24, 39, 0.12);
 }
 
 .quick-tourney-bg {
@@ -55,9 +55,9 @@
   z-index: 1;
   background: linear-gradient(
     180deg,
-    rgba(5, 8, 29, 0.35) 0%,
-    rgba(5, 8, 29, 0.58) 45%,
-    rgba(5, 8, 29, 0.94) 100%
+    rgba(0, 24, 39, 0.25) 0%,
+    rgba(0, 48, 74, 0.55) 45%,
+    rgba(0, 24, 39, 0.94) 100%
   );
   transition: background 0.3s ease;
 }
@@ -65,9 +65,9 @@
 .quick-tourney-card:hover .quick-tourney-overlay {
   background: linear-gradient(
     180deg,
-    rgba(5, 8, 29, 0.22) 0%,
-    rgba(5, 8, 29, 0.48) 45%,
-    rgba(5, 8, 29, 0.92) 100%
+    rgba(0, 24, 39, 0.15) 0%,
+    rgba(0, 48, 74, 0.42) 45%,
+    rgba(0, 24, 39, 0.90) 100%
   );
 }
 
@@ -101,22 +101,23 @@
   line-height: 1.1;
 }
 
-.quick-tourney-badge.is-singles {
-  background: rgba(239, 68, 68, 0.92);
-  color: #FFFFFF;
+.quick-tourney-badge.is-level {
+  background: #C6FF00;
+  color: #001827;
 }
 
 .quick-tourney-badge.is-duo {
-  background: rgba(0, 229, 153, 0.92);
-  color: #063B78;
+  background: #00CFA0;
+  color: #001827;
 }
 
 .quick-tourney-price {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 11px;
   font-weight: 800;
-  color: #C9FF00;
-  background: rgba(5, 8, 29, 0.65);
+  color: #C6FF00;
+  background: rgba(0, 24, 39, 0.72);
+  border: 1px solid rgba(198, 255, 0, 0.3);
   padding: 2px 6px;
   border-radius: 6px;
   backdrop-filter: blur(4px);
@@ -142,7 +143,7 @@
 }
 
 .quick-tourney-date {
-  color: #B4B9D2;
+  color: #E8EEEE;
   font-size: 9.5px;
   font-weight: 500;
   white-space: nowrap;

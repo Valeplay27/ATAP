@@ -155,9 +155,9 @@ export default function Navbar({
                         className="user-dropdown-item admin-item"
                         role="menuitem"
                         onClick={() => setUserMenuOpen(false)}
-                        style={{ color: '#00E599', fontWeight: 'bold' }}
+                        style={{ color: '#00CFA0', fontWeight: 'bold' }}
                       >
-                        <ShieldCheck size={15} color="#00E599" />
+                        <ShieldCheck size={15} color="#00CFA0" />
                         <span>Panel Dashboard</span>
                       </NavLink>
                     )}
