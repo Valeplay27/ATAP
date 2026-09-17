@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Star, X, Trophy, Calendar, Phone, Award, Flame, User, Users } from 'lucide-react'
+import { Star, X, Trophy, Calendar, Award, Flame, User, Users } from 'lucide-react'
 import { getPlayerMatchHistory, getPlayerBothProfiles } from '../../services/atapStorage'
 import './PlayerHeroModal.css'
 
@@ -132,12 +132,6 @@ export default function PlayerHeroModal({
               </button>
             </div>
 
-            {selectedModality === 'dobles' && (activeProfile.parejaReciente || player.parejaReciente) && (
-              <div className="p-hero-partner-strip">
-                👥 Dupla reciente: <strong>{activeProfile.parejaReciente || player.parejaReciente}</strong>
-              </div>
-            )}
-
             {/* Switcher de Pestañas */}
             <div className="p-hero-tabs-switcher">
               <button
@@ -166,7 +160,7 @@ export default function PlayerHeroModal({
                 className={`p-hero-tab-pill ${activeTab === 'zonas' ? 'active' : ''}`}
                 onClick={() => setActiveTab('zonas')}
               >
-                ZONAS & CONTACTO
+                ZONAS & DISPONIBILIDAD
               </button>
             </div>
           </div>
@@ -459,21 +453,6 @@ export default function PlayerHeroModal({
                   </div>
                 </div>
               </div>
-
-              {player.telefono && (
-                <div className="p-contact-whatsapp-row">
-                  <a
-                    href={`https://wa.me/51${player.telefono.replace(/\D/g, '')}?text=${encodeURIComponent(
-                      `¡Hola ${player.name}! Te contacto por medio de la plataforma ATAP para coordinar un partido o torneo.`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="button button-lime"
-                  >
-                    <Phone size={15} /> Coordinar Partido por WhatsApp
-                  </a>
-                </div>
-              )}
             </div>
           )}
         </div>

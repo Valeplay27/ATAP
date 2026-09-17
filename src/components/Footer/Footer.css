@@ -93,6 +93,51 @@
 	transform: translateY(-2px);
 }
 
+.footer-contact-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.footer-contact-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	border-radius: 20px;
+	font-size: 11px;
+	font-weight: 700;
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.footer-contact-badge.wa-badge {
+	background: #E6FBF5;
+	color: #008765;
+	border: 1px solid #B7F0E0;
+}
+
+.footer-contact-badge.wa-badge:hover {
+	background: #00CFA0;
+	color: #FFFFFF;
+	border-color: #00CFA0;
+	transform: translateY(-1px);
+}
+
+.footer-contact-badge.mail-badge {
+	background: #F3F5F7;
+	color: #00304A;
+	border: 1px solid #DFE3E6;
+}
+
+.footer-contact-badge.mail-badge:hover {
+	background: #00304A;
+	color: #FFFFFF;
+	border-color: #00304A;
+	transform: translateY(-1px);
+}
+
 .footer-copyright {
 	text-align: center;
 	font-family: 'General Sans', sans-serif;

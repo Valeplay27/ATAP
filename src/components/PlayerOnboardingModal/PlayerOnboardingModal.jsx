@@ -451,11 +451,11 @@ export default function PlayerOnboardingModal({
             <div className="onboarding-form-group">
               <div className="onboarding-pill-input-wrap">
                 <input
-                  type="text"
+                  type="tel"
                   className="onboarding-pill-input"
                   placeholder="Whatsapp"
                   value={formData.whatsapp}
-                  onChange={(e) => updateField('whatsapp', e.target.value)}
+                  onChange={(e) => updateField('whatsapp', e.target.value.replace(/\D/g, '').slice(0, 9))}
                 />
               </div>
 
@@ -581,7 +581,7 @@ export default function PlayerOnboardingModal({
                   className="onboarding-pill-input"
                   placeholder="Documento de Identidad"
                   value={formData.documentoIdentidad}
-                  onChange={(e) => updateField('documentoIdentidad', e.target.value)}
+                  onChange={(e) => updateField('documentoIdentidad', e.target.value.replace(/\D/g, '').slice(0, 8))}
                 />
               </div>
             </div>
@@ -789,10 +789,11 @@ export default function PlayerOnboardingModal({
                 <span className="onboarding-field-tag">ALTURA (CM)</span>
                 <div className="onboarding-phys-box">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="—"
                     value={formData.altura}
-                    onChange={(e) => updateField('altura', e.target.value)}
+                    onChange={(e) => updateField('altura', e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
                   />
                   <Edit3 size={15} className="phys-edit-icon" />
                 </div>
@@ -802,10 +803,11 @@ export default function PlayerOnboardingModal({
                 <span className="onboarding-field-tag">PESO (KG)</span>
                 <div className="onboarding-phys-box">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="—"
                     value={formData.peso}
-                    onChange={(e) => updateField('peso', e.target.value)}
+                    onChange={(e) => updateField('peso', e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
                   />
                   <Edit3 size={15} className="phys-edit-icon" />
                 </div>

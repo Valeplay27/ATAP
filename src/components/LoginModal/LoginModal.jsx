@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
+import { X, User, UserPlus, Mail, MailCheck, Lock, ArrowRight, CheckCircle2, Phone, CreditCard } from 'lucide-react'
 import { getRegisteredUsers, saveRegisteredUser, isUserProfileIncomplete, maskDni } from '../../services/atapStorage'
 import { authApi, setAuthToken } from '../../services/api'
 import './LoginModal.css'
+
+
 
 export default function LoginModal({
   onClose,
@@ -16,11 +19,6 @@ export default function LoginModal({
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [usuarioRegistrado, setUsuarioRegistrado] = useState(null)
-
-  // Estados para validación interactiva de Google y Facebook
-  const [socialValidation, setSocialValidation] = useState(null) // { provider: 'Google' | 'Facebook' }
-  const [socialEmail, setSocialEmail] = useState('')
-  const [socialError, setSocialError] = useState('')
 
   // Estados del formulario de registro
   const [regDni, setRegDni] = useState(prefillData?.dni || '')
@@ -65,7 +63,7 @@ export default function LoginModal({
   }, [prefillData, initialRegister])
 
   function handleDniChange(e) {
-    const raw = e.target.value.replace(/\s+/g, '').slice(0, 10)
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 8)
     setRegDni(raw)
     if (raw.length >= 5) {
       const users = getRegisteredUsers()
@@ -286,98 +284,7 @@ export default function LoginModal({
     }
   }
 
-  function handleSocialClick(provider) {
-    setError('')
-    setSocialError('')
-    setSocialEmail('')
-    setSocialValidation({ provider })
-  }
 
-  async function handleVerifySocial(e) {
-    if (e) e.preventDefault()
-    setSocialError('')
-
-    const cleanSocial = (socialEmail || '').trim().toLowerCase()
-    if (!cleanSocial || !cleanSocial.includes('@') || !cleanSocial.includes('.')) {
-      setSocialError(`Por favor ingresa un correo de ${socialValidation.provider} válido.`)
-      return
-    }
-
-    // Validación de administrador
-    if (cleanSocial === 'vladimiryt18@gmail.com') {
-      setSocialError('Este correo pertenece a la cuenta de Administrador oficial. Por favor inicia sesión con tu contraseña oficial en la pantalla principal.')
-      return
-    }
-
-    setCargando(true)
-
-    // 1. Consultar API de autenticación social en el backend (Google / Facebook)
-    try {
-      const provKey = (socialValidation?.provider || 'social').toLowerCase()
-      const res = await authApi.getSocialInfo({
-        provider: provKey,
-        email: cleanSocial
-      })
-
-      if (res && res.data) {
-        setCargando(false)
-        if (res.data.exists && res.data.user) {
-          if (res.data.token) {
-            setAuthToken(res.data.token)
-          }
-          if (onLogin) onLogin(res.data.user)
-          onClose()
-          return
-        }
-
-        // Si es usuario nuevo o requiere DNI manual:
-        const autofill = res.data.autofill || {}
-        setError(`Faltan datos de inscripción para continuar con tu cuenta de ${socialValidation.provider}. Debes registrar tu DNI y celular de forma manual para crear tu cuenta oficial en ATAP.`)
-        setMostrarRegistro(true)
-        setRegEmail(autofill.email || cleanSocial)
-        if (autofill.nombre) {
-          setRegNombre(autofill.nombre)
-        } else if (!regNombre) {
-          const partes = cleanSocial.split('@')[0].replace(/[._-]/g, ' ')
-          setRegNombre(partes.charAt(0).toUpperCase() + partes.slice(1))
-        }
-        if (autofill.telefono) {
-          setRegTelefono(autofill.telefono)
-        }
-        setSocialValidation(null)
-        return
-      }
-    } catch (apiErr) {
-      console.warn('Consulta a API social en backend no disponible, usando validación local:', apiErr)
-    }
-
-    // 2. Fallback interactivo local si el backend no responde
-    setTimeout(() => {
-      setCargando(false)
-      const registeredUsers = getRegisteredUsers()
-      const matchedUser = registeredUsers.find(
-        (u) => (u.email || '').toLowerCase() === cleanSocial
-      )
-
-      if (matchedUser && !isUserProfileIncomplete(matchedUser) && matchedUser.dni) {
-        const fullUser = {
-          ...matchedUser,
-          rol: 'Jugador ATAP',
-          esAdmin: false
-        }
-        if (onLogin) onLogin(fullUser)
-        onClose()
-      } else {
-        setError(`Faltan datos de inscripción para continuar con tu cuenta de ${socialValidation.provider}. Debes registrar tu DNI y celular de forma manual para crear tu cuenta oficial en ATAP.`)
-        setMostrarRegistro(true)
-        setRegEmail(cleanSocial)
-        const partes = cleanSocial.split('@')[0].replace(/[._-]/g, ' ')
-        const nombreDefault = partes.charAt(0).toUpperCase() + partes.slice(1)
-        if (!regNombre) setRegNombre(nombreDefault)
-        setSocialValidation(null)
-      }
-    }, 350)
-  }
 
   function handleOlvidoPassword(e) {
     e.preventDefault()
@@ -399,13 +306,13 @@ export default function LoginModal({
           aria-label={mostrarRegistro ? 'Cerrar registro' : 'Cerrar inicio de sesión'}
           onClick={onClose}
         >
-          <i className="fi fi-rr-cross-small" aria-hidden="true" />
+          <X size={18} aria-hidden="true" />
         </button>
 
         {correoEnviado ? (
           <div style={{ textAlign: 'center', padding: '15px 0' }}>
             <div className="login-modal-icon" style={{ margin: '0 auto 18px' }} aria-hidden="true">
-              <i className="fi fi-rr-envelope-check" />
+              <MailCheck size={26} />
             </div>
             <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Área de jugadores ATAP</p>
             <h2 id="login-title">¡REVISA TU CORREO!</h2>
@@ -423,13 +330,13 @@ export default function LoginModal({
               }}
             >
               Comenzar a jugar
-              <i className="fi fi-rr-arrow-small-right" aria-hidden="true" />
+              <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
         ) : olvidoEnviado ? (
           <div style={{ textAlign: 'center', padding: '15px 0' }}>
             <div className="login-modal-icon" style={{ margin: '0 auto 18px' }} aria-hidden="true">
-              <i className="fi fi-rr-lock" />
+              <Lock size={26} />
             </div>
             <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Recuperación de cuenta</p>
             <h2 id="login-title">ENLACE ENVIADO</h2>
@@ -444,67 +351,10 @@ export default function LoginModal({
               Volver a iniciar sesión
             </button>
           </div>
-        ) : socialValidation ? (
-          <div className="social-validation-box">
-            <div className="social-validation-header">
-              <div className={`social-brand-icon-wrap ${socialValidation.provider.toLowerCase()}`}>
-                <i className={`fi fi-brands-${socialValidation.provider.toLowerCase()}`} aria-hidden="true" />
-              </div>
-              <div className="social-header-texts">
-                <h3>Validación con {socialValidation.provider}</h3>
-                <p>Verificación de cuenta y registro oficial en ATAP</p>
-              </div>
-            </div>
-
-            <p className="login-modal-description" style={{ textAlign: 'left', margin: '8px 0 16px 0' }}>
-              Ingresa el correo electrónico de tu cuenta de <strong>{socialValidation.provider}</strong> para verificar tu identidad y validar si ya cuentas con un perfil registrado en el sistema.
-            </p>
-
-            {socialError && (
-              <div className="login-error-message" role="alert">
-                {socialError}
-              </div>
-            )}
-
-            <form onSubmit={handleVerifySocial} style={{ width: '100%' }}>
-              <label htmlFor="social-email-input">Correo electrónico de {socialValidation.provider}</label>
-              <div className="login-input-wrap">
-                <i className="fi fi-rr-envelope" aria-hidden="true" />
-                <input
-                  id="social-email-input"
-                  type="email"
-                  placeholder={socialValidation.provider === 'Google' ? 'tu.correo@gmail.com' : 'tu.cuenta@facebook.com'}
-                  value={socialEmail}
-                  onChange={(e) => {
-                    setSocialEmail(e.target.value)
-                    if (socialError) setSocialError('')
-                  }}
-                  autoFocus
-                  required
-                />
-              </div>
-
-              <button className="login-submit" type="submit" disabled={cargando} style={{ marginTop: '16px' }}>
-                {cargando ? 'Validando cuenta...' : `Validar cuenta de ${socialValidation.provider}`}
-                {!cargando && <i className="fi fi-rr-arrow-small-right" aria-hidden="true" />}
-              </button>
-
-              <button
-                type="button"
-                className="btn-social-cancel"
-                onClick={() => {
-                  setSocialValidation(null)
-                  setSocialError('')
-                }}
-              >
-                ← Volver a otras opciones
-              </button>
-            </form>
-          </div>
         ) : (
           <>
             <div className="login-modal-icon" aria-hidden="true">
-              <i className={mostrarRegistro ? "fi fi-rr-user-add" : "fi fi-rr-user"} />
+              {mostrarRegistro ? <UserPlus size={24} /> : <User size={24} />}
             </div>
             <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Área de jugadores ATAP</p>
             <h2 id="login-title">{mostrarRegistro ? 'UN POCO SOBRE TI' : 'Bienvenido'}</h2>
@@ -524,7 +374,7 @@ export default function LoginModal({
             {(prefillData?.completarDatos || prefillData?.dni) && (
               <div className="login-precargado-notice">
                 <div className="precargado-icon-wrap">
-                  <i className="fi fi-rr-badge-check" />
+                  <CheckCircle2 size={18} />
                 </div>
                 <div className="precargado-content">
                   <div className="precargado-title">¡Inscripción de torneo detectada!</div>
@@ -541,24 +391,58 @@ export default function LoginModal({
                   <div className="login-form-group">
                     <label htmlFor="register-name">Nombre completo</label>
                     <div className="login-input-wrap">
-                      <i className="fi fi-rr-user" aria-hidden="true" />
+                      <User size={16} aria-hidden="true" />
                       <input
                         id="register-name"
                         name="name"
                         type="text"
                         placeholder="Tu nombre y apellido"
                         value={regNombre}
-                        onChange={(e) => setRegNombre(e.target.value)}
+                        onChange={(e) => setRegNombre(e.target.value.replace(/[0-9]/g, ''))}
                         autoComplete="name"
                         required
                       />
                     </div>
                   </div>
 
+                  <div className="login-form-row-2">
+                    <div className="login-form-group">
+                      <label htmlFor="register-dni">DNI / Documento</label>
+                      <div className="login-input-wrap">
+                        <CreditCard size={16} aria-hidden="true" />
+                        <input
+                          id="register-dni"
+                          name="dni"
+                          type="text"
+                          placeholder="Ej: 72345678"
+                          value={regDni}
+                          onChange={handleDniChange}
+                          autoComplete="off"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="login-form-group">
+                      <label htmlFor="register-phone">Celular / WhatsApp</label>
+                      <div className="login-input-wrap">
+                        <Phone size={16} aria-hidden="true" />
+                        <input
+                          id="register-phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="977 884 423"
+                          value={regTelefono}
+                          onChange={(e) => setRegTelefono(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                          autoComplete="tel"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="login-form-group">
                     <label htmlFor="register-email">Correo electrónico</label>
                     <div className="login-input-wrap">
-                      <i className="fi fi-rr-envelope" aria-hidden="true" />
+                      <Mail size={16} aria-hidden="true" />
                       <input
                         id="register-email"
                         name="email"
@@ -575,7 +459,7 @@ export default function LoginModal({
                   <div className="login-form-group">
                     <label htmlFor="register-password">Contraseña</label>
                     <div className="login-input-wrap">
-                      <i className="fi fi-rr-lock" aria-hidden="true" />
+                      <Lock size={16} aria-hidden="true" />
                       <input
                         id="register-password"
                         name="password"
@@ -593,7 +477,7 @@ export default function LoginModal({
                 <>
                   <label htmlFor="login-email">Correo electrónico</label>
                   <div className="login-input-wrap">
-                    <i className="fi fi-rr-envelope" aria-hidden="true" />
+                    <Mail size={16} aria-hidden="true" />
                     <input
                       id="login-email"
                       name="email"
@@ -606,7 +490,7 @@ export default function LoginModal({
 
                   <label htmlFor="login-password">Contraseña</label>
                   <div className="login-input-wrap">
-                    <i className="fi fi-rr-lock" aria-hidden="true" />
+                    <Lock size={16} aria-hidden="true" />
                     <input
                       id="login-password"
                       name="password"
@@ -631,31 +515,9 @@ export default function LoginModal({
                 {cargando
                   ? 'Guardando datos...'
                   : (mostrarRegistro ? 'Crear mi cuenta ATAP' : 'Iniciar sesión')}
-                {!cargando && <i className="fi fi-rr-arrow-small-right" aria-hidden="true" />}
+                {!cargando && <ArrowRight size={16} aria-hidden="true" />}
               </button>
             </form>
-
-            <div className="login-divider">
-              <span>o continúa con</span>
-            </div>
-            <div className="login-socials">
-              <button
-                type="button"
-                disabled={cargando}
-                onClick={() => handleSocialClick('Google')}
-              >
-                <i className="fi fi-brands-google" aria-hidden="true" />
-                Google
-              </button>
-              <button
-                type="button"
-                disabled={cargando}
-                onClick={() => handleSocialClick('Facebook')}
-              >
-                <i className="fi fi-brands-facebook" aria-hidden="true" />
-                Facebook
-              </button>
-            </div>
 
             <p className="login-register">
               {mostrarRegistro ? '¿Ya tienes cuenta?' : '¿Todavía no tienes cuenta?'}{' '}

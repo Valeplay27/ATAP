@@ -86,7 +86,7 @@ export default function Players({ usuario }) {
       title="Jugadores ATAP"
       description="Conoce a los mejores jugadores y el ranking oficial del circuito amateur del Perú."
     >
-      {/* Solo se muestra tarjeta de perfil propio si el usuario NO es admin y es jugador registrado */}
+     
       {usuario && !isAdminUser && (
         <section className="players-my-card panel">
           <div className="players-my-card-left">
@@ -191,7 +191,7 @@ export default function Players({ usuario }) {
         {filteredPlayers.map((player) => {
           const rankNum = parseInt(player.position, 10) || 1
           const isFav = favorites.includes(player.position)
-          const isHighlight = rankNum === 2 // Destacado sutil verde como en la referencia WTA
+          const isHighlight = rankNum === 2 
           const displayPoints = player.puntosNum || parseInt(String(player.points || '0').replace(/\D/g, ''), 10) || 1240
 
           return (
@@ -208,7 +208,7 @@ export default function Players({ usuario }) {
                 }
               }}
             >
-              {/* Banner superior morado (#25005C a #00304A) */}
+             
               <div className="player-pro-banner">
                 {/* RANK y número grande en verde (#00CFA0 / #C6FF00) */}
                 <div className="player-pro-rank-block">
@@ -234,7 +234,7 @@ export default function Players({ usuario }) {
                   />
                 </button>
 
-                {/* Foto recortada del jugador centrada */}
+                {/* Foto Jugador */}
                 <div className="player-pro-photo-wrap">
                   <img
                     src={player.image || '/assets/logo.png'}
@@ -247,7 +247,7 @@ export default function Players({ usuario }) {
                   />
                 </div>
 
-                {/* Franja horizontal con puntos exacto a la imagen 2 */}
+                {/* Franja horizontal  */}
                 <div className="player-pro-points-strip">
                   <span>{displayPoints} POINTS</span>
                 </div>

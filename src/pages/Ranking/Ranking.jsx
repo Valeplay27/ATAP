@@ -182,11 +182,6 @@ export default function Ranking() {
               <span className="country-flag" aria-hidden="true" />
               <span>{top3[1]?.country || 'PER'}</span>
             </div>
-            {modality === 'dobles' && top3[1]?.parejaReciente && (
-              <span className="podium-partner-tag">
-                👥 Dupla: {top3[1].parejaReciente}
-              </span>
-            )}
             <span className="podium-cat">{top3[1]?.categoria}</span>
             <strong className="podium-points">{top3[1]?.points}</strong>
             <span className="podium-stat">
@@ -218,11 +213,6 @@ export default function Ranking() {
               <span className="country-flag" aria-hidden="true" />
               <span>{top3[0]?.country || 'PER'}</span>
             </div>
-            {modality === 'dobles' && top3[0]?.parejaReciente && (
-              <span className="podium-partner-tag">
-                👥 Dupla: {top3[0].parejaReciente}
-              </span>
-            )}
             <span className="podium-cat">{top3[0]?.categoria}</span>
             <strong className="podium-points champ-pts">{top3[0]?.points}</strong>
             <span className="podium-stat champ-stat">
@@ -251,11 +241,6 @@ export default function Ranking() {
               <span className="country-flag" aria-hidden="true" />
               <span>{top3[2]?.country || 'PER'}</span>
             </div>
-            {modality === 'dobles' && top3[2]?.parejaReciente && (
-              <span className="podium-partner-tag">
-                👥 Dupla: {top3[2].parejaReciente}
-              </span>
-            )}
             <span className="podium-cat">{top3[2]?.categoria}</span>
             <strong className="podium-points">{top3[2]?.points}</strong>
             <span className="podium-stat">
@@ -312,7 +297,6 @@ export default function Ranking() {
                 <tr>
                   <th style={{ width: '80px' }}>Posición</th>
                   <th>Jugador</th>
-                  <th>Dupla Reciente</th>
                   <th>Categoría</th>
                   <th>Títulos Dobles</th>
                   <th>Partidos G/P</th>
@@ -324,7 +308,7 @@ export default function Ranking() {
             <tbody>
               {searchFiltered.length === 0 ? (
                 <tr>
-                  <td colSpan={modality === 'singles' ? 7 : 8} className="ranking-empty-row">
+                  <td colSpan={7} className="ranking-empty-row">
                     No se encontraron registros en {categoryFilter} con los criterios seleccionados.
                   </td>
                 </tr>
@@ -417,11 +401,6 @@ export default function Ranking() {
                             </span>
                           </div>
                         </div>
-                      </td>
-                      <td>
-                        <span className="table-duo-partner-badge">
-                          👥 {item.parejaReciente || 'Circuito Dobles'}
-                        </span>
                       </td>
                       <td>
                         <span className="table-cat-badge">{item.categoria}</span>

@@ -66,6 +66,15 @@
   color: #001827;
 }
 
+.login-modal-close svg {
+  color: #00304A;
+  transition: color 0.2s ease;
+}
+
+.login-modal-close:hover svg {
+  color: #001827;
+}
+
 .login-modal-icon {
   display: grid;
   width: 48px;
@@ -76,6 +85,10 @@
   background: #00CFA0;
   color: #001827;
   font-size: 22px;
+}
+
+.login-modal-icon svg {
+  color: #001827;
 }
 
 .login-modal-kicker {
@@ -153,8 +166,11 @@
   box-shadow: 0 0 0 3px rgba(0, 207, 160, .18);
 }
 
-.login-input-wrap i {
+.login-input-wrap i,
+.login-input-wrap svg {
   font-size: 16px;
+  flex-shrink: 0;
+  color: #00CFA0;
 }
 
 .login-input-wrap input {
@@ -221,6 +237,10 @@
 
 .login-submit:hover:not(:disabled) {
   background: #00b88e;
+}
+
+.login-submit svg {
+  flex-shrink: 0;
 }
 
 .login-submit:disabled,

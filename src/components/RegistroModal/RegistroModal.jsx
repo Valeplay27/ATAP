@@ -1,5 +1,8 @@
 import { useEffect } from 'react'
+import { X, User, UserPlus, Mail, Lock, ArrowRight } from 'lucide-react'
 import './RegistroModal.css'
+
+
 
 export default function RegistroModal({ onClose }) {
   useEffect(() => {
@@ -31,11 +34,11 @@ export default function RegistroModal({ onClose }) {
           aria-label="Cerrar registro"
           onClick={onClose}
         >
-          <i className="fi fi-rr-cross-small" aria-hidden="true" />
+          <X size={18} aria-hidden="true" />
         </button>
 
         <div className="login-modal-icon" aria-hidden="true">
-          <i className="fi fi-rr-user-add" />
+          <UserPlus size={24} />
         </div>
         <p className="login-modal-kicker"></p>
         <h2 id="register-title" style={{ color: '#25005C', textAlign: 'center' }}>DATOS DEL JUGADOR</h2>
@@ -46,7 +49,7 @@ export default function RegistroModal({ onClose }) {
         <form className="login-form" onSubmit={handleSubmit}>
           <label htmlFor="register-name">Nombre completo</label>
           <div className="login-input-wrap">
-            <i className="fi fi-rr-user" aria-hidden="true" />
+            <User size={16} aria-hidden="true" />
             <input
               id="register-name"
               name="name"
@@ -59,7 +62,7 @@ export default function RegistroModal({ onClose }) {
 
           <label htmlFor="register-email">Correo electrónico</label>
           <div className="login-input-wrap">
-            <i className="fi fi-rr-envelope" aria-hidden="true" />
+            <Mail size={16} aria-hidden="true" />
             <input
               id="register-email"
               name="email"
@@ -72,7 +75,7 @@ export default function RegistroModal({ onClose }) {
 
           <label htmlFor="register-password">Contraseña</label>
           <div className="login-input-wrap">
-            <i className="fi fi-rr-lock" aria-hidden="true" />
+            <Lock size={16} aria-hidden="true" />
             <input
               id="register-password"
               name="password"
@@ -85,23 +88,9 @@ export default function RegistroModal({ onClose }) {
 
           <button className="login-submit" type="submit">
             Continuar
-            <i className="fi fi-rr-arrow-small-right" aria-hidden="true" />
+            <ArrowRight size={16} aria-hidden="true" />
           </button>
         </form>
-
-        <div className="login-divider">
-          <span>o continúa con</span>
-        </div>
-        <div className="login-socials">
-          <button type="button">
-            <i className="fi fi-brands-google" aria-hidden="true" />
-            Google
-          </button>
-          <button type="button">
-            <i className="fi fi-brands-facebook" aria-hidden="true" />
-            Facebook
-          </button>
-        </div>
       </section>
     </div>
   )

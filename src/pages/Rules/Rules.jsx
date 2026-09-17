@@ -74,7 +74,7 @@ export default function Rules() {
               <h4>¿Tienes dudas sobre tu categoría?</h4>
               <p>Un asesor ATAP te orientará para ubicarte según tu nivel real.</p>
               <a
-                href="https://wa.me/51987654321?text=Hola%20ATAP,%20tengo%20una%20consulta%20sobre%20las%20Pol%C3%ADticas%20y%20mi%20categor%C3%ADa."
+                href="https://wa.me/51977884423?text=Hola%20ATAP,%20tengo%20una%20consulta%20sobre%20las%20Pol%C3%ADticas%20y%20mi%20categor%C3%ADa."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-whatsapp-rules"

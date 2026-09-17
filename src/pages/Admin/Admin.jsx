@@ -2446,7 +2446,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       type="text"
                       placeholder="Ej: Carlos Mendoza"
                       value={playerFormData.nombre}
-                      onChange={(e) => setPlayerFormData({ ...playerFormData, nombre: e.target.value })}
+                      onChange={(e) => setPlayerFormData({ ...playerFormData, nombre: e.target.value.replace(/[0-9]/g, '') })}
                       required
                     />
                   </div>
@@ -2460,7 +2460,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       type="text"
                       placeholder="Ej: 72345678"
                       value={playerFormData.dni}
-                      onChange={(e) => setPlayerFormData({ ...playerFormData, dni: e.target.value })}
+                      onChange={(e) => setPlayerFormData({ ...playerFormData, dni: e.target.value.replace(/\D/g, '').slice(0, 8) })}
                       required
                     />
                     <small className="field-hint">El DNI identifica al jugador y se utiliza para acceder a su perfil y torneos.</small>
@@ -2507,9 +2507,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       <input
                         id="player-input-tel"
                         type="tel"
-                        placeholder="Ej: 987654321"
+                        placeholder="Ej: 977884423"
                         value={playerFormData.telefono}
-                        onChange={(e) => setPlayerFormData({ ...playerFormData, telefono: e.target.value })}
+                        onChange={(e) => setPlayerFormData({ ...playerFormData, telefono: e.target.value.replace(/\D/g, '').slice(0, 9) })}
                       />
                     </div>
                     <div className="form-group">
@@ -2951,7 +2951,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                           currentTourney.title +
                           '.'
                       )
-                      const waLink = 'https://wa.me/51' + (insc.telefono || '').replace(/D/g, '') + '?text=' + waMsg
+                      const waLink = 'https://wa.me/51' + (insc.telefono || '').replace(/\D/g, '') + '?text=' + waMsg
 
                       return (
                         <tr key={insc.id} className={isPending ? 'row-pending' : ''}>
@@ -6081,7 +6081,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   type="text"
                   placeholder="Ej: Carlos Mendoza Ramos"
                   value={quickPlayerName}
-                  onChange={(e) => setQuickPlayerName(e.target.value)}
+                  onChange={(e) => setQuickPlayerName(e.target.value.replace(/[0-9]/g, ''))}
                   required
                   autoFocus
                 />
@@ -6095,7 +6095,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     type="text"
                     placeholder="Ej: 71829304"
                     value={quickPlayerDni}
-                    onChange={(e) => setQuickPlayerDni(e.target.value.replace(/\s+/g, ''))}
+                    onChange={(e) => setQuickPlayerDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
                     required
                   />
                 </div>

@@ -23,7 +23,7 @@ const FAQ_ITEMS = [
   },
   {
     q: '¿Cómo confirmo y valido el pago de mi inscripción?',
-    a: 'Realiza el pago por Yape al monto indicado en el torneo. Luego, envía la captura del comprobante al WhatsApp oficial de ATAP (+51 987 654 321) indicando tu nombre y DNI. El comité validará tu registro para incluirte en el sorteo oficial de la fase de grupos.'
+    a: 'Realiza el pago por Yape al monto indicado en el torneo. Luego, envía la captura del comprobante al WhatsApp oficial de ATAP (+51 977 884 423) indicando tu nombre y DNI. El comité validará tu registro para incluirte en el sorteo oficial de la fase de grupos.'
   },
   {
     q: '¿Cómo funciona el sorteo de llaves y emparejamientos?',
@@ -54,7 +54,13 @@ export default function Contact() {
 
   function handleChange(e) {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (name === 'nombre') {
+      setFormData((prev) => ({ ...prev, nombre: value.replace(/[0-9]/g, '') }))
+    } else if (name === 'telefono') {
+      setFormData((prev) => ({ ...prev, telefono: value.replace(/\D/g, '').slice(0, 9) }))
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
   }
 
   function handleSubmit(e) {
@@ -74,7 +80,7 @@ export default function Contact() {
     ].filter(Boolean)
 
     const text = encodeURIComponent(lines.join('\n'))
-    const whatsappUrl = `https://wa.me/51987654321?text=${text}`
+    const whatsappUrl = `https://wa.me/51977884423?text=${text}`
 
     setEnviado(true)
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
@@ -108,12 +114,12 @@ export default function Contact() {
             <MessageSquare size={22} />
           </div>
           <h3>WhatsApp Oficial</h3>
-          <p className="channel-primary-val">+51 987 654 321</p>
+          <p className="channel-primary-val">+51 977 884 423</p>
           <p className="channel-sub">
             Atención ágil para envío de comprobantes de pago y consultas en tiempo real.
           </p>
           <a
-            href="https://wa.me/51987654321"
+            href="https://wa.me/51977884423"
             target="_blank"
             rel="noopener noreferrer"
             className="channel-btn-action"
@@ -129,18 +135,39 @@ export default function Contact() {
             <Mail size={22} />
           </div>
           <h3>Correo Electrónico</h3>
-          <p className="channel-primary-val">contacto@atap.pe</p>
+          <a
+            href="mailto:contacto@atap.pe"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="channel-primary-val"
+            style={{ textDecoration: 'none', color: '#00CFA0' }}
+          >
+            contacto@atap.pe
+          </a>
           <p className="channel-sub">
             Para consultas formales, solicitudes de auspicios y asuntos administrativos.
           </p>
-          <button
-            type="button"
-            className="channel-btn-action"
-            onClick={handleCopyEmail}
-          >
-            {copiedEmail ? <Check size={14} /> : <Copy size={14} />}
-            <span>{copiedEmail ? '¡Correo Copiado!' : 'Copiar Correo'}</span>
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <a
+              href="mailto:contacto@atap.pe"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="channel-btn-action"
+              style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}
+            >
+              <span>Escribir Correo</span>
+              <ExternalLink size={13} />
+            </a>
+            <button
+              type="button"
+              className="channel-btn-action"
+              onClick={handleCopyEmail}
+              style={{ flex: 1 }}
+            >
+              {copiedEmail ? <Check size={14} /> : <Copy size={14} />}
+              <span>{copiedEmail ? '¡Copiado!' : 'Copiar'}</span>
+            </button>
+          </div>
         </article>
 
         {/* SEDE PRINCIPAL */}
@@ -227,7 +254,7 @@ export default function Contact() {
                   id="contact-telefono"
                   name="telefono"
                   type="tel"
-                  placeholder="Ej: 987654321"
+                  placeholder="Ej: 977884423"
                   value={formData.telefono}
                   onChange={handleChange}
                 />
@@ -319,7 +346,7 @@ export default function Contact() {
           </p>
         </div>
         <a
-          href="https://wa.me/51987654321?text=Hola%20ATAP,%20tengo%20una%20consulta%20urgente%20sobre%20mi%20partido"
+          href="https://wa.me/51977884423?text=Hola%20ATAP,%20tengo%20una%20consulta%20urgente%20sobre%20mi%20partido"
           target="_blank"
           rel="noopener noreferrer"
           className="btn-direct-chat"

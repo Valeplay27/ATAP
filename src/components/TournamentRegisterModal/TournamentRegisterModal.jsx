@@ -278,7 +278,7 @@ export default function TournamentRegisterModal({
     'Adjunto mi comprobante de pago por Yape para la validación y aprobación en el cuadro oficial.'
   )
 
-  const whatsappLink = 'https://wa.me/51987654321?text=' + whatsappMessage
+  const whatsappLink = 'https://wa.me/51977884423?text=' + whatsappMessage
 
   // Active verified status hints
   const user1Verified = dni && findUserByDni(dni)
@@ -394,7 +394,7 @@ export default function TournamentRegisterModal({
                       type='text'
                       value={nombre}
                       onChange={(e) => {
-                        setNombre(e.target.value)
+                        setNombre(e.target.value.replace(/[0-9]/g, ''))
                         if (validationError) setValidationError('')
                       }}
                       placeholder='Ej. Carlos Mendoza'
@@ -417,7 +417,7 @@ export default function TournamentRegisterModal({
                       type='text'
                       value={dni}
                       onChange={(e) => {
-                        const val = e.target.value
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                         setDni(val)
                         if (validationError) setValidationError('')
                         const found = findUserByDni(val)
@@ -459,8 +459,8 @@ export default function TournamentRegisterModal({
                       id='t-phone'
                       type='tel'
                       value={telefono}
-                      onChange={(e) => setTelefono(e.target.value)}
-                      placeholder='987 654 321'
+                      onChange={(e) => setTelefono(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                      placeholder='977 884 423'
                       required
                     />
                   </div>
@@ -509,7 +509,7 @@ export default function TournamentRegisterModal({
                         type='text'
                         value={nombre2}
                         onChange={(e) => {
-                          setNombre2(e.target.value)
+                          setNombre2(e.target.value.replace(/[0-9]/g, ''))
                           if (validationError) setValidationError('')
                         }}
                         placeholder='Ej. Valeria Torres'
@@ -530,7 +530,7 @@ export default function TournamentRegisterModal({
                         type='text'
                         value={dni2}
                         onChange={(e) => {
-                          const val = e.target.value
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                           setDni2(val)
                           if (validationError) setValidationError('')
                           const found = findUserByDni(val)
@@ -568,8 +568,8 @@ export default function TournamentRegisterModal({
                         id='t-phone-2'
                         type='tel'
                         value={telefono2}
-                        onChange={(e) => setTelefono2(e.target.value)}
-                        placeholder='987 112 233'
+                        onChange={(e) => setTelefono2(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                        placeholder='977 884 423'
                         required={isDobles}
                       />
                     </div>
@@ -711,13 +711,13 @@ export default function TournamentRegisterModal({
               <div className='account-item'>
                 <div className='account-info'>
                   <span className='account-name'>📲 Yape Oficial</span>
-                  <strong>987 654 321</strong>
+                  <strong>977 884 423</strong>
                   <span className='account-holder'>Titular: Asoc. Tenistas Amateur Perú</span>
                 </div>
                 <button
                   type='button'
                   className='copy-btn'
-                  onClick={() => handleCopy('987654321', 'yape')}
+                  onClick={() => handleCopy('977884423', 'yape')}
                 >
                   <Copy size={14} />
                   {copiado === 'yape' ? '¡Copiado!' : 'Copiar'}
