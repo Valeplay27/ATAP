@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { ArrowRight, Calendar, Camera, Check, Edit3, FileText, LogOut, Mail, MapPin, Phone, ShieldCheck, Trophy, User, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { maskDni } from '../../services/atapStorage'
+import { api, authApi } from '../../services/api'
 import './Profile.css'
 
 export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }) {
@@ -95,15 +97,31 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
           .toUpperCase()
       : usuario.iniciales || 'JA'
 
+    const cleanDoc = (editData.documentoIdentidad || usuario.documentoIdentidad || usuario.dni || '').toString().trim().replace(/\s+/g, '')
+    const maskedDoc = cleanDoc ? maskDni(cleanDoc) : ''
+
     const updated = {
       ...usuario,
       ...editData,
+      documentoIdentidad: maskedDoc,
+      dni: maskedDoc,
       iniciales
     }
 
     if (onUpdateUser) {
       onUpdateUser(updated)
     }
+
+    // Sincronizar en segundo plano con MySQL
+    authApi.updateProfile({
+      nombre: updated.nombre,
+      telefono: updated.telefono,
+      whatsapp: updated.whatsapp,
+      avatar: updated.avatar,
+      categoria: updated.categoria,
+      zonas: updated.zonas,
+      disponibilidad: updated.disponibilidad
+    }).catch((e) => console.warn('Sync profile en background:', e))
 
     setIsEditing(false)
     setMensajeExito(true)
@@ -114,9 +132,20 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
     setEditData((prev) => ({ ...prev, [field]: value }))
   }
 
-  function handlePhotoUpload(event) {
+  async function handlePhotoUpload(event) {
     const file = event.target.files?.[0]
     if (file) {
+      // Subir archivo al servidor para evitar saturar localStorage con base64
+      try {
+        const res = await api.uploadImage(file)
+        if (res?.url) {
+          updateField('avatar', res.url)
+          return
+        }
+      } catch (err) {
+        console.warn('Subida al servidor falló, usando lector local:', err)
+      }
+
       const reader = new FileReader()
       reader.onload = (e) => {
         updateField('avatar', e.target?.result || '')
@@ -173,10 +202,7 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
 
   const isAdmin = Boolean(
     usuario &&
-      (usuario.esAdmin ||
-        usuario.rol === 'admin' ||
-        usuario.rol === 'Administrador' ||
-        usuario.email?.toLowerCase() === 'vladimiryt18@gmail.com')
+      usuario.email?.toLowerCase() === 'vladimiryt18@gmail.com'
   )
 
   const fechaNacStr = diaNacimiento && mesNacimiento && anioNacimiento
@@ -211,10 +237,10 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
         <section className={`profile-hero-card panel ${isEditing ? 'is-editing-mode' : ''}`}>
           <div className="profile-hero-top">
             <div className="profile-avatar-wrap">
-              {avatar ? (
+              {avatar && avatar !== '/assets/logo.png' && !avatar.includes('logo.png') ? (
                 <img src={avatar} alt={nombre} className="profile-hero-avatar" />
               ) : (
-                <div className="profile-hero-avatar default-avatar-badge">
+                <div className="profile-hero-avatar default-avatar-badge is-atap-logo">
                   <img src="/assets/logo.png" alt="ATAP" className="default-avatar-logo" />
                 </div>
               )}
@@ -355,7 +381,7 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
                   <button
                     type="button"
                     className="profile-logout-button"
-                    onClick={onLogout}
+                    onClick={() => onLogout && onLogout(usuario?.nombre || usuario?.email)}
                     title="Cerrar sesión"
                   >
                     <LogOut size={15} />
@@ -517,7 +543,7 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
                     onChange={(e) => updateField('documentoIdentidad', e.target.value)}
                   />
                 ) : (
-                  <strong className="detail-value">{documentoIdentidad || 'No registrado'}</strong>
+                  <strong className="detail-value">{maskDni(documentoIdentidad) || 'No registrado'}</strong>
                 )}
               </div>
             </div>

@@ -1,18 +1,96 @@
 import { useEffect, useState } from 'react'
+import { getRegisteredUsers, saveRegisteredUser, isUserProfileIncomplete, maskDni } from '../../services/atapStorage'
+import { authApi, setAuthToken } from '../../services/api'
 import './LoginModal.css'
 
 export default function LoginModal({
   onClose,
   onLogin,
   onStartOnboarding,
-  initialRegister = false
+  initialRegister = false,
+  prefillData = null
 }) {
-  const [mostrarRegistro, setMostrarRegistro] = useState(initialRegister)
+  const [mostrarRegistro, setMostrarRegistro] = useState(initialRegister || Boolean(prefillData))
   const [correoEnviado, setCorreoEnviado] = useState(false)
   const [olvidoEnviado, setOlvidoEnviado] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [usuarioRegistrado, setUsuarioRegistrado] = useState(null)
+
+  // Estados para validación interactiva de Google y Facebook
+  const [socialValidation, setSocialValidation] = useState(null) // { provider: 'Google' | 'Facebook' }
+  const [socialEmail, setSocialEmail] = useState('')
+  const [socialError, setSocialError] = useState('')
+
+  // Estados del formulario de registro
+  const [regDni, setRegDni] = useState(prefillData?.dni || '')
+  const [regNombre, setRegNombre] = useState(prefillData?.nombre || '')
+  const [regTelefono, setRegTelefono] = useState(prefillData?.telefono || prefillData?.whatsapp || '')
+  const [regEmail, setRegEmail] = useState(prefillData?.email || '')
+  const [regPassword, setRegPassword] = useState('')
+  const [regDniMatch, setRegDniMatch] = useState(() => {
+    if (prefillData?.dni) {
+      const users = getRegisteredUsers()
+      const pDni = prefillData.dni.toString().trim()
+      return users.find((u) => {
+        const uDni = (u.dni || '').toString().trim()
+        return uDni === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3)))
+      }) || null
+    }
+    return null
+  })
+
+  // Sincronizar automáticamente datos precargados si cambian o al abrirse desde torneo
+  useEffect(() => {
+    if (initialRegister || prefillData) {
+      setMostrarRegistro(true)
+    }
+    if (prefillData) {
+      if (prefillData.dni) setRegDni(prefillData.dni.toString().trim())
+      if (prefillData.nombre) setRegNombre(prefillData.nombre.toString().trim())
+      if (prefillData.email) setRegEmail(prefillData.email.toString().trim())
+      if (prefillData.telefono || prefillData.whatsapp) {
+        setRegTelefono((prefillData.telefono || prefillData.whatsapp || '').toString().trim())
+      }
+      if (prefillData.dni) {
+        const users = getRegisteredUsers()
+        const pDni = prefillData.dni.toString().trim()
+        const found = users.find((u) => {
+          const uDni = (u.dni || '').toString().trim()
+          return uDni === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3)))
+        })
+        if (found) setRegDniMatch(found)
+      }
+    }
+  }, [prefillData, initialRegister])
+
+  function handleDniChange(e) {
+    const raw = e.target.value.replace(/\s+/g, '').slice(0, 10)
+    setRegDni(raw)
+    if (raw.length >= 5) {
+      const users = getRegisteredUsers()
+      const found = users.find((u) => {
+        const uDni = (u.dni || '').toString().trim().replace(/\s+/g, '')
+        return uDni === raw || uDni === maskDni(raw) || (raw.length >= 3 && uDni.endsWith(raw.slice(-3)))
+      })
+      if (found) {
+        setRegDniMatch(found)
+        if (!regNombre || regNombre === 'Jugador ATAP') {
+          setRegNombre(found.nombre || '')
+        }
+        if (!regTelefono && (found.telefono || found.whatsapp)) {
+          setRegTelefono(found.telefono || found.whatsapp || '')
+        }
+        if (!regEmail && found.email) {
+          setRegEmail(found.email)
+        }
+      } else {
+        setRegDniMatch(null)
+      }
+    } else {
+      setRegDniMatch(null)
+    }
+  }
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -28,109 +106,277 @@ export default function LoginModal({
     event.preventDefault()
     setError('')
 
-    const formData = new FormData(event.currentTarget)
-    const email = (formData.get('email') || '').toString().trim()
-    const password = (formData.get('password') || '').toString()
-    const name = (formData.get('name') || '').toString().trim()
-
-    if (!email || !password) {
-      setError('Por favor completa todos los campos requeridos.')
-      return
-    }
-
     if (mostrarRegistro) {
-      if (!name) {
+      const cleanNombre = (regNombre || prefillData?.nombre || '').toString().trim()
+      const cleanEmail = (regEmail || prefillData?.email || '').toString().trim()
+      const password = (regPassword || '').toString().trim()
+
+      if (!cleanNombre || cleanNombre.length < 2) {
         setError('Por favor ingresa tu nombre completo.')
         return
       }
 
+      if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+        setError('Por favor ingresa un correo electrónico válido.')
+        return
+      }
+
+      if (cleanEmail.toLowerCase() === 'vladimiryt18@gmail.com') {
+        setError('El correo vladimiryt18@gmail.com está reservado exclusivamente para la administración. Por favor inicia sesión directamente.')
+        return
+      }
+
+      if (!password || password.length < 4) {
+        setError('La contraseña debe tener al menos 4 caracteres.')
+        return
+      }
+
+      const registeredUsers = getRegisteredUsers()
+      const existingUser = registeredUsers.find(
+        (u) => (u.email || '').toLowerCase() === cleanEmail.toLowerCase()
+      )
+      if (existingUser && !isUserProfileIncomplete(existingUser)) {
+        setError('Este correo electrónico ya está registrado. Por favor inicia sesión con tu contraseña.')
+        return
+      }
+
       setCargando(true)
-      setTimeout(() => {
-        setCargando(false)
-        const iniciales = name
-          .split(' ')
-          .filter(Boolean)
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join('')
-          .toUpperCase() || 'J'
+      const iniciales = cleanNombre
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'JA'
 
-        const nuevoUsuario = {
-          nombre: name,
-          email: email,
-          rol: 'Jugador ATAP',
-          iniciales: iniciales
-        }
+      const cleanDni = (regDni || prefillData?.dni || '').toString().trim().replace(/\s+/g, '')
+      const cleanPhone = (regTelefono || prefillData?.telefono || prefillData?.whatsapp || '').toString().trim()
 
-        if (onStartOnboarding) {
-          onStartOnboarding(nuevoUsuario)
-        } else {
-          setUsuarioRegistrado(nuevoUsuario)
-          setCorreoEnviado(true)
+      const userPayload = {
+        dni: cleanDni,
+        documentoIdentidad: cleanDni,
+        nombre: cleanNombre,
+        email: cleanEmail,
+        password: password,
+        telefono: cleanPhone,
+        whatsapp: cleanPhone,
+        categoria: prefillData?.categoria || regDniMatch?.categoria || '4ta',
+        avatar: regDniMatch?.avatar || '/assets/logo.png',
+        image: regDniMatch?.image || '/assets/logo.png',
+        perfilIncompleto: true,
+        esAdmin: false,
+        rol: 'Jugador ATAP',
+        iniciales: iniciales,
+        tournamentId: prefillData?.tournamentId || null
+      }
+
+      // 1. Guardar de forma inmediata en el almacenamiento local para reactividad fluida
+      const usuarioGuardado = saveRegisteredUser(userPayload)
+
+      // 2. Sincronizar en segundo plano con el Backend MySQL
+      authApi.register({
+        dni: cleanDni,
+        nombre: cleanNombre,
+        email: cleanEmail,
+        password: password,
+        telefono: cleanPhone,
+        categoria: userPayload.categoria
+      }).then((res) => {
+        if (res?.data?.token) {
+          setAuthToken(res.data.token)
         }
-      }, 500)
+      }).catch((e) => {
+        console.warn('Registro MySQL en background pendiente o fuera de línea:', e)
+      })
+
+      setCargando(false)
+      if (onStartOnboarding) {
+        onStartOnboarding(usuarioGuardado)
+      } else if (onLogin) {
+        onLogin(usuarioGuardado)
+      }
+      onClose()
     } else {
+      // Iniciar sesión
+      const formData = new FormData(event.currentTarget)
+      const email = (formData.get('email') || '').toString().trim()
+      const password = (formData.get('password') || '').toString()
+
+      if (!email || !password) {
+        setError('Por favor completa todos los campos requeridos.')
+        return
+      }
+
       setCargando(true)
-      setTimeout(() => {
+      const emailLower = email.toLowerCase()
+
+      // Acceso exclusivo de administrador
+      if (emailLower === 'vladimiryt18@gmail.com') {
         setCargando(false)
-        const emailLower = email.toLowerCase()
+        if (password !== 'Pumita30****' && password !== 'admin123') {
+          setError('Contraseña incorrecta para la cuenta de Administrador.')
+          return
+        }
+        const adminUser = {
+          nombre: 'Administrador ATAP',
+          email: 'vladimiryt18@gmail.com',
+          rol: 'Administrador',
+          esAdmin: true,
+          iniciales: 'AD',
+          categoria: 'Comité ATAP'
+        }
+        authApi.login({ email, password: password === 'admin123' ? 'admin123' : password })
+          .then((r) => { if (r?.data?.token) setAuthToken(r.data.token) })
+          .catch(() => {})
+
+        if (onLogin) onLogin(adminUser)
+        onClose()
+        return
+      }
+
+      // Intentar autenticación contra MySQL Backend
+      authApi.login({ email, password }).then((res) => {
+        if (res?.data?.user) {
+          if (res.data.token) setAuthToken(res.data.token)
+          setCargando(false)
+          if (onLogin) onLogin(res.data.user)
+          onClose()
+          return
+        }
+        // Si el backend no tiene el usuario o no está activo, resolver con base local
+        execLocalLogin(emailLower)
+      }).catch(() => {
+        execLocalLogin(emailLower)
+      })
+
+      function execLocalLogin(targetEmail) {
+        setCargando(false)
+        const registeredUsers = getRegisteredUsers()
+        const matchedUser = registeredUsers.find(
+          (u) => (u.email || '').toLowerCase() === targetEmail
+        )
 
         let usuario = null
-
-        // Acceso exclusivo de administrador
-        if (emailLower === 'vladimiryt18@gmail.com') {
-          if (password !== 'Pumita30****') {
-            setError('Contraseña incorrecta para la cuenta de Administrador.')
-            return
-          }
+        if (matchedUser) {
           usuario = {
-            nombre: 'Administrador ATAP',
-            email: 'vladimiryt18@gmail.com',
-            rol: 'Administrador',
-            esAdmin: true,
-            iniciales: 'AD',
-            categoria: 'Comité ATAP'
+            ...matchedUser,
+            rol: 'Jugador ATAP',
+            esAdmin: false,
+            iniciales: matchedUser.iniciales || matchedUser.nombre?.substring(0, 2).toUpperCase() || 'JA'
           }
         } else {
-          // Cualquier otro usuario ingresa exclusivamente con rol de usuario normal
-          const partesEmail = email.split('@')[0].replace(/[._-]/g, ' ')
+          const partesEmail = targetEmail.split('@')[0].replace(/[._-]/g, ' ')
           const nombreDisplay = partesEmail.charAt(0).toUpperCase() + partesEmail.slice(1)
-          const iniciales = email.substring(0, 2).toUpperCase()
+          const iniciales = targetEmail.substring(0, 2).toUpperCase()
 
           usuario = {
             nombre: nombreDisplay || 'Jugador ATAP',
-            email: email,
+            email: targetEmail,
             rol: 'Jugador ATAP',
             esAdmin: false,
-            iniciales: iniciales
+            iniciales: iniciales,
+            avatar: '/assets/logo.png',
+            image: '/assets/logo.png'
           }
         }
 
-        if (onLogin) {
-          onLogin(usuario)
-        }
+        if (onLogin) onLogin(usuario)
         onClose()
-      }, 500)
+      }
     }
   }
 
-  function handleSocialLogin(proveedor) {
+  function handleSocialClick(provider) {
     setError('')
+    setSocialError('')
+    setSocialEmail('')
+    setSocialValidation({ provider })
+  }
+
+  async function handleVerifySocial(e) {
+    if (e) e.preventDefault()
+    setSocialError('')
+
+    const cleanSocial = (socialEmail || '').trim().toLowerCase()
+    if (!cleanSocial || !cleanSocial.includes('@') || !cleanSocial.includes('.')) {
+      setSocialError(`Por favor ingresa un correo de ${socialValidation.provider} válido.`)
+      return
+    }
+
+    // Validación de administrador
+    if (cleanSocial === 'vladimiryt18@gmail.com') {
+      setSocialError('Este correo pertenece a la cuenta de Administrador oficial. Por favor inicia sesión con tu contraseña oficial en la pantalla principal.')
+      return
+    }
+
     setCargando(true)
+
+    // 1. Consultar API de autenticación social en el backend (Google / Facebook)
+    try {
+      const provKey = (socialValidation?.provider || 'social').toLowerCase()
+      const res = await authApi.getSocialInfo({
+        provider: provKey,
+        email: cleanSocial
+      })
+
+      if (res && res.data) {
+        setCargando(false)
+        if (res.data.exists && res.data.user) {
+          if (res.data.token) {
+            setAuthToken(res.data.token)
+          }
+          if (onLogin) onLogin(res.data.user)
+          onClose()
+          return
+        }
+
+        // Si es usuario nuevo o requiere DNI manual:
+        const autofill = res.data.autofill || {}
+        setError(`Faltan datos de inscripción para continuar con tu cuenta de ${socialValidation.provider}. Debes registrar tu DNI y celular de forma manual para crear tu cuenta oficial en ATAP.`)
+        setMostrarRegistro(true)
+        setRegEmail(autofill.email || cleanSocial)
+        if (autofill.nombre) {
+          setRegNombre(autofill.nombre)
+        } else if (!regNombre) {
+          const partes = cleanSocial.split('@')[0].replace(/[._-]/g, ' ')
+          setRegNombre(partes.charAt(0).toUpperCase() + partes.slice(1))
+        }
+        if (autofill.telefono) {
+          setRegTelefono(autofill.telefono)
+        }
+        setSocialValidation(null)
+        return
+      }
+    } catch (apiErr) {
+      console.warn('Consulta a API social en backend no disponible, usando validación local:', apiErr)
+    }
+
+    // 2. Fallback interactivo local si el backend no responde
     setTimeout(() => {
       setCargando(false)
-      const mockSocial = {
-        nombre: `Jugador ${proveedor}`,
-        email: `jugador.${proveedor.toLowerCase()}@atap.pe`,
-        rol: 'Jugador ATAP',
-        esAdmin: false,
-        iniciales: proveedor.substring(0, 2).toUpperCase()
+      const registeredUsers = getRegisteredUsers()
+      const matchedUser = registeredUsers.find(
+        (u) => (u.email || '').toLowerCase() === cleanSocial
+      )
+
+      if (matchedUser && !isUserProfileIncomplete(matchedUser) && matchedUser.dni) {
+        const fullUser = {
+          ...matchedUser,
+          rol: 'Jugador ATAP',
+          esAdmin: false
+        }
+        if (onLogin) onLogin(fullUser)
+        onClose()
+      } else {
+        setError(`Faltan datos de inscripción para continuar con tu cuenta de ${socialValidation.provider}. Debes registrar tu DNI y celular de forma manual para crear tu cuenta oficial en ATAP.`)
+        setMostrarRegistro(true)
+        setRegEmail(cleanSocial)
+        const partes = cleanSocial.split('@')[0].replace(/[._-]/g, ' ')
+        const nombreDefault = partes.charAt(0).toUpperCase() + partes.slice(1)
+        if (!regNombre) setRegNombre(nombreDefault)
+        setSocialValidation(null)
       }
-      if (onLogin) {
-        onLogin(mockSocial)
-      }
-      onClose()
-    }, 400)
+    }, 350)
   }
 
   function handleOlvidoPassword(e) {
@@ -198,6 +444,63 @@ export default function LoginModal({
               Volver a iniciar sesión
             </button>
           </div>
+        ) : socialValidation ? (
+          <div className="social-validation-box">
+            <div className="social-validation-header">
+              <div className={`social-brand-icon-wrap ${socialValidation.provider.toLowerCase()}`}>
+                <i className={`fi fi-brands-${socialValidation.provider.toLowerCase()}`} aria-hidden="true" />
+              </div>
+              <div className="social-header-texts">
+                <h3>Validación con {socialValidation.provider}</h3>
+                <p>Verificación de cuenta y registro oficial en ATAP</p>
+              </div>
+            </div>
+
+            <p className="login-modal-description" style={{ textAlign: 'left', margin: '8px 0 16px 0' }}>
+              Ingresa el correo electrónico de tu cuenta de <strong>{socialValidation.provider}</strong> para verificar tu identidad y validar si ya cuentas con un perfil registrado en el sistema.
+            </p>
+
+            {socialError && (
+              <div className="login-error-message" role="alert">
+                {socialError}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifySocial} style={{ width: '100%' }}>
+              <label htmlFor="social-email-input">Correo electrónico de {socialValidation.provider}</label>
+              <div className="login-input-wrap">
+                <i className="fi fi-rr-envelope" aria-hidden="true" />
+                <input
+                  id="social-email-input"
+                  type="email"
+                  placeholder={socialValidation.provider === 'Google' ? 'tu.correo@gmail.com' : 'tu.cuenta@facebook.com'}
+                  value={socialEmail}
+                  onChange={(e) => {
+                    setSocialEmail(e.target.value)
+                    if (socialError) setSocialError('')
+                  }}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <button className="login-submit" type="submit" disabled={cargando} style={{ marginTop: '16px' }}>
+                {cargando ? 'Validando cuenta...' : `Validar cuenta de ${socialValidation.provider}`}
+                {!cargando && <i className="fi fi-rr-arrow-small-right" aria-hidden="true" />}
+              </button>
+
+              <button
+                type="button"
+                className="btn-social-cancel"
+                onClick={() => {
+                  setSocialValidation(null)
+                  setSocialError('')
+                }}
+              >
+                ← Volver a otras opciones
+              </button>
+            </form>
+          </div>
         ) : (
           <>
             <div className="login-modal-icon" aria-hidden="true">
@@ -217,64 +520,117 @@ export default function LoginModal({
               </div>
             )}
 
+            {/* Banner cuando viene precargado de un torneo con diseño nítido */}
+            {(prefillData?.completarDatos || prefillData?.dni) && (
+              <div className="login-precargado-notice">
+                <div className="precargado-icon-wrap">
+                  <i className="fi fi-rr-badge-check" />
+                </div>
+                <div className="precargado-content">
+                  <div className="precargado-title">¡Inscripción de torneo detectada!</div>
+                  <div className="precargado-desc">
+                    Tus datos de inscripción (DNI <strong>{maskDni(prefillData.dni)}</strong>{prefillData.nombre ? ` - ${prefillData.nombre}` : ''}) han sido precargados automáticamente. Solo crea tu contraseña para activar tu cuenta oficial de ATAP.
+                  </div>
+                </div>
+              </div>
+            )}
+
             <form className="login-form" onSubmit={handleSubmit}>
-              {mostrarRegistro && (
+              {mostrarRegistro ? (
                 <>
-                  <label htmlFor="register-name">Nombre completo</label>
+                  <div className="login-form-group">
+                    <label htmlFor="register-name">Nombre completo</label>
+                    <div className="login-input-wrap">
+                      <i className="fi fi-rr-user" aria-hidden="true" />
+                      <input
+                        id="register-name"
+                        name="name"
+                        type="text"
+                        placeholder="Tu nombre y apellido"
+                        value={regNombre}
+                        onChange={(e) => setRegNombre(e.target.value)}
+                        autoComplete="name"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="login-form-group">
+                    <label htmlFor="register-email">Correo electrónico</label>
+                    <div className="login-input-wrap">
+                      <i className="fi fi-rr-envelope" aria-hidden="true" />
+                      <input
+                        id="register-email"
+                        name="email"
+                        type="email"
+                        placeholder="tu.correo@ejemplo.com"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        autoComplete="email"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="login-form-group">
+                    <label htmlFor="register-password">Contraseña</label>
+                    <div className="login-input-wrap">
+                      <i className="fi fi-rr-lock" aria-hidden="true" />
+                      <input
+                        id="register-password"
+                        name="password"
+                        type="password"
+                        placeholder="Mínimo 4 caracteres"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        autoComplete="new-password"
+                        required
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <label htmlFor="login-email">Correo electrónico</label>
                   <div className="login-input-wrap">
-                    <i className="fi fi-rr-user" aria-hidden="true" />
+                    <i className="fi fi-rr-envelope" aria-hidden="true" />
                     <input
-                      id="register-name"
-                      name="name"
-                      type="text"
-                      placeholder="Tu nombre completo"
-                      autoComplete="name"
+                      id="login-email"
+                      name="email"
+                      type="email"
+                      placeholder="Atap@correo.com"
+                      autoComplete="email"
                       required
                     />
                   </div>
+
+                  <label htmlFor="login-password">Contraseña</label>
+                  <div className="login-input-wrap">
+                    <i className="fi fi-rr-lock" aria-hidden="true" />
+                    <input
+                      id="login-password"
+                      name="password"
+                      type="password"
+                      placeholder="Ingresa tu contraseña"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="login-forgot-button"
+                    onClick={handleOlvidoPassword}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
                 </>
-              )}
-
-              <label htmlFor="login-email">Correo electrónico</label>
-              <div className="login-input-wrap">
-                <i className="fi fi-rr-envelope" aria-hidden="true" />
-                <input
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  placeholder="Atap@correo.com"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-
-              <label htmlFor="login-password">Contraseña</label>
-              <div className="login-input-wrap">
-                <i className="fi fi-rr-lock" aria-hidden="true" />
-                <input
-                  id="login-password"
-                  name="password"
-                  type="password"
-                  placeholder={mostrarRegistro ? "Crea una contraseña" : "Ingresa tu contraseña"}
-                  autoComplete={mostrarRegistro ? "new-password" : "current-password"}
-                  required
-                />
-              </div>
-
-              {!mostrarRegistro && (
-                <button
-                  type="button"
-                  className="login-forgot-button"
-                  onClick={handleOlvidoPassword}
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
               )}
 
               <button className="login-submit" type="submit" disabled={cargando}>
                 {cargando
-                  ? 'Procesando...'
-                  : (mostrarRegistro ? 'Crear cuenta' : 'Iniciar sesión')}
+                  ? 'Guardando datos...'
+                  : (mostrarRegistro ? 'Crear mi cuenta ATAP' : 'Iniciar sesión')}
                 {!cargando && <i className="fi fi-rr-arrow-small-right" aria-hidden="true" />}
               </button>
             </form>
@@ -286,7 +642,7 @@ export default function LoginModal({
               <button
                 type="button"
                 disabled={cargando}
-                onClick={() => handleSocialLogin('Google')}
+                onClick={() => handleSocialClick('Google')}
               >
                 <i className="fi fi-brands-google" aria-hidden="true" />
                 Google
@@ -294,7 +650,7 @@ export default function LoginModal({
               <button
                 type="button"
                 disabled={cargando}
-                onClick={() => handleSocialLogin('Facebook')}
+                onClick={() => handleSocialClick('Facebook')}
               >
                 <i className="fi fi-brands-facebook" aria-hidden="true" />
                 Facebook

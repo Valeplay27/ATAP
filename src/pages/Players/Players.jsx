@@ -1,8 +1,20 @@
-import { useState, useEffect } from 'react'
-import { ArrowRight, Filter, Search, Star, Trophy, X } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  Filter,
+  MapPin,
+  Phone,
+  Search,
+  ShieldCheck,
+  Star,
+  Trophy,
+  X
+} from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { getRanking } from '../../services/atapStorage'
+import { getRanking, OFFICIAL_CATEGORIES, normalizeCategory } from '../../services/atapStorage'
 import SimplePage from '../Shared/SimplePage'
+import PlayerHeroModal from '../../components/PlayerHeroModal/PlayerHeroModal'
 import './Players.css'
 
 export default function Players({ usuario }) {
@@ -12,6 +24,7 @@ export default function Players({ usuario }) {
   const [showSearch, setShowSearch] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
   const [favorites, setFavorites] = useState(['01'])
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   useEffect(() => {
     function handleUpdate() {
@@ -27,16 +40,43 @@ export default function Players({ usuario }) {
     )
   }
 
-  const categories = ['Todas', '1ra Categoría', '2da Categoría', '3ra Categoría', '4ta Categoría']
+  const categories = ['Todas', ...OFFICIAL_CATEGORIES]
 
-  const filteredPlayers = playerList.filter((player) => {
+  // Identificar si el usuario actual es Administrador ("no dejes al admin en jugadores pq no juega")
+  const isAdminUser = Boolean(
+    usuario &&
+      (usuario.esAdmin ||
+        usuario.rol === 'admin' ||
+        usuario.rol === 'Administrador' ||
+        usuario.email?.toLowerCase() === 'vladimiryt18@gmail.com' ||
+        usuario.nombre?.toLowerCase().includes('admin') ||
+        usuario.categoria?.toLowerCase().includes('comité'))
+  )
+
+  // Lista EXCLUSIVA de jugadores reales de tenis (excluyendo a administradores)
+  const playersOnly = useMemo(() => {
+    return playerList.filter((p) => {
+      const name = (p.name || '').toLowerCase()
+      const email = (p.email || '').toLowerCase()
+      const isPAdmin =
+        name.includes('admin') ||
+        email.includes('admin') ||
+        email === 'vladimiryt18@gmail.com' ||
+        p.id === 'user-current-me'
+      return !isPAdmin
+    })
+  }, [playerList])
+
+  const filteredPlayers = playersOnly.filter((player) => {
     const matchesCategory =
       filterCategory === 'Todas' ||
       (player.categoria &&
-        player.categoria.toLowerCase().includes(filterCategory.toLowerCase().replace(' categoría', '')))
+        normalizeCategory(player.categoria) === normalizeCategory(filterCategory))
     const matchesSearch =
-      player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      player.country.toLowerCase().includes(searchQuery.toLowerCase())
+      (player.name && player.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (player.country && player.country.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (player.categoria && player.categoria.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (player.mejorGolpe && player.mejorGolpe.toLowerCase().includes(searchQuery.toLowerCase()))
     return matchesCategory && matchesSearch
   })
 
@@ -46,32 +86,33 @@ export default function Players({ usuario }) {
       title="Jugadores ATAP"
       description="Conoce a los mejores jugadores y el ranking oficial del circuito amateur del Perú."
     >
-      {usuario && (
+      {/* Solo se muestra tarjeta de perfil propio si el usuario NO es admin y es jugador registrado */}
+      {usuario && !isAdminUser && (
         <section className="players-my-card panel">
           <div className="players-my-card-left">
             <div className="players-my-avatar">
-              {usuario.avatar ? (
+              {usuario.avatar &&
+              usuario.avatar !== '/assets/logo.png' &&
+              !usuario.avatar.includes('logo.png') ? (
                 <img src={usuario.avatar} alt={usuario.nombre} />
               ) : (
-                <div className="default-avatar-badge">
+                <div className="default-avatar-badge is-atap-logo">
                   <img src="/assets/logo.png" alt="ATAP" className="default-avatar-logo" />
                 </div>
               )}
             </div>
             <div>
-              <span className="players-kicker">Tu perfil registrado</span>
+              <span className="players-kicker">Tu perfil de jugador</span>
               <h2>{usuario.nombre || 'Jugador ATAP'}</h2>
               <div className="players-pill-row">
                 <span className="player-badge">
                   {usuario.categoria ? `Categoría ${usuario.categoria}` : 'Jugador Oficial'}
                 </span>
+                <span className="player-subbadge">
+                  ✓ Jugador Verificado
+                </span>
                 {usuario.manoDominante && <span className="player-subbadge">🎾 {usuario.manoDominante}</span>}
                 {usuario.mejorGolpe && <span className="player-subbadge">⭐ {usuario.mejorGolpe}</span>}
-                {usuario.titulosGanados && usuario.titulosGanados !== '0' && (
-                  <span className="player-subbadge">
-                    🏆 {usuario.titulosGanados} {usuario.titulosGanados === '1' ? 'título' : 'títulos'}
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -81,7 +122,7 @@ export default function Players({ usuario }) {
         </section>
       )}
 
-      {/* Barra de herramientas: FILTER y SEARCH (referencia media_1789321996820.png) */}
+      {/* Barra de herramientas: FILTER y SEARCH */}
       <div className="players-toolbar-row">
         <div className="toolbar-left">
           <button
@@ -115,7 +156,7 @@ export default function Players({ usuario }) {
               <Search size={15} className="search-icon" />
               <input
                 type="text"
-                placeholder="Buscar por nombre..."
+                placeholder="Buscar por nombre o categoría..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
@@ -145,46 +186,58 @@ export default function Players({ usuario }) {
         </div>
       </div>
 
-      {/* Grilla 4 columnas de Jugadores estilo WTA/ATP Pro Cards (media_1789321996820.png) */}
+      {/* Grilla 4 Columnas: Tarjetas estilo WTA Pro Cards (Fieles a la imagen 2) */}
       <div className="players-pro-grid">
         {filteredPlayers.map((player) => {
-          const rankNum = parseInt(player.position, 10)
+          const rankNum = parseInt(player.position, 10) || 1
           const isFav = favorites.includes(player.position)
-          const isHighlight = rankNum === 2 // Destacado verde como en la captura
-
-          const displayPoints = player.puntosNum || parseInt(player.points.replace(/\D/g, ''), 10)
+          const isHighlight = rankNum === 2 // Destacado sutil verde como en la referencia WTA
+          const displayPoints = player.puntosNum || parseInt(String(player.points || '0').replace(/\D/g, ''), 10) || 1240
 
           return (
             <article
-              key={player.position}
+              key={player.id || player.position || player.name}
               className={`player-pro-card ${isHighlight ? 'is-highlighted' : ''}`}
+              onClick={() => setSelectedPlayer(player)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setSelectedPlayer(player)
+                }
+              }}
             >
+              {/* Banner superior morado (#25005C a #00304A) */}
               <div className="player-pro-banner">
-                {/* RANK y número grande en verde lima (#C6FF00) */}
+                {/* RANK y número grande en verde (#00CFA0 / #C6FF00) */}
                 <div className="player-pro-rank-block">
                   <span className="player-rank-label">RANK</span>
                   <span className="player-rank-num">{rankNum}</span>
                 </div>
 
-                {/* Botón Favorito estrella */}
+                {/* Botón Favorito estrella en esquina superior derecha */}
                 <button
                   type="button"
                   className={`player-fav-star-btn ${isFav ? 'is-fav' : ''}`}
-                  onClick={() => toggleFavorite(player.position)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleFavorite(player.position)
+                  }}
                   title={isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'}
                   aria-label={`Favorito ${player.name}`}
                 >
                   <Star
-                    size={15}
+                    size={14}
                     fill={isFav ? '#FFD700' : 'none'}
                     color={isFav ? '#FFD700' : '#FFFFFF'}
                   />
                 </button>
 
-                {/* Foto recortada del jugador */}
+                {/* Foto recortada del jugador centrada */}
                 <div className="player-pro-photo-wrap">
                   <img
-                    src={player.image}
+                    src={player.image || '/assets/logo.png'}
                     alt={player.name}
                     className="player-pro-photo"
                     onError={(e) => {
@@ -194,17 +247,17 @@ export default function Players({ usuario }) {
                   />
                 </div>
 
-                {/* Franja horizontal de puntos */}
+                {/* Franja horizontal con puntos exacto a la imagen 2 */}
                 <div className="player-pro-points-strip">
                   <span>{displayPoints} POINTS</span>
                 </div>
               </div>
 
-              {/* Pie de tarjeta con Nombre y Bandera */}
+              {/* Pie de tarjeta blanco con Nombre en mayúsculas y Bandera */}
               <div className="player-pro-footer">
                 <h3 className="player-pro-name">{player.name}</h3>
                 <div className="player-pro-country-row">
-                  <span className="country-flag">🇵🇪</span>
+                  <span className="country-flag" aria-hidden="true" />
                   <span className="country-code">{player.country || 'PER'}</span>
                 </div>
               </div>
@@ -212,6 +265,18 @@ export default function Players({ usuario }) {
           )
         })}
       </div>
+
+      {/* MODAL / FICHA TÉCNICA EXPANDIDA CON HISTORIAL DE PARTIDOS Y PUNTOS */}
+      {selectedPlayer && (
+        <PlayerHeroModal
+          player={selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+        />
+      )}
     </SimplePage>
   )
 }
+
+

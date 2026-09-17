@@ -1,21 +1,38 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
+import { getSiteImages } from '../../services/atapStorage'
 import './Footer.css'
 
 export default function Footer() {
+  const [siteImages, setSiteImages] = useState(() => getSiteImages())
+
+  useEffect(() => {
+    function handleUpdate() {
+      setSiteImages(getSiteImages())
+    }
+    window.addEventListener('atap_data_updated', handleUpdate)
+    return () => window.removeEventListener('atap_data_updated', handleUpdate)
+  }, [])
+
   return (
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-brand-wrap">
-          <NavLink className="brand" to="/">
+          <NavLink className="brand footer-brand" to="/" aria-label="ATAP - Asociación de Tenistas Amateur del Perú">
             <img
-              className="footer-platino-logo"
-              src="/assets/Logo Platino.png"
-              alt="Platino Perú"
+              className="footer-logo"
+              src={siteImages.logoAtap || '/assets/logo.png'}
+              alt="Asociación de Tenistas Amateur del Perú"
               onError={(e) => {
-                e.target.style.display = 'none'
+                e.target.onerror = null
+                e.target.src = '/assets/logo.png'
               }}
             />
-            <span className="footer-atap-tag">ATAP PERÚ</span>
+            <span className="footer-brand-text">
+              <strong>ASOCIACIÓN DE</strong>
+              <strong>TENISTAS AMATEUR</strong>
+              <strong>DEL PERÚ</strong>
+            </span>
           </NavLink>
         </div>
 
@@ -23,8 +40,9 @@ export default function Footer() {
           <NavLink to="/">Inicio</NavLink>
           <NavLink to="/torneos">Torneos</NavLink>
           <NavLink to="/jugadores">Jugadores</NavLink>
-          <NavLink to="/comunidad">Noticias</NavLink>
+          <NavLink to="/ranking">Ranking</NavLink>
           <NavLink to="/contacto">Contacto</NavLink>
+          <NavLink to="/reglas">Políticas & Reglas</NavLink>
         </nav>
 
         <div className="footer-social-icons">
@@ -69,7 +87,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-copyright">
-        © 2026 Asociación de Tenistas Amateur del Perú (ATAP). Todos los derechos reservados.
+        <span>© 2026 Asociación de Tenistas Amateur del Perú (ATAP). Todos los derechos reservados.</span>
       </div>
     </footer>
   )

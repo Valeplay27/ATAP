@@ -81,13 +81,32 @@
   object-fit: cover;
   border: 4px solid #00CFA0;
   box-shadow: 0 6px 18px rgba(0, 207, 160, 0.25);
+  background: #000000;
+  overflow: hidden;
+}
+
+.profile-hero-avatar.is-atap-logo,
+.profile-hero-avatar.default-avatar-badge {
+  background: #000000 !important;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.profile-hero-avatar.is-atap-logo .default-avatar-logo,
+.profile-hero-avatar.default-avatar-badge .default-avatar-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .profile-hero-avatar-placeholder {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00304A, #25005C);
+  background: #000000;
   color: #00CFA0;
   font-size: 36px;
   font-weight: 800;

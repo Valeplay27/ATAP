@@ -23,7 +23,7 @@ const FAQ_ITEMS = [
   },
   {
     q: '¿Cómo confirmo y valido el pago de mi inscripción?',
-    a: 'Realiza el pago por Yape, Plin o transferencia bancaria al monto indicado en el torneo. Luego, envía la captura del comprobante al WhatsApp oficial de ATAP (+51 987 654 321) indicando tu nombre y DNI. El comité validará tu registro para incluirte en el sorteo de llaves.'
+    a: 'Realiza el pago por Yape al monto indicado en el torneo. Luego, envía la captura del comprobante al WhatsApp oficial de ATAP (+51 987 654 321) indicando tu nombre y DNI. El comité validará tu registro para incluirte en el sorteo oficial de la fase de grupos.'
   },
   {
     q: '¿Cómo funciona el sorteo de llaves y emparejamientos?',

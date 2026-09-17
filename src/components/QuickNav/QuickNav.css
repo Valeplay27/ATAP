@@ -164,9 +164,14 @@
     gap: 8px;
   }
 
+  /* Si hay un número impar de torneos, el último se expande a 2 columnas para no dejar huecos vacíos */
+  .quick-tourney-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
   .quick-tourney-card {
-    height: 78px;
-    min-height: 78px;
+    height: 76px;
+    min-height: 76px;
   }
 
   .quick-tourney-title {

@@ -25,18 +25,24 @@
 	text-decoration: none;
 }
 
-.footer-platino-logo {
-	height: 30px;
-	width: auto;
+.footer-logo {
+	width: 38px;
+	height: 38px;
 	object-fit: contain;
 }
 
-.footer-atap-tag {
-	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 15px;
-	font-weight: 800;
+.footer-brand-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
 	color: #001827;
-	letter-spacing: 0.05em;
+	font-family: 'General Sans', Arial, Helvetica, sans-serif;
+	font-size: 9.5px;
+	font-weight: 800;
+	line-height: 1.05;
+	letter-spacing: .02em;
+	white-space: nowrap;
+	text-align: left;
 }
 
 .footer-nav {
@@ -90,10 +96,10 @@
 .footer-copyright {
 	text-align: center;
 	font-family: 'General Sans', sans-serif;
-	font-size: 11px;
+	font-size: 11.5px;
 	font-weight: 500;
 	color: #64727A;
-	padding-top: 12px;
+	padding-top: 14px;
 	border-top: 1px solid #E8EEEE;
 }
 

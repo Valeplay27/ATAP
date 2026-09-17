@@ -148,14 +148,14 @@
 
 .user-profile-button {
 	display: grid;
-	width: 36px;
-	height: 36px;
+	width: 38px;
+	height: 38px;
 	padding: 0;
 	place-items: center;
 	border: 2px solid #00CFA0;
 	border-radius: 50%;
-	background: #DDF8EF;
-	color: #00304A;
+	background: #000000;
+	color: #00CFA0;
 	cursor: pointer;
 	overflow: hidden;
 	transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
@@ -178,8 +178,8 @@
 	height: 100%;
 	place-items: center;
 	border-radius: 50%;
-	background: #00CFA0;
-	color: #001827;
+	background: #000000;
+	color: #00CFA0;
 	font-size: 13px;
 	font-weight: 800;
 	letter-spacing: .02em;
@@ -194,6 +194,23 @@
 	display: block;
 }
 
+.user-avatar .default-avatar-badge.is-atap-logo {
+	width: 100%;
+	height: 100%;
+	background: #000000;
+	display: grid;
+	place-items: center;
+	padding: 4px;
+	box-sizing: border-box;
+}
+
+.user-avatar .default-avatar-badge.is-atap-logo .default-avatar-logo {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
+}
+
 .user-dropdown-menu {
 	position: absolute;
 	top: calc(100% + 10px);
@@ -203,8 +220,8 @@
 	background: #FFFFFF;
 	border: 1.5px solid #E8EEEE;
 	border-radius: 16px;
-	box-shadow: 0 14px 36px rgba(0, 24, 39, .08);
-	z-index: 50;
+	box-shadow: 0 14px 36px rgba(0, 24, 39, .14);
+	z-index: 10000;
 	animation: dropdownFade .18s ease forwards;
 }
 
@@ -291,47 +308,121 @@
 }
 
 @media (max-width: 800px) {
-	.navbar-pill {
-		width: 100%;
-		height: 78px;
-		padding: 10px 12px;
-		gap: 10px;
+	.site-header.navbar-pill {
+		width: min(1180px, calc(100% - 24px));
+		height: auto;
+		min-height: 56px;
+		margin: 10px auto;
+		padding: 0;
+		gap: 8px;
+		position: relative;
+		box-sizing: border-box;
+	}
+
+	.navbar-pill .brand {
+		min-width: 0;
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.navbar-pill .brand-logo {
+		width: 36px;
+		height: 36px;
+		flex-shrink: 0;
+	}
+
+	.navbar-pill .brand span:last-child {
+		font-size: 8.5px;
+		line-height: 1.1;
 	}
 
 	.navbar-surface {
 		position: static;
-		width: 100%;
-		flex: 1;
-		height: 68px;
+		width: auto;
+		flex: 0 0 auto;
+		height: 46px;
 		margin-left: 0;
-		transform: none;
-		padding: 0 16px;
-		border-radius: 24px;
+		padding: 0 10px;
+		border-radius: 999px;
+		display: flex;
+		align-items: center;
+		background: #FFFFFF;
+		border: 1.5px solid #E8EEEE;
+		box-shadow: 0 2px 10px rgba(0, 24, 39, 0.05);
+	}
+
+	.navbar-pill .header-actions {
+		min-width: 0;
+		gap: 6px;
 	}
 
 	.navbar-pill .icon-button.menu-toggle {
 		display: grid;
 	}
 
-	.navbar-pill .brand-logo {
-		width: 36px;
-		height: 36px;
-	}
-
+	/* Menú móvil cerrado: oculto totalmente para evitar cualquier desborde horizontal */
 	.navbar-pill .main-nav {
-		position: absolute;
-		left: 0;
-		transform: none;
-		top: 82px;
-		height: auto;
-		padding: 10px 18px;
-		background: var(--white);
-		border-radius: 12px;
-		box-shadow: 0 8px 20px rgba(0, 20, 35, .16);
+		display: none !important;
 	}
 
-	.navbar-pill .main-nav a {
-		height: 36px;
+	/* Menú móvil abierto: dropdown limpio, vertical y elegante */
+	.navbar-pill .main-nav.is-open {
+		display: flex !important;
+		flex-direction: column;
+		position: absolute;
+		top: calc(100% + 8px);
+		left: 0;
+		right: 0;
+		width: 100%;
+		height: auto;
+		padding: 10px;
+		background: #FFFFFF;
+		border-radius: 18px;
+		border: 1.5px solid #E8EEEE;
+		box-shadow: 0 14px 36px rgba(0, 24, 39, 0.16);
+		gap: 4px;
+		z-index: 9999;
+		box-sizing: border-box;
+		animation: nav-slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.navbar-pill .main-nav.is-open a {
+		display: flex;
+		align-items: center;
+		height: 42px;
+		padding: 0 16px;
+		border-radius: 12px;
+		font-family: 'General Sans', Arial, sans-serif;
+		font-size: 14px;
+		font-weight: 700;
+		color: #001827;
+		text-decoration: none;
+		transition: all 0.18s ease;
+	}
+
+	.navbar-pill .main-nav.is-open a:hover {
+		background: #F0FDF8;
+		color: #00CFA0;
+	}
+
+	.navbar-pill .main-nav.is-open a.active {
+		background: #DDF8EF;
+		color: #00304A;
+		border-left: 4px solid #00CFA0;
+		text-decoration: none;
+	}
+}
+
+@keyframes nav-slide-down {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
 	}
 }
 

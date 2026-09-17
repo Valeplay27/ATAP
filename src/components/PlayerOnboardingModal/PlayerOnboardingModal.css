@@ -403,7 +403,7 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: #0D223A;
+  background: #000000;
   display: grid;
   place-items: center;
 }
@@ -955,3 +955,23 @@
     font-size: 10px;
   }
 }
+
+/* Mensajes de validación / error en pasos */
+.onboarding-error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFF1F2;
+  border: 1.5px solid #FECDD3;
+  color: #E11D48;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease;
+}
+

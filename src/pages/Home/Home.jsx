@@ -4,7 +4,7 @@ import { ArrowRight, ChevronDown } from 'lucide-react'
 import Hero from '../../components/Hero/Hero'
 import QuickNav from '../../components/QuickNav/QuickNav'
 import RankingCard from '../../components/RankingCard/RankingCard'
-import { getRanking, getSiteImages } from '../../services/atapStorage'
+import { getRanking, getSiteImages, getSponsors } from '../../services/atapStorage'
 import './Home.css'
 
 function SignupPanel({ onOpenRegister, eventImage }) {
@@ -191,19 +191,33 @@ function InformationSection() {
 	)
 }
 
-function SponsorsSection({ platinoLogo }) {
-	const partners = ['GemLab', 'Tennis Merits', 'Puerto Norte', 'Bordiani', 'noi', 'Up Beast', 'Head']
+function SponsorsSection({ platinoLogo, sponsors = [] }) {
+	const sponsorsWithImages = sponsors.filter((s) => s.logo && s.logo.trim() !== '')
 
 	return (
 		<section className="sponsors-card panel">
 			<p className="sponsor-kicker">Main sponsor</p>
 			<img className="platino-logo" src={platinoLogo || '/assets/Logo Platino.png'} alt="Platino Perú" />
 			<p className="sponsor-kicker">Partners and suppliers</p>
-			<div className="sponsor-list">
-				{partners.map((partner) => (
-					<strong key={partner}>{partner}</strong>
-				))}
-			</div>
+			{sponsorsWithImages.length > 0 ? (
+				<div className="sponsor-logos-grid">
+					{sponsorsWithImages.map((s, idx) => (
+						<div className="sponsor-logo-item" key={s.id || idx}>
+							<img
+								src={s.logo}
+								alt={s.name || `Auspiciador ${idx + 1}`}
+								className="sponsor-logo-img"
+							/>
+						</div>
+					))}
+				</div>
+			) : (
+				<div className="sponsor-list">
+					{sponsors.map((partner, idx) => (
+						<strong key={partner.id || idx}>{partner.name || `Auspiciador ${idx + 1}`}</strong>
+					))}
+				</div>
+			)}
 		</section>
 	)
 }
@@ -211,11 +225,13 @@ function SponsorsSection({ platinoLogo }) {
 export default function Home({ onOpenRegister }) {
 	const [rankingList, setRankingList] = useState(() => getRanking())
 	const [siteImages, setSiteImages] = useState(() => getSiteImages())
+	const [sponsorsList, setSponsorsList] = useState(() => getSponsors())
 
 	useEffect(() => {
 		function handleUpdate() {
 			setRankingList(getRanking())
 			setSiteImages(getSiteImages())
+			setSponsorsList(getSponsors())
 		}
 		window.addEventListener('atap_data_updated', handleUpdate)
 		return () => window.removeEventListener('atap_data_updated', handleUpdate)
@@ -236,7 +252,10 @@ export default function Home({ onOpenRegister }) {
 					</div>
 					<RankingSection players={rankingList} />
 					<InformationSection />
-					<SponsorsSection platinoLogo={siteImages.logoPlatino} />
+					<SponsorsSection
+						platinoLogo={siteImages.logoPlatino}
+						sponsors={sponsorsList}
+					/>
 				</div>
 			</div>
 		</main>

@@ -352,3 +352,290 @@
   width: 100%;
   text-align: center;
 }
+
+/* WIDE MODAL FOR DOUBLES */
+.tourney-modal-card-wide {
+  max-width: 680px;
+}
+
+.tourney-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.tourney-modality-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #00304A;
+  background: #E8EEEE;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.price-subtext-note {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* VALIDATION ERROR BANNER */
+.tourney-validation-error-alert {
+  display: flex;
+  gap: 14px;
+  background: #FFF5F5;
+  border: 1.5px solid #FFCDD2;
+  border-left: 4px solid #D32F2F;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  animation: fadeIn 0.2s ease;
+}
+
+.alert-icon-col {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.alert-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #B71C1C;
+}
+
+.alert-message {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #37474F;
+  margin: 0;
+}
+
+.alert-cta-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.button-register-cta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #C6FF00;
+  color: #001827;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 48, 74, 0.12);
+}
+
+.button-register-cta:hover {
+  background: #00CFA0;
+  transform: translateX(2px);
+}
+
+.alert-cta-note {
+  font-size: 11px;
+  color: #78909C;
+}
+
+/* PLAYER FORM SECTIONS (DOUBLES) */
+.player-form-section {
+  background: #F8FAFB;
+  border: 1px solid #E8EEEE;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.player-section-secondary {
+  background: #F1FBF7;
+  border-color: #C3EEDF;
+}
+
+.player-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 1px dashed #E8EEEE;
+  padding-bottom: 8px;
+}
+
+.player-section-title h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #00304A;
+  letter-spacing: 0.3px;
+}
+
+.verified-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #008764;
+  background: #DDF8EF;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.label-with-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verified-tag-micro {
+  font-size: 10px;
+  font-weight: 700;
+  color: #008764;
+  background: #DDF8EF;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.field-hint-micro {
+  font-size: 11px;
+  color: #64727A;
+  margin-top: 2px;
+}
+
+/* INCOMPLETE PLAYER HELPER BOX */
+.incomplete-player-helper-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #FFFBEB;
+  border: 1.5px solid #FCD34D;
+  border-left: 4px solid #D97706;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+}
+
+.incomplete-player-helper-box .helper-icon-wrap {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.incomplete-player-helper-box .helper-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.incomplete-player-helper-box strong {
+  font-size: 12.5px;
+  color: #92400E;
+}
+
+.incomplete-player-helper-box p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #B45309;
+  line-height: 1.4;
+}
+
+.btn-complete-account-now {
+  align-self: flex-start;
+  margin-top: 6px;
+  background: #D97706;
+  color: #FFFFFF;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-complete-account-now:hover {
+  background: #B45309;
+  transform: translateY(-1px);
+}
+
+/* TERMS ACCEPTANCE CARD */
+.terms-acceptance-card {
+  background: #F4FBF8;
+  border: 1.5px solid #00CFA0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.terms-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #001827;
+  line-height: 1.45;
+}
+
+.terms-checkbox-input {
+  margin-top: 3px;
+  width: 17px;
+  height: 17px;
+  accent-color: #00CFA0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.terms-text {
+  font-weight: 500;
+}
+
+.btn-open-rules-inline {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #00796B;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  display: inline;
+  transition: color 0.15s ease;
+}
+
+.btn-open-rules-inline:hover {
+  color: #00CFA0;
+}
+
+.terms-caption {
+  font-size: 11px;
+  color: #64727A;
+  font-style: italic;
+  padding-left: 27px;
+}
+

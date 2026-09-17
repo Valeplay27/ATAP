@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom'
+import { CheckCircle2, X } from 'lucide-react'
 import Footer from './components/Footer/Footer'
 import Navbar from './components/Navbar/Navbar'
 import LoginModal from './components/LoginModal/LoginModal'
@@ -12,11 +13,16 @@ import Ranking from './pages/Ranking/Ranking'
 import Tournaments from './pages/Tournaments/Tournaments'
 import Profile from './pages/Profile/Profile'
 import Admin from './pages/Admin/Admin'
+import Rules from './pages/Rules/Rules'
+import ScrollToTopButton from './components/ScrollToTopButton/ScrollToTopButton'
+import { saveRegisteredUser, maskDni } from './services/atapStorage'
 
 function SiteLayout() {
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [modalAuth, setModalAuth] = useState({ open: false, isRegister: false })
   const [onboardingUser, setOnboardingUser] = useState(null)
+  const [logoutNotification, setLogoutNotification] = useState(null)
   const [usuarioAutenticado, setUsuarioAutenticado] = useState(() => {
     try {
       const guardado = localStorage.getItem('atap_usuario')
@@ -27,6 +33,14 @@ function SiteLayout() {
   })
 
   useEffect(() => {
+    if (!logoutNotification) return
+    const timer = setTimeout(() => {
+      setLogoutNotification(null)
+    }, 4500)
+    return () => clearTimeout(timer)
+  }, [logoutNotification])
+
+  useEffect(() => {
     function handleStorageSync() {
       try {
         const guardado = localStorage.getItem('atap_usuario')
@@ -35,26 +49,71 @@ function SiteLayout() {
         }
       } catch {}
     }
+
+    function handleOpenLoginModal() {
+      setModalAuth({ open: true, isRegister: false, prefill: null })
+    }
+
+    function handleOpenRegisterModal(event) {
+      setModalAuth({ open: true, isRegister: true, prefill: event?.detail || null })
+    }
+
     window.addEventListener('atap_data_updated', handleStorageSync)
-    return () => window.removeEventListener('atap_data_updated', handleStorageSync)
+    window.addEventListener('atap_open_login', handleOpenLoginModal)
+    window.addEventListener('atap_open_register', handleOpenRegisterModal)
+    return () => {
+      window.removeEventListener('atap_data_updated', handleStorageSync)
+      window.removeEventListener('atap_open_login', handleOpenLoginModal)
+      window.removeEventListener('atap_open_register', handleOpenRegisterModal)
+    }
   }, [])
 
   function handleLogin(datosUsuario) {
-    setUsuarioAutenticado(datosUsuario)
+    let cleanUserData = datosUsuario
+    if (datosUsuario && (datosUsuario.dni || datosUsuario.documentoIdentidad)) {
+      const masked = maskDni(datosUsuario.dni || datosUsuario.documentoIdentidad)
+      cleanUserData = {
+        ...datosUsuario,
+        dni: masked,
+        documentoIdentidad: masked
+      }
+    }
+    setUsuarioAutenticado(cleanUserData)
     try {
-      localStorage.setItem('atap_usuario', JSON.stringify(datosUsuario))
+      localStorage.setItem('atap_usuario', JSON.stringify(cleanUserData))
+      if (cleanUserData && (cleanUserData.dni || cleanUserData.documentoIdentidad)) {
+        saveRegisteredUser(cleanUserData)
+      }
     } catch (e) {
       console.error('Error al guardar la sesión:', e)
     }
   }
 
-  function handleLogout() {
+  function handleLogout(nombreOEmail) {
+    const nombre =
+      nombreOEmail ||
+      usuarioAutenticado?.nombre ||
+      usuarioAutenticado?.email ||
+      'tu cuenta'
+
     setUsuarioAutenticado(null)
     try {
       localStorage.removeItem('atap_usuario')
+      window.dispatchEvent(new Event('atap_data_updated'))
     } catch (e) {
       console.error('Error al cerrar la sesión:', e)
     }
+
+    setLogoutNotification({
+      nombre,
+      timestamp: Date.now()
+    })
+
+    // Redirigir siempre a la página de inicio ('/') al cerrar sesión de cualquier perfil
+    navigate('/')
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch {}
   }
 
   return (
@@ -93,21 +152,73 @@ function SiteLayout() {
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/comunidad" element={<Community />} />
         <Route path="/contacto" element={<Contact />} />
-        <Route path="/admin" element={<Admin usuario={usuarioAutenticado} onLoginSuccess={handleLogin} />} />
-        <Route path="/dashboard" element={<Admin usuario={usuarioAutenticado} onLoginSuccess={handleLogin} />} />
+        <Route path="/reglas" element={<Rules />} />
+        <Route path="/politicas" element={<Rules />} />
+        <Route path="/politicas-y-reglas" element={<Rules />} />
+        <Route
+          path="/admin"
+          element={
+            <Admin
+              usuario={usuarioAutenticado}
+              onLoginSuccess={handleLogin}
+              onOpenLogin={() => setModalAuth({ open: true, isRegister: false, prefill: null })}
+              onLogout={handleLogout}
+            />
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <Admin
+              usuario={usuarioAutenticado}
+              onLoginSuccess={handleLogin}
+              onOpenLogin={() => setModalAuth({ open: true, isRegister: false, prefill: null })}
+              onLogout={handleLogout}
+            />
+          }
+        />
       </Routes>
       <Footer />
+      <ScrollToTopButton />
+
+      {/* NOTIFICACIÓN GLOBAL VISIBLE DE CIERRE DE SESIÓN */}
+      {logoutNotification && (
+        <aside
+          className="global-logout-toast"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="logout-toast-icon-wrap">
+            <CheckCircle2 size={22} />
+          </div>
+          <div className="logout-toast-body">
+            <strong className="logout-toast-title">Sesión cerrada con éxito</strong>
+            <p className="logout-toast-desc">
+              Has salido de <strong>{logoutNotification.nombre}</strong> correctamente.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="logout-toast-close-btn"
+            onClick={() => setLogoutNotification(null)}
+            aria-label="Cerrar notificación"
+          >
+            <X size={16} />
+          </button>
+        </aside>
+      )}
 
       {modalAuth.open && (
         <LoginModal
           initialRegister={modalAuth.isRegister}
-          onClose={() => setModalAuth({ open: false, isRegister: false })}
+          prefillData={modalAuth.prefill}
+          onClose={() => setModalAuth({ open: false, isRegister: false, prefill: null })}
           onLogin={(user) => {
             handleLogin(user)
-            setModalAuth({ open: false, isRegister: false })
+            setModalAuth({ open: false, isRegister: false, prefill: null })
           }}
           onStartOnboarding={(newUser) => {
-            setModalAuth({ open: false, isRegister: false })
+            setModalAuth({ open: false, isRegister: false, prefill: null })
             setOnboardingUser(newUser)
           }}
         />

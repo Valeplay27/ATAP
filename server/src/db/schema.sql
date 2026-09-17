@@ -1,0 +1,146 @@
+-- Esquema Relacional de Base de Datos para ATAP Tenis Circuito Amateur
+-- Motor MySQL 8.0+ / MariaDB
+
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(64) PRIMARY KEY,
+  nombre VARCHAR(150) NOT NULL,
+  email VARCHAR(150) UNIQUE,
+  password_hash VARCHAR(255) NULL,
+  auth_provider VARCHAR(20) DEFAULT 'local',
+  google_id VARCHAR(100) UNIQUE NULL,
+  facebook_id VARCHAR(100) UNIQUE NULL,
+  dni_masked VARCHAR(20) NOT NULL,
+  dni_hash VARCHAR(64) NULL,
+  telefono VARCHAR(30) NULL,
+  whatsapp VARCHAR(30) NULL,
+  categoria VARCHAR(20) DEFAULT '4ta',
+  rol VARCHAR(30) DEFAULT 'Jugador ATAP',
+  es_admin BOOLEAN DEFAULT FALSE,
+  perfil_incompleto BOOLEAN DEFAULT TRUE,
+  completado_onboarding BOOLEAN DEFAULT FALSE,
+  avatar_url VARCHAR(255) DEFAULT '/assets/logo.png',
+  fecha_registro DATE NULL,
+  genero VARCHAR(20) DEFAULT 'Masculino',
+  fecha_nacimiento VARCHAR(20) NULL,
+  altura VARCHAR(20) DEFAULT '1.75 m',
+  peso VARCHAR(20) DEFAULT '70 kg',
+  mano_dominante VARCHAR(20) DEFAULT 'Diestro',
+  mejor_golpe VARCHAR(50) DEFAULT 'Drive cruzado',
+  titulos_ganados INT DEFAULT 0,
+  zonas JSON NULL,
+  disponibilidad JSON NULL,
+  calibracion_golpes JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_user_email (email),
+  INDEX idx_user_dni_hash (dni_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS tournaments (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  slug VARCHAR(200) NULL,
+  estado VARCHAR(30) DEFAULT 'abierto',
+  modalidad VARCHAR(30) DEFAULT 'singles',
+  categoria VARCHAR(50) NULL,
+  fechas_display VARCHAR(100) NULL,
+  fecha_inicio DATE NULL,
+  fecha_fin DATE NULL,
+  sede VARCHAR(150) NULL,
+  direccion VARCHAR(255) NULL,
+  superficie VARCHAR(50) DEFAULT 'Arcilla / Polvo de Ladrillo',
+  precio DECIMAL(10,2) DEFAULT 80.00,
+  precio_display VARCHAR(50) DEFAULT 'S/ 80.00',
+  premio VARCHAR(100) NULL,
+  imagen_url VARCHAR(255) NULL,
+  descripcion TEXT NULL,
+  es_destacado BOOLEAN DEFAULT FALSE,
+  categorias_cupos JSON NULL,
+  grupos JSON NULL,
+  bracket JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_tourney_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS inscriptions (
+  id VARCHAR(64) PRIMARY KEY,
+  tournament_id VARCHAR(64) NOT NULL,
+  user_id VARCHAR(64) NULL,
+  nombre VARCHAR(150) NOT NULL,
+  dni_masked VARCHAR(20) NOT NULL,
+  dni_hash VARCHAR(64) NULL,
+  email VARCHAR(150) NULL,
+  telefono VARCHAR(30) NULL,
+  categoria VARCHAR(20) NOT NULL,
+  modalidad VARCHAR(20) DEFAULT 'singles',
+  es_dobles BOOLEAN DEFAULT FALSE,
+  nombre2 VARCHAR(150) NULL,
+  dni_masked2 VARCHAR(20) NULL,
+  dni_hash2 VARCHAR(64) NULL,
+  email2 VARCHAR(150) NULL,
+  telefono2 VARCHAR(30) NULL,
+  estado_pago VARCHAR(30) DEFAULT 'pendiente',
+  metodo_pago VARCHAR(50) DEFAULT 'Yape',
+  comprobante_url VARCHAR(255) NULL,
+  comprobante_info TEXT NULL,
+  fecha_registro DATE NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_insc_tourney (tournament_id),
+  INDEX idx_insc_user (user_id),
+  INDEX idx_insc_pago (estado_pago)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ranking (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(64) NULL,
+  name VARCHAR(150) NOT NULL,
+  dni_masked VARCHAR(20) NULL,
+  dni_hash VARCHAR(64) NULL,
+  modalidad VARCHAR(20) DEFAULT 'singles',
+  categoria VARCHAR(20) DEFAULT '4ta',
+  puntos_num INT DEFAULT 0,
+  points_str VARCHAR(30) DEFAULT '0 pts',
+  titulos INT DEFAULT 0,
+  titulos_ganados INT DEFAULT 0,
+  efectividad VARCHAR(20) DEFAULT '70%',
+  mano_dominante VARCHAR(30) DEFAULT 'Diestro',
+  mejor_golpe VARCHAR(50) DEFAULT 'Drive cruzado',
+  avatar_url VARCHAR(255) DEFAULT '/assets/logo.png',
+  historial_partidos JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ranking_cat (categoria),
+  INDEX idx_ranking_mod (modalidad),
+  INDEX idx_ranking_pts (puntos_num DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS news (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  summary TEXT NULL,
+  content TEXT NULL,
+  category VARCHAR(50) NULL,
+  image_url VARCHAR(255) NULL,
+  author VARCHAR(100) DEFAULT 'Comité ATAP',
+  date_display VARCHAR(50) NULL,
+  featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sponsors (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  category VARCHAR(50) NULL,
+  logo_url VARCHAR(255) NULL,
+  link VARCHAR(255) NULL,
+  description TEXT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  order_index INT DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS site_settings (
+  setting_key VARCHAR(100) PRIMARY KEY,
+  setting_value JSON NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

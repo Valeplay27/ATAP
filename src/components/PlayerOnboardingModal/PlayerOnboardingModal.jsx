@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Edit3, Plus, X } from 'lucide-react'
+import { saveRegisteredUser, maskDni } from '../../services/atapStorage'
+import { api, authApi } from '../../services/api'
 import './PlayerOnboardingModal.css'
 
 export default function PlayerOnboardingModal({
@@ -8,21 +10,26 @@ export default function PlayerOnboardingModal({
   onClose
 }) {
   const [step, setStep] = useState(1)
+  const [stepError, setStepError] = useState('')
 
- 
   const [formData, setFormData] = useState({
     nombre: initialUserData.nombre || '',
     email: initialUserData.email || '',
-    whatsapp: '',
-    instagram: '',
+    whatsapp: initialUserData.whatsapp || initialUserData.telefono || '',
+    instagram: initialUserData.instagram || '',
     
-    genero: 'Masculino', 
-    diaNacimiento: '',
-    mesNacimiento: '',
-    anioNacimiento: '',
-    categoria: '4ta', 
-    documentoIdentidad: '',
-    avatar: '',
+    genero: initialUserData.genero || 'Masculino', 
+    diaNacimiento: initialUserData.diaNacimiento || '',
+    mesNacimiento: initialUserData.mesNacimiento || '',
+    anioNacimiento: initialUserData.anioNacimiento || '',
+    categoria: initialUserData.categoria || '4ta', 
+    documentoIdentidad: initialUserData.dni || initialUserData.documentoIdentidad || '',
+    avatar: initialUserData.avatar || '',
+    
+    // Paso 4: Tu Trayectoria
+    titulosGanados: initialUserData.titulosGanados || '0',
+
+    // Paso 5: Calibra tus Golpes
     calibracionGolpes: initialUserData.calibracionGolpes || {
       reves: null,
       saque: null,
@@ -30,12 +37,20 @@ export default function PlayerOnboardingModal({
       drop: null,
       slice: null
     },
-    altura: '',
-    peso: '',
-    mejorGolpe: 'Drive cruzado',
-    zonas: ['Lima Centro'],
-    manoDominante: 'Diestro', 
-    disponibilidad: ['SAB', 'DOM'],
+
+    // Paso 6: Perfil Físico
+    altura: initialUserData.altura || '',
+    peso: initialUserData.peso || '',
+    mejorGolpe: initialUserData.mejorGolpe || 'Drive cruzado',
+
+    // Paso 7: Preferencias
+    zonas: initialUserData.zonas && initialUserData.zonas.length > 0
+      ? initialUserData.zonas
+      : ['Lima Centro'],
+    manoDominante: initialUserData.manoDominante || 'Diestro', 
+    disponibilidad: initialUserData.disponibilidad && initialUserData.disponibilidad.length > 0
+      ? initialUserData.disponibilidad
+      : ['SAB', 'DOM'],
   })
 
   const fileInputRef = useRef(null)
@@ -50,13 +65,37 @@ export default function PlayerOnboardingModal({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
+  useEffect(() => {
+    if (initialUserData && Object.keys(initialUserData).length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        nombre: initialUserData.nombre || prev.nombre || '',
+        email: initialUserData.email || prev.email || '',
+        whatsapp: initialUserData.whatsapp || initialUserData.telefono || prev.whatsapp || '',
+        documentoIdentidad: initialUserData.dni || initialUserData.documentoIdentidad || prev.documentoIdentidad || '',
+        categoria: initialUserData.categoria || prev.categoria || '4ta'
+      }))
+    }
+  }, [initialUserData])
+
   function updateField(field, value) {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    if (stepError) setStepError('')
   }
 
-  function handlePhotoUpload(event) {
+  async function handlePhotoUpload(event) {
     const file = event.target.files?.[0]
     if (file) {
+      try {
+        const res = await api.uploadImage(file)
+        if (res?.url) {
+          updateField('avatar', res.url)
+          return
+        }
+      } catch (err) {
+        console.warn('Subida al servidor falló, usando lector local:', err)
+      }
+
       const reader = new FileReader()
       reader.onload = (e) => {
         updateField('avatar', e.target?.result || '')
@@ -99,7 +138,57 @@ export default function PlayerOnboardingModal({
   }
 
   function nextStep() {
-    if (step < 6) {
+    setStepError('')
+
+    // Validación Paso 1: Contacto
+    if (step === 1) {
+      if (formData.whatsapp) {
+        const cleanPhone = formData.whatsapp.replace(/\D/g, '')
+        if (cleanPhone.length > 0 && cleanPhone.length < 6) {
+          setStepError('Por favor ingresa un número de WhatsApp válido (mínimo 6 dígitos).')
+          return
+        }
+      }
+      setStep(2)
+      return
+    }
+
+    // Validación Paso 2: Un poco sobre ti
+    if (step === 2) {
+      const cleanDni = (formData.documentoIdentidad || '').toString().trim().replace(/\D/g, '')
+      if (!cleanDni || cleanDni.length < 5) {
+        setStepError('Por favor ingresa tu número de documento de identidad (DNI).')
+        return
+      }
+
+      if (formData.diaNacimiento || formData.mesNacimiento || formData.anioNacimiento) {
+        const d = parseInt(formData.diaNacimiento, 10)
+        const m = parseInt(formData.mesNacimiento, 10)
+        const y = parseInt(formData.anioNacimiento, 10)
+        if (isNaN(d) || d < 1 || d > 31) {
+          setStepError('Por favor ingresa un día de nacimiento válido (1-31).')
+          return
+        }
+        if (isNaN(m) || m < 1 || m > 12) {
+          setStepError('Por favor ingresa un mes de nacimiento válido (1-12).')
+          return
+        }
+        if (isNaN(y) || y < 1920 || y > 2020) {
+          setStepError('Por favor ingresa un año de nacimiento válido (ej. 1995).')
+          return
+        }
+      }
+
+      if (!formData.categoria) {
+        setStepError('Por favor selecciona tu categoría deportiva.')
+        return
+      }
+
+      setStep(3)
+      return
+    }
+
+    if (step < 7) {
       setStep(step + 1)
     } else {
       finishOnboarding()
@@ -107,6 +196,7 @@ export default function PlayerOnboardingModal({
   }
 
   function prevStep() {
+    setStepError('')
     if (step > 1) {
       setStep(step - 1)
     }
@@ -123,15 +213,58 @@ export default function PlayerOnboardingModal({
           .toUpperCase()
       : 'JA'
 
+    const fechaNacimiento = (formData.diaNacimiento && formData.mesNacimiento && formData.anioNacimiento)
+      ? `${formData.diaNacimiento.padStart(2, '0')}/${formData.mesNacimiento.padStart(2, '0')}/${formData.anioNacimiento}`
+      : (initialUserData.fechaNacimiento || '')
+
+    const cleanDni = (formData.documentoIdentidad || initialUserData.dni || '').toString().trim().replace(/\s+/g, '')
+    const maskedDni = maskDni(cleanDni)
+
     const fullProfile = {
+      ...initialUserData,
       ...formData,
+      dni: maskedDni,
+      documentoIdentidad: maskedDni,
+      fechaNacimiento,
+      telefono: formData.whatsapp || initialUserData.telefono || '',
+      whatsapp: formData.whatsapp || initialUserData.whatsapp || '',
+      avatar: formData.avatar || initialUserData.avatar || '/assets/logo.png',
+      image: formData.avatar || initialUserData.image || '/assets/logo.png',
+      perfilIncompleto: false,
       rol: 'Jugador ATAP',
       iniciales: iniciales,
-      completadoOnboarding: true
+      completadoOnboarding: true,
+      titulosGanados: formData.titulosGanados || '0',
+      zonas: formData.zonas && formData.zonas.length > 0 ? formData.zonas : ['Lima Centro'],
+      manoDominante: formData.manoDominante || 'Diestro',
+      disponibilidad: formData.disponibilidad && formData.disponibilidad.length > 0 ? formData.disponibilidad : ['SAB', 'DOM']
     }
+
+    // Guardar usuario completo en almacenamiento
+    saveRegisteredUser(fullProfile)
+
+    // Sincronizar en segundo plano con MySQL
+    authApi.updateProfile({
+      nombre: fullProfile.nombre,
+      telefono: fullProfile.telefono,
+      whatsapp: fullProfile.whatsapp,
+      avatar: fullProfile.avatar,
+      categoria: fullProfile.categoria,
+      zonas: fullProfile.zonas,
+      disponibilidad: fullProfile.disponibilidad
+    }).catch((e) => console.warn('Sync onboarding profile fallback:', e))
 
     if (onComplete) {
       onComplete(fullProfile)
+    }
+
+    // Si venía de inscripción de un torneo, reabrir el torneo con sus datos listos
+    if (initialUserData?.tournamentId) {
+      window.dispatchEvent(
+        new CustomEvent('atap_open_tournament_register', {
+          detail: { tournamentId: initialUserData.tournamentId }
+        })
+      )
     }
   }
 
@@ -272,8 +405,8 @@ export default function PlayerOnboardingModal({
             <div />
           )}
 
-          <div className="onboarding-steps-indicator" aria-label={`Paso ${step} de 6`}>
-            {[1, 2, 3, 4, 5, 6].map((s) => (
+          <div className="onboarding-steps-indicator" aria-label={`Paso ${step} de 7`}>
+            {[1, 2, 3, 4, 5, 6, 7].map((s) => (
               <span
                 key={s}
                 className={`onboarding-step-dot ${s === step ? 'active' : s < step ? 'completed' : ''}`}
@@ -308,6 +441,12 @@ export default function PlayerOnboardingModal({
             </h2>
 
             <p className="onboarding-section-label">Información de Contacto</p>
+
+            {stepError && (
+              <div className="onboarding-error-message" role="alert">
+                {stepError}
+              </div>
+            )}
 
             <div className="onboarding-form-group">
               <div className="onboarding-pill-input-wrap">
@@ -350,6 +489,12 @@ export default function PlayerOnboardingModal({
 
             <h2 className="onboarding-title">UN POCO SOBRE TI</h2>
             <p className="onboarding-subtitle">Completa tu perfil de jugador.</p>
+
+            {stepError && (
+              <div className="onboarding-error-message" role="alert">
+                {stepError}
+              </div>
+            )}
 
   
             <div className="onboarding-block">
@@ -511,9 +656,57 @@ export default function PlayerOnboardingModal({
         )}
 
      
-        {/* Paso 4: Calibra tus Golpes (NUEVO) */}
+        {/* Paso 4: Tu Trayectoria (media_1789315732287.png) */}
         {step === 4 && (
-          <div className="onboarding-step-content step-4 step-calibra">
+          <div className="onboarding-step-content step-4">
+            <div className="onboarding-step-icon">
+              <svg viewBox="0 0 64 64" width="56" height="56" fill="none" className="trajectory-medal-svg">
+                <path d="M18 10L32 32L46 10H38L32 23L26 10H18Z" fill="#38BDF8" stroke="#0B2038" strokeWidth="2.5" strokeLinejoin="round" />
+                <path d="M24 10L32 23L40 10" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round" />
+                <circle cx="32" cy="42" r="14" fill="#F59E0B" stroke="#0B2038" strokeWidth="2.5" />
+                <circle cx="32" cy="42" r="10" fill="#FBBF24" stroke="#D97706" strokeWidth="1.5" />
+                <circle cx="32" cy="42" r="6" fill="#F59E0B" opacity="0.6" />
+              </svg>
+            </div>
+
+            <h2 className="onboarding-title">TU TRAYECTORIA</h2>
+            <p className="onboarding-subtitle">Define tu experiencia y habilidades técnicas.</p>
+
+            <div className="onboarding-block">
+              <span className="onboarding-field-tag">TÍTULOS GANADOS</span>
+              <div className="onboarding-trajectory-grid">
+                {['0', '1', '2', '2+'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`trajectory-card ${formData.titulosGanados === t ? 'selected' : ''}`}
+                    onClick={() => updateField('titulosGanados', t)}
+                  >
+                    {t === '2+' ? (
+                      <span className="trajectory-trophy-label">
+                        2+ <span role="img" aria-label="Trofeo">🏆</span>
+                      </span>
+                    ) : (
+                      t
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="onboarding-submit-btn green-btn"
+              onClick={nextStep}
+            >
+              {formData.titulosGanados && formData.titulosGanados !== '0' ? 'CONTINUAR →' : 'SALTAR POR AHORA →'}
+            </button>
+          </div>
+        )}
+
+        {/* Paso 5: Calibra tus Golpes */}
+        {step === 5 && (
+          <div className="onboarding-step-content step-5 step-calibra">
             <div className="calib-trophy-icon" aria-hidden="true">
               <svg width="46" height="46" viewBox="0 0 48 48" fill="none">
                 <path d="M14 9h20v14c0 5.523-4.477 10-10 10s-10-4.477-10-10V9z" fill="#FBBF24" stroke="#78350F" strokeWidth="2.5" />
@@ -581,9 +774,9 @@ export default function PlayerOnboardingModal({
           </div>
         )}
 
-        {/* Paso 5: Perfil Físico */}
-        {step === 5 && (
-          <div className="onboarding-step-content step-5">
+        {/* Paso 6: Perfil Físico */}
+        {step === 6 && (
+          <div className="onboarding-step-content step-6">
             <div className="onboarding-step-icon">
               <span role="img" aria-label="Estadísticas">📊</span>
             </div>
@@ -646,9 +839,9 @@ export default function PlayerOnboardingModal({
           </div>
         )}
 
-        {/* Paso 6: Preferencias */}
-        {step === 6 && (
-          <div className="onboarding-step-content step-6">
+        {/* Paso 7: Preferencias */}
+        {step === 7 && (
+          <div className="onboarding-step-content step-7">
             <div className="onboarding-step-icon">
               <span role="img" aria-label="Ubicación">📍</span>
             </div>

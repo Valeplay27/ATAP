@@ -35,17 +35,32 @@
 }
 
 /* WTA-STYLE CARDS GRID */
+/* WTA-STYLE CARDS GRID */
 .tournaments-page-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 290px));
-  gap: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 255px));
+  gap: 18px;
   justify-content: flex-start;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 1040px) {
   .tournaments-page-list {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tournaments-page-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tournaments-page-list {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 
@@ -53,31 +68,31 @@
 .wta-tourney-card-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* WTA TOURNAMENT POSTER */
 .wta-tourney-poster {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 5.2;
-  border-radius: 20px;
+  aspect-ratio: 4 / 4.6;
+  border-radius: 16px;
   overflow: hidden;
-  background: #00304A;
-  box-shadow: 0 10px 24px rgba(0, 24, 39, 0.08);
+  background: #002235;
+  box-shadow: 0 6px 18px rgba(0, 24, 39, 0.08);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 16px;
+  padding: 12px 14px;
   box-sizing: border-box;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   border: 1.5px solid #E8EEEE;
 }
 
 .wta-tourney-poster:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 36px rgba(0, 207, 160, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 207, 160, 0.2);
   border-color: #00CFA0;
 }
 
@@ -88,12 +103,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 25%;
   z-index: 1;
   transition: transform 0.4s ease;
 }
 
 .wta-tourney-poster:hover .wta-poster-img {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 /* DARK GRADIENT OVERLAY FOR MAXIMUM LEGIBILITY */
@@ -102,9 +118,10 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(0, 24, 39, 0.4) 0%,
-    rgba(0, 24, 39, 0.1) 30%,
-    rgba(0, 24, 39, 0.65) 60%,
+    rgba(0, 24, 39, 0.35) 0%,
+    rgba(0, 24, 39, 0.04) 28%,
+    rgba(0, 24, 39, 0.22) 54%,
+    rgba(0, 24, 39, 0.76) 78%,
     rgba(0, 24, 39, 0.95) 100%
   );
   z-index: 2;
@@ -118,18 +135,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .wta-status-badge {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
-  padding: 4px 12px;
+  padding: 2.5px 8px;
   border-radius: 999px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .wta-status-badge.in-progress {
@@ -147,9 +164,9 @@
   backdrop-filter: blur(4px);
   color: #00CFA0;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px;
+  font-size: 11.5px;
   font-weight: 800;
-  padding: 3px 10px;
+  padding: 2px 7px;
   border-radius: 999px;
   border: 1px solid rgba(0, 207, 160, 0.4);
 }
@@ -163,41 +180,48 @@
 }
 
 .wta-date-pill {
-  background: rgba(0, 24, 39, 0.65);
+  background: rgba(0, 24, 39, 0.7);
   backdrop-filter: blur(4px);
   color: #FFFFFF;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 3px 10px;
+  padding: 2px 7px;
   border-radius: 999px;
   width: fit-content;
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 4px;
+  letter-spacing: 0.4px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .wta-tourney-title {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 26px;
+  font-size: 16.5px;
   font-weight: 800;
   color: #FFFFFF;
   text-transform: uppercase;
-  line-height: 1.1;
-  margin: 0 0 4px 0;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  line-height: 1.15;
+  margin: 0 0 2px 0;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
   letter-spacing: 0.3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .wta-tourney-place {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #DDF8EF;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 12px;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* FOOTER ROW INSIDE POSTER */
@@ -205,35 +229,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 10px;
+  padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .wta-surface-label {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 800;
   color: #FFFFFF;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.6px;
 }
 
 .wta-level-badge {
   background: #C6FF00;
   color: #25005C;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 5px;
+  padding: 1.5px 5px;
+  border-radius: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 /* ACTION BUTTONS BELOW POSTER */
 .wta-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .btn-wta-register {
@@ -242,37 +266,43 @@
   color: #001827;
   border: none;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 15px;
+  font-size: 12.5px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 10px 14px;
-  border-radius: 12px;
+  letter-spacing: 0.4px;
+  padding: 7px 10px;
+  min-height: 34px;
+  border-radius: 9px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(0, 207, 160, 0.25);
+  box-shadow: 0 3px 10px rgba(0, 207, 160, 0.25);
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-wta-register:hover {
   background: #00b88e;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 207, 160, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 207, 160, 0.35);
 }
 
 .btn-wta-bracket {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   background: #00304A;
   border: none;
   color: #00CFA0;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-  padding: 10px 14px;
-  border-radius: 12px;
+  padding: 7px 10px;
+  min-height: 34px;
+  border-radius: 9px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -333,4 +363,921 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 26px;
   color: #25005C;
+}
+
+/* FINALIZED BADGE & RESULTS BUTTON */
+.wta-status-badge.finalized {
+  background: #25005C;
+  color: #C6FF00;
+  border: 1px solid #00CFA0;
+  box-shadow: 0 2px 8px rgba(37, 0, 92, 0.4);
+}
+
+.btn-wta-results {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #00304A 0%, #25005C 100%);
+  color: #C6FF00;
+  border: 1.5px solid #00CFA0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 7px 10px;
+  min-height: 34px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(37, 0, 92, 0.25);
+}
+
+.btn-wta-results:hover {
+  background: #25005C;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 207, 160, 0.3);
+}
+
+/* RESULTS MODAL CARD */
+.tourney-results-modal-card {
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 28px;
+  border: 1.5px solid #E8EEEE;
+  box-shadow: 0 20px 45px rgba(0, 24, 39, 0.14);
+  color: #001827;
+}
+
+.results-modal-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid #E8EEEE;
+}
+
+.results-modal-top h2 {
+  margin: 4px 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #25005C;
+}
+
+.results-modal-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #64727A;
+}
+
+/* MODAL CATEGORY TABS */
+.modal-category-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 8px;
+  background: #F4FDF9;
+  border-radius: 12px;
+  border: 1px solid #DDF8EF;
+}
+
+.modal-cat-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: #FFFFFF;
+  color: #00304A;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+}
+
+.modal-cat-tab:hover {
+  border-color: #00CFA0;
+}
+
+.modal-cat-tab.active {
+  background: linear-gradient(135deg, #00304A 0%, #25005C 100%);
+  color: #C6FF00;
+  border-color: #00CFA0;
+  box-shadow: 0 4px 12px rgba(37, 0, 92, 0.2);
+}
+
+.modal-cat-cupos {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64727A;
+}
+
+.modal-cat-tab.active .modal-cat-cupos {
+  color: #DDF8EF;
+}
+
+/* HONOR ROLL IN MODAL */
+.modal-honor-card {
+  background: linear-gradient(135deg, #00304A 0%, #25005C 100%);
+  border-radius: 16px;
+  padding: 20px 24px;
+  color: #FFFFFF;
+  margin-bottom: 22px;
+  border: 1.5px solid #00CFA0;
+  box-shadow: 0 8px 24px rgba(37, 0, 92, 0.25);
+}
+
+.honor-trophy-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.honor-cat-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #C6FF00;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.champ-highlight-name {
+  margin: 2px 0 0 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #00CFA0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.honor-details-strip {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 13px;
+  color: #DDF8EF;
+}
+
+.honor-details-strip strong {
+  color: #FFFFFF;
+}
+
+.modal-section-header {
+  margin: 18px 0 12px;
+}
+
+.modal-section-header h4 {
+  margin: 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #00304A;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-empty-results {
+  text-align: center;
+  padding: 32px;
+  background: #F8FAFA;
+  border-radius: 12px;
+  color: #64727A;
+  font-style: italic;
+  border: 1px dashed #E8EEEE;
+}
+
+/* MATCHES GRID */
+.modal-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.modal-match-card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1.5px solid #E8EEEE;
+  box-shadow: 0 2px 8px rgba(0, 24, 39, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-match-card.final-match {
+  border-color: #00CFA0;
+  background: #EDFAF4;
+}
+
+.modal-match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.match-round-tag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  background: #DDF8EF;
+  color: #00304A;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.match-round-tag.gold {
+  background: #C6FF00;
+  color: #25005C;
+}
+
+.match-points-tag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #00CFA0;
+}
+
+.modal-match-players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid #E8EEEE;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13.5px;
+  color: #001827;
+}
+
+.player-row.winner {
+  color: #00CFA0;
+  font-weight: 700;
+}
+
+.winner-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #25005C;
+  background: #C6FF00;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.modal-vs-line {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64727A;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.modal-match-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #64727A;
+}
+
+.modal-match-score strong {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: #00304A;
+  letter-spacing: 0.5px;
+}
+
+.modal-match-obs {
+  font-size: 11px;
+  color: #64727A;
+  font-style: italic;
+}
+
+.modal-bracket-button-area {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #E8EEEE;
+}
+
+.btn-view-bracket-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #00304A;
+  color: #00CFA0;
+  border: none;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-view-bracket-inline:hover {
+  background: #25005C;
+  color: #C6FF00;
+}
+
+/* LIVE ACTION BUTTON ON TOURNAMENT CARD */
+.btn-wta-live {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #E50914 0%, #B71C1C 100%);
+  color: #FFFFFF;
+  border: 1.5px solid #FF5252;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 7px 10px;
+  min-height: 34px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(229, 9, 20, 0.3);
+}
+
+.btn-wta-live:hover {
+  background: #B71C1C;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(229, 9, 20, 0.45);
+}
+
+.wta-status-badge.live {
+  background: #E50914;
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 0 8px rgba(229, 9, 20, 0.5);
+}
+
+.live-pulsing-dot {
+  width: 5px;
+  height: 5px;
+  background-color: #FFFFFF;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8);
+  animation: pulse-white-dot 1.5s infinite;
+}
+
+@keyframes pulse-white-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.live-pulsing-dot-red {
+  width: 8px;
+  height: 8px;
+  background-color: #E50914;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7);
+  animation: pulse-red-dot 1.5s infinite;
+}
+
+@keyframes pulse-red-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(229, 9, 20, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(229, 9, 20, 0);
+  }
+}
+
+/* LIVE MODAL CARD */
+.tourney-live-modal-card {
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 24, 39, 0.28);
+  border: 1.5px solid #E8EEEE;
+  display: flex;
+  flex-direction: column;
+}
+
+.live-modal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 28px 18px;
+  border-bottom: 1.5px solid #E8EEEE;
+  background: #FAFCFC;
+}
+
+.live-top-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.live-badge-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFEBEB;
+  color: #E50914;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #FFCDD2;
+}
+
+.live-total-matches-count {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64727A;
+  background: #E8EEEE;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.live-modal-top h2 {
+  margin: 0 0 6px 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #001827;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.live-modal-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #64727A;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* CATEGORY TABS */
+.live-category-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 28px 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.live-cat-tab {
+  background: #F0F4F4;
+  border: 1.5px solid #E8EEEE;
+  border-radius: 10px;
+  padding: 7px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #00304A;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.live-cat-tab:hover {
+  background: #DDF8EF;
+  border-color: #00CFA0;
+}
+
+.live-cat-tab.active {
+  background: #00304A;
+  color: #00CFA0;
+  border-color: #00304A;
+}
+
+.live-cat-count {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* FILTER STRIP (TODOS | JUGADOS | FUTUROS) */
+.live-filter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 28px;
+  border-bottom: 1.5px solid #E8EEEE;
+}
+
+.live-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.live-filter-pill {
+  background: #FFFFFF;
+  border: 1.5px solid #D0DCDC;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #00304A;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.live-filter-pill:hover {
+  border-color: #00CFA0;
+  background: #F0FDF8;
+}
+
+.live-filter-pill.active {
+  background: #00CFA0;
+  color: #001827;
+  border-color: #00CFA0;
+  font-weight: 800;
+}
+
+.btn-live-open-bracket {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #25005C;
+  color: #C6FF00;
+  border: 1px solid #00CFA0;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-live-open-bracket:hover {
+  background: #00304A;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+/* MODAL BODY */
+.live-modal-body {
+  padding: 24px 28px 32px;
+}
+
+.live-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #E8EEEE;
+  padding-bottom: 8px;
+}
+
+.live-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-section-title h4 {
+  margin: 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #001827;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.live-status-subtag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.live-status-subtag.played {
+  background: #DDF8EF;
+  color: #00604A;
+}
+
+.live-status-subtag.upcoming {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
+.live-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
+}
+
+.live-match-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E8EEEE;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 24, 39, 0.04);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.18s ease;
+}
+
+.live-match-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 24, 39, 0.08);
+}
+
+.live-match-card.completed {
+  border-left: 4px solid #00CFA0;
+}
+
+.live-match-card.scheduled {
+  border-left: 4px solid #FF9800;
+}
+
+.live-match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.live-round-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: #00304A;
+  color: #FFFFFF;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.live-round-badge.upcoming {
+  background: #455A64;
+}
+
+.live-cat-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #001827;
+  background: #E8EEEE;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.live-state-chip {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.live-state-chip.finished {
+  background: #DDF8EF;
+  color: #00796B;
+}
+
+.live-state-chip.pending {
+  background: #FFF8E1;
+  color: #F57F17;
+}
+
+.live-match-opponents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #F8FAFA;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.live-opponent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+  color: #001827;
+}
+
+.live-opponent-row.is-winner {
+  font-weight: 800;
+  color: #00304A;
+}
+
+.winner-crown {
+  font-size: 11px;
+  font-weight: 800;
+  color: #00796B;
+  background: #DDF8EF;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.live-vs-divider {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #94A3B8;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1;
+}
+
+.live-score-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #F0FDF8;
+  border: 1px solid #B9F6CA;
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+}
+
+.score-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #00604A;
+  text-transform: uppercase;
+}
+
+.score-numbers {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #00304A;
+  letter-spacing: 0.5px;
+}
+
+.live-match-points-line {
+  font-size: 11.5px;
+  color: #64727A;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.live-match-points-line strong {
+  color: #00CFA0;
+}
+
+.live-match-note {
+  font-size: 11px;
+  color: #64727A;
+  font-style: italic;
+}
+
+.live-schedule-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #F0F4F4;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.live-empty-card {
+  text-align: center;
+  padding: 24px;
+  background: #F8FAFA;
+  border-radius: 12px;
+  border: 1px dashed #E8EEEE;
+  color: #64727A;
+  font-style: italic;
+  font-size: 13.5px;
+}
+
+.live-no-matches-yet {
+  text-align: center;
+  padding: 40px 20px;
+  background: #FFF8F8;
+  border-radius: 16px;
+  border: 1.5px dashed #FFCDD2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-no-matches-yet h4 {
+  margin: 4px 0 0 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px;
+  color: #B71C1C;
+  text-transform: uppercase;
+}
+
+.live-no-matches-yet p {
+  margin: 0;
+  font-size: 14px;
+  color: #555555;
+  max-width: 500px;
+}
+
+.live-confirmed-box {
+  margin-top: 16px;
+  text-align: left;
+  width: 100%;
+  max-width: 600px;
+  background: #FFFFFF;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #FFCDD2;
+}
+
+.live-confirmed-box h5 {
+  margin: 0 0 10px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #00304A;
+}
+
+.live-players-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.live-player-chip {
+  background: #F0FDF8;
+  border: 1px solid #00CFA0;
+  color: #00304A;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
 }

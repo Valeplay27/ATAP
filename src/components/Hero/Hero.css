@@ -216,20 +216,35 @@
 
 @media (max-width: 800px) {
   .hero.hero {
+    width: min(1180px, calc(100% - 24px));
     height: clamp(430px, 100vw, 560px);
-    margin: 12px;
-    padding: 30px 22px;
+    margin: 12px auto;
+    padding: 28px 20px;
     border-radius: 20px;
+    box-sizing: border-box;
   }
 
   .hero .hero-copy {
     width: 100%;
     min-width: 0;
-    margin-left: 0;
+    margin: 0;
   }
 
   .hero h1 {
-    font-size: clamp(32px, 9vw, 48px);
+    font-size: clamp(30px, 8.5vw, 44px);
+    line-height: 1.02;
+    margin-bottom: 10px;
+  }
+
+  .hero .hero-text {
+    font-size: 13px;
+    line-height: 1.45;
+    margin-bottom: 16px;
+  }
+
+  .hero .hero-actions {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .hero .hero-slide-item img {
@@ -237,8 +252,8 @@
   }
 
   .hero-dots-capsule {
-    right: 18px;
-    bottom: 18px;
+    right: 16px;
+    bottom: 16px;
     padding: 5px 10px;
     gap: 6px;
   }

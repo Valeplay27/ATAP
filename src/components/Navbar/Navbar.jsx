@@ -1,4 +1,4 @@
-import { CircleUserRound, LogOut, Menu, Search, ShieldCheck, Trophy, User, X } from 'lucide-react'
+import { CircleUserRound, LogOut, Menu, ShieldCheck, Trophy, User, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import LoginModal from '../LoginModal/LoginModal'
@@ -25,19 +25,19 @@ export default function Navbar({
   const [loginOpen, setLoginOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef(null)
+  const headerRef = useRef(null)
 
-  // Acceso exclusivo al Dashboard únicamente para el administrador oficial
+  // Acceso exclusivo al Dashboard únicamente para el administrador oficial (vladimiryt18@gmail.com)
   const isAdmin = Boolean(
     usuarioAutenticado &&
-      (usuarioAutenticado.esAdmin ||
-        usuarioAutenticado.rol === 'admin' ||
-        usuarioAutenticado.rol === 'Administrador' ||
-        usuarioAutenticado.email?.toLowerCase() === 'vladimiryt18@gmail.com')
+      usuarioAutenticado.email?.toLowerCase() === 'vladimiryt18@gmail.com'
   )
 
   const links = BASE_LINKS
 
   function handleOpenLogin() {
+    setMenuOpen(false)
+    setUserMenuOpen(false)
     if (onOpenLogin) {
       onOpenLogin()
     } else {
@@ -45,17 +45,46 @@ export default function Navbar({
     }
   }
 
+  // Mutua exclusión: al abrir el menú de usuario, cerramos la hamburguesa
+  function handleToggleUserMenu() {
+    setUserMenuOpen((prev) => {
+      const next = !prev
+      if (next) {
+        setMenuOpen(false)
+      }
+      return next
+    })
+  }
+
+  // Mutua exclusión: al abrir la hamburguesa, cerramos el menú de usuario
+  function handleToggleMobileMenu() {
+    setMenuOpen((prev) => {
+      const next = !prev
+      if (next) {
+        setUserMenuOpen(false)
+      }
+      return next
+    })
+  }
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false)
       }
+      if (headerRef.current && !headerRef.current.contains(event.target)) {
+        setMenuOpen(false)
+      }
     }
-    if (userMenuOpen) {
+    if (userMenuOpen || menuOpen) {
       document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('touchstart', handleClickOutside)
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [userMenuOpen])
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [userMenuOpen, menuOpen, setMenuOpen])
 
   function handleLoginSuccess(userData) {
     if (onLogin) {
@@ -68,8 +97,9 @@ export default function Navbar({
 
   function handleLogoutClick() {
     setUserMenuOpen(false)
+    const nombre = usuarioAutenticado?.nombre || usuarioAutenticado?.email
     if (onLogout) {
-      onLogout()
+      onLogout(nombre)
     } else if (setUsuarioAutenticado) {
       setUsuarioAutenticado(null)
     }
@@ -77,7 +107,7 @@ export default function Navbar({
 
   return (
     <>
-      <header className="site-header navbar-pill">
+      <header className="site-header navbar-pill" ref={headerRef}>
         <NavLink className="brand" to="/" aria-label="ATAP inicio">
           <img className="brand-logo" src="/assets/logo.png" alt="" />
           <span>
@@ -103,28 +133,26 @@ export default function Navbar({
             ))}
           </nav>
           <div className="header-actions">
-            <button className="icon-button" aria-label="Buscar">
-              <Search size={17} />
-            </button>
-
             {usuarioAutenticado ? (
               <div className="user-menu-wrapper" ref={userMenuRef}>
                 <button
                   className={`user-profile-button${isAdmin ? ' is-admin' : ''}`}
                   aria-label="Menú de usuario"
                   aria-expanded={userMenuOpen}
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  onClick={handleToggleUserMenu}
                   title={usuarioAutenticado.nombre || 'Perfil de usuario'}
                 >
                   <span className="user-avatar">
-                    {usuarioAutenticado.avatar ? (
+                    {usuarioAutenticado.avatar &&
+                    usuarioAutenticado.avatar !== '/assets/logo.png' &&
+                    !usuarioAutenticado.avatar.includes('logo.png') ? (
                       <img
                         src={usuarioAutenticado.avatar}
                         alt={usuarioAutenticado.nombre || 'Avatar'}
                         className="user-avatar-img"
                       />
                     ) : (
-                      <div className="default-avatar-badge">
+                      <div className="default-avatar-badge is-atap-logo">
                         <img src="/assets/logo.png" alt="ATAP" className="default-avatar-logo" />
                       </div>
                     )}
@@ -206,7 +234,7 @@ export default function Navbar({
             <button
               className="icon-button menu-toggle"
               aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={handleToggleMobileMenu}
             >
               {menuOpen ? <X size={19} /> : <Menu size={19} />}
             </button>
