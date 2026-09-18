@@ -1524,6 +1524,10 @@ export async function syncStorageWithBackend() {
     if (!healthCheck || !healthCheck.ok) {
       return; // Servidor backend no disponible en este momento, continuar con almacenamiento local
     }
+    const healthData = await healthCheck.json().catch(() => null);
+    if (healthData?.status !== 'ok') {
+      return; // Backend offline o no inicializado, usar almacenamiento local
+    }
 
     // 1. Sincronizar Torneos
     const tourneysRes = await tournamentApi.getAll().catch(() => null);
