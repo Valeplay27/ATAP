@@ -5,7 +5,7 @@ const KNOWN_ASSET_CASING = {
   'logo platino.png': 'Logo Platino.png',
   'hero1.png': 'hero1.png',
   'logo.png': 'logo.png',
-  'redes.png': 'redes.png'
+  'redes.png': 'Redes.png'
 };
 
 export function getAssetUrl(path) {

@@ -1,4 +1,4 @@
-﻿name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -39,6 +39,8 @@ jobs:
         run: |
           npm run build
           cp dist/index.html dist/404.html
+          [ -f "dist/assets/Redes.png" ] && cp -n "dist/assets/Redes.png" "dist/assets/redes.png" || true
+          [ -f "dist/assets/redes.png" ] && cp -n "dist/assets/redes.png" "dist/assets/Redes.png" || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

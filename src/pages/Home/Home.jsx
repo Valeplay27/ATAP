@@ -94,10 +94,10 @@ function SocialPanel() {
 			</div>
 			<div className="social-artwork">
 				<img
-					src={getAssetUrl('/assets/redes.png')}
+					src={getAssetUrl('/assets/Redes.png')}
 					alt="ATAP en Redes Sociales"
 					className="social-artwork-img"
-					onError={(e) => handleImageFallback(e, '/assets/redes.png')}
+					onError={(e) => handleImageFallback(e, '/assets/Redes.png')}
 				/>
 			</div>
 		</article>
