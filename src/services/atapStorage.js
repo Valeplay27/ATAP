@@ -1515,7 +1515,16 @@ export function emitAtapUpdate(key, data) {
 // Sincronización transparente con Backend MySQL al cargar la aplicación
 export async function syncStorageWithBackend() {
   if (typeof window === 'undefined') return;
+  // En entornos estáticos como GitHub Pages no hay servidor backend
+  if (window.location.hostname.includes('github.io')) return;
+
   try {
+    // Comprobar disponibilidad rápida del backend antes de disparar peticiones
+    const healthCheck = await fetch('/api/health', { method: 'GET' }).catch(() => null);
+    if (!healthCheck || !healthCheck.ok) {
+      return; // Servidor backend no disponible en este momento, continuar con almacenamiento local
+    }
+
     // 1. Sincronizar Torneos
     const tourneysRes = await tournamentApi.getAll().catch(() => null);
     if (tourneysRes?.data && Array.isArray(tourneysRes.data) && tourneysRes.data.length > 0) {
