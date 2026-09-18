@@ -3,3 +3,7 @@ dist
 .env
 .env.*
 !.env.example
+
+# Base de datos y volcados SQL (ocultos del repositorio remoto)
+*.sql
+atap_database.sql
