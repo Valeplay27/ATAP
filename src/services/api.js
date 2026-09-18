@@ -71,6 +71,11 @@ export const api = {
   // Subida de imagen al servidor (sin guardar base64 pesados en el navegador)
   uploadImage: async (file) => {
     try {
+      if (!file) return { error: 'No se seleccionó ningún archivo.' };
+      if (file.size > 5 * 1024 * 1024) {
+        return { error: 'La imagen excede el límite máximo de 5 MB. Por favor elige una imagen más liviana.' };
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       const token = getAuthToken();

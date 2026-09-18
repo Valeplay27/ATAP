@@ -135,6 +135,12 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
   async function handlePhotoUpload(event) {
     const file = event.target.files?.[0]
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La foto de perfil no debe superar los 5 MB para no saturar la base de datos.')
+        if (event.target) event.target.value = ''
+        return
+      }
+
       // Subir archivo al servidor para evitar saturar localStorage con base64
       try {
         const res = await api.uploadImage(file)
@@ -249,7 +255,7 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
                   type="button"
                   className="profile-change-avatar-btn"
                   onClick={() => fileInputRef.current?.click()}
-                  title="Cambiar foto de perfil"
+                  title="Cambiar foto de perfil (máx. 5 MB)"
                 >
                   <Camera size={15} />
                 </button>

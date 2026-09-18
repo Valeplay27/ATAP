@@ -1080,6 +1080,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   // Handler: File Upload for Site Image
   async function handleImageFileUpload(key, file) {
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La imagen excede el límite de 5 MB para no sobrecargar la base de datos.')
+      return
+    }
     try {
       const res = await api.uploadImage(file)
       if (res?.url) {
@@ -1105,6 +1109,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   // Sponsor Handlers
   async function handleSponsorFileUpload(sponsorId, file) {
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('El logo del auspiciador no puede superar los 5 MB.')
+      return
+    }
     try {
       const res = await api.uploadImage(file)
       if (res?.url) {
@@ -1166,6 +1174,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   async function handleUploadHeroSlideFile(index, file) {
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La imagen de la diapositiva no puede superar los 5 MB.')
+      return
+    }
     try {
       const res = await api.uploadImage(file)
       if (res?.url) {
@@ -1258,6 +1270,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   // Handler: File Upload for Player Avatar
   async function handlePlayerAvatarFile(file) {
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La foto del jugador no puede superar los 5 MB.')
+      return
+    }
     try {
       const res = await api.uploadImage(file)
       if (res?.url) {
@@ -1352,6 +1368,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   // Handler: Tournament image file upload
   async function handleTourneyImageFile(file, isEdit = false) {
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('El afiche del torneo no puede superar los 5 MB.')
+      return
+    }
     try {
       const res = await api.uploadImage(file)
       if (res?.url) {
@@ -1650,6 +1670,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   async function handleNewsImageFile(file) {
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La imagen de la publicación no puede superar los 5 MB.')
+      return
+    }
     try {
       const res = await api.uploadImage(file)
       if (res?.url) {
@@ -1844,6 +1868,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   async function handlePlayerFormImageFile(file) {
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La foto del jugador no puede superar los 5 MB.')
+      return
+    }
     try {
       const res = await api.uploadImage(file)
       if (res?.url) {
@@ -2404,7 +2432,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     </div>
                     <div className="form-avatar-controls">
                       <span className="form-avatar-title">Foto de Perfil del Jugador</span>
-                      <small className="form-avatar-hint">Foto cuadrada 500x500 px (1:1) recomendada</small>
+                      <small className="form-avatar-hint">Foto cuadrada 500x500 px (1:1) recomendada · Máx. 5 MB</small>
                       <div className="form-avatar-actions-row">
                         <label className="btn-upload-player-photo">
                           <Camera size={14} color="#00CFA0" className="icon-camera-upload" />
@@ -4308,7 +4336,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     </div>
 
                     <label className="btn-file-upload full-width">
-                      <Camera size={15} /> Subir imagen desde mi PC (1920x1080 px)
+                      <Camera size={15} /> Subir imagen desde mi PC (1920x1080 px · Máx. 5 MB)
                       <input
                         type="file"
                         accept="image/*"
@@ -4401,7 +4429,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     }
                   />
                   <label className="btn-file-upload">
-                    <Camera size={14} /> Subir archivo (1920x1080 px)
+                    <Camera size={14} /> Subir archivo (1920x1080 px · Máx. 5 MB)
                     <input
                       type="file"
                       accept="image/*"
@@ -4435,7 +4463,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     }
                   />
                   <label className="btn-file-upload">
-                    <Camera size={14} /> Subir archivo
+                    <Camera size={14} /> Subir archivo (máx. 5 MB)
                     <input
                       type="file"
                       accept="image/*"
@@ -4469,7 +4497,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     }
                   />
                   <label className="btn-file-upload">
-                    <Camera size={14} /> Subir archivo
+                    <Camera size={14} /> Subir archivo (máx. 5 MB)
                     <input
                       type="file"
                       accept="image/*"
@@ -4549,7 +4577,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
                   <div className="sponsor-card-controls">
                     <label className="btn-sponsor-upload">
-                      <Camera size={13} /> Subir imagen
+                      <Camera size={13} /> Subir imagen (máx. 5 MB)
                       <input
                         type="file"
                         accept="image/*"
@@ -5151,7 +5179,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               <div className="upload-divider">o también</div>
 
               <label className="btn-file-upload full-width">
-                <Camera size={16} /> Seleccionar archivo desde mi computadora (500x500 px)
+                <Camera size={16} /> Seleccionar archivo desde mi computadora (500x500 px · Máx. 5 MB)
                 <input
                   type="file"
                   accept="image/*"
@@ -5426,7 +5454,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
                   <div className="tourney-image-controls-col">
                     <label className="btn-upload-tourney-file">
-                      <Camera size={15} /> Subir afiche desde la computadora
+                      <Camera size={15} /> Subir afiche desde la computadora (máx. 5 MB)
                       <input
                         type="file"
                         accept="image/*"
@@ -5723,7 +5751,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
                   <div className="tourney-image-controls-col">
                     <label className="btn-upload-tourney-file">
-                      <Camera size={15} /> Subir afiche desde la computadora
+                      <Camera size={15} /> Subir afiche desde la computadora (máx. 5 MB)
                       <input
                         type="file"
                         accept="image/*"
@@ -5877,7 +5905,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
                     <div className="tourney-image-controls-col">
                       <label className="btn-upload-tourney-file">
-                        <Camera size={15} /> Subir archivo desde la computadora
+                        <Camera size={15} /> Subir archivo desde la computadora (máx. 5 MB)
                         <input
                           type="file"
                           accept="image/*"

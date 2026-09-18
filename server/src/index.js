@@ -57,6 +57,11 @@ app.get('/api/health', (req, res) => {
 
 // Manejador global de errores
 app.use((err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      error: 'La imagen excede el límite máximo permitido de 5 MB.'
+    });
+  }
   console.error('Error no capturado en servidor:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Error interno del servidor.'

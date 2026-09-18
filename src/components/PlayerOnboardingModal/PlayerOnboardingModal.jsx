@@ -86,6 +86,12 @@ export default function PlayerOnboardingModal({
   async function handlePhotoUpload(event) {
     const file = event.target.files?.[0]
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setStepError('La foto no debe superar los 5 MB para no saturar la base de datos.')
+        if (event.target) event.target.value = ''
+        return
+      }
+
       try {
         const res = await api.uploadImage(file)
         if (res?.url) {
@@ -641,7 +647,7 @@ export default function PlayerOnboardingModal({
                 className="onboarding-avatar-hint"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Toca para subir una foto de tu galería
+                Toca para subir una foto de tu galería (máx. 5 MB)
               </p>
             </div>
 
