@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
-import { X, User, UserPlus, Mail, Lock, ArrowRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, User, UserPlus, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import './RegistroModal.css'
 
 
 
 export default function RegistroModal({ onClose }) {
+  const [showPassword, setShowPassword] = useState(false)
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
@@ -79,11 +80,20 @@ export default function RegistroModal({ onClose }) {
             <input
               id="register-password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Crea una contraseña"
               autoComplete="new-password"
               required
             />
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
 
           <button className="login-submit" type="submit">

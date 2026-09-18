@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, User, UserPlus, Mail, MailCheck, Lock, ArrowRight, CheckCircle2, Phone, CreditCard } from 'lucide-react'
+import { X, User, UserPlus, Mail, MailCheck, Lock, ArrowRight, CheckCircle2, Phone, CreditCard, Eye, EyeOff } from 'lucide-react'
 import { getRegisteredUsers, saveRegisteredUser, isUserProfileIncomplete, maskDni } from '../../services/atapStorage'
 import { authApi, setAuthToken } from '../../services/api'
 import './LoginModal.css'
@@ -19,6 +19,8 @@ export default function LoginModal({
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [usuarioRegistrado, setUsuarioRegistrado] = useState(null)
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [showRegPassword, setShowRegPassword] = useState(false)
 
   // Estados del formulario de registro
   const [regDni, setRegDni] = useState(prefillData?.dni || '')
@@ -463,13 +465,22 @@ export default function LoginModal({
                       <input
                         id="register-password"
                         name="password"
-                        type="password"
+                        type={showRegPassword ? 'text' : 'password'}
                         placeholder="Mínimo 4 caracteres"
                         value={regPassword}
                         onChange={(e) => setRegPassword(e.target.value)}
                         autoComplete="new-password"
                         required
                       />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        aria-label={showRegPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                        title={showRegPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      >
+                        {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </div>
                   </div>
                 </>
@@ -494,11 +505,20 @@ export default function LoginModal({
                     <input
                       id="login-password"
                       name="password"
-                      type="password"
+                      type={showLoginPassword ? 'text' : 'password'}
                       placeholder="Ingresa tu contraseña"
                       autoComplete="current-password"
                       required
                     />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      aria-label={showLoginPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      title={showLoginPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    >
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
 
                   <button

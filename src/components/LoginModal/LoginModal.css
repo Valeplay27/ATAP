@@ -187,6 +187,33 @@
   color: #64727A;
 }
 
+.password-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  margin-left: auto;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.password-toggle-btn:hover {
+  background: rgba(0, 207, 160, 0.12);
+}
+
+.login-input-wrap .password-toggle-btn svg {
+  color: #8E9BA4 !important;
+  transition: color 0.2s ease;
+}
+
+.login-input-wrap .password-toggle-btn:hover svg {
+  color: #00CFA0 !important;
+}
+
 .login-error-message {
   width: 100%;
   padding: 10px 14px;
