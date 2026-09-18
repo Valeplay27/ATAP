@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import { getSiteImages, INITIAL_HERO_SLIDES } from '../../services/atapStorage'
+import { getSiteImages, INITIAL_HERO_SLIDES, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './Hero.css'
 
 export default function Hero() {
@@ -80,9 +80,10 @@ export default function Hero() {
           {slides.map((slide, idx) => (
             <div className="hero-slide-item" key={slide.id || idx}>
               <img
-                src={slide.image || '/assets/hero1.png'}
+                src={getAssetUrl(slide.image || '/assets/hero1.png')}
                 alt={slide.title || `Torneo ATAP ${idx + 1}`}
                 loading={idx === 0 ? 'eager' : 'lazy'}
+                onError={(e) => handleImageFallback(e, '/assets/hero1.png')}
               />
             </div>
           ))}

@@ -1,6 +1,9 @@
 // Centralized Storage Service for ATAP
 // Manages Tournaments, Inscriptions, Brackets, Ranking Leaderboard, and Site Images
 import { tournamentApi, rankingApi, playerApi, contentApi } from './api'
+import { getAssetUrl, handleImageFallback } from '../utils/assetHelper'
+
+export { getAssetUrl, handleImageFallback }
 
 export const STORAGE_KEYS = {
   TOURNEYS: 'atap_torneos',
@@ -1456,7 +1459,7 @@ export const INITIAL_SEASONS_ARCHIVE = {};
 export const INITIAL_HERO_SLIDES = [
   {
     id: 'slide-1',
-    image: '/assets/hero1.png',
+    image: getAssetUrl('/assets/hero1.png'),
     eyebrow: 'Vive la pasión del tenis',
     title: 'Grandes torneos, grandes historias',
     description: 'Sé parte de la comunidad de tenis más grande del Perú. Compite, mejora tu ranking y vive la emoción de cada torneo.'
@@ -1485,11 +1488,11 @@ export const INITIAL_HERO_SLIDES = [
 ];
 
 export const INITIAL_SITE_IMAGES = {
-  heroBanner: '/assets/hero1.png',
+  heroBanner: getAssetUrl('/assets/hero1.png'),
   heroSlides: INITIAL_HERO_SLIDES,
-  eventoBanner: '/assets/Evento.png',
-  logoPlatino: '/assets/Logo Platino.png',
-  logoAtap: '/assets/logo.png'
+  eventoBanner: getAssetUrl('/assets/Evento.png'),
+  logoPlatino: getAssetUrl('/assets/Logo Platino.png'),
+  logoAtap: getAssetUrl('/assets/logo.png')
 };
 
 export const INITIAL_SPONSORS = [
@@ -1677,7 +1680,10 @@ export function getTournaments() {
     if (changed) {
       localStorage.setItem(STORAGE_KEYS.TOURNEYS, JSON.stringify(withDetails));
     }
-    return withDetails;
+    return withDetails.map((t) => ({
+      ...t,
+      image: getAssetUrl(t.image || '/assets/Evento.png')
+    }));
   } catch (e) {
     console.error('Error reading tournaments:', e);
     return INITIAL_TOURNAMENTS;
@@ -3341,6 +3347,8 @@ export function getRanking() {
       const pos = String(idx + 1).padStart(2, '0');
       return {
         ...p,
+        image: getAssetUrl(p.image || '/assets/logo.png'),
+        avatar: getAssetUrl(p.avatar || p.image || '/assets/logo.png'),
         position: pos,
         points: (p.puntosNum || 0).toLocaleString() + ' pts'
       };
@@ -3403,6 +3411,8 @@ export function getDoublesRanking() {
     list.sort((a, b) => (b.puntosNum || 0) - (a.puntosNum || 0));
     list = list.map((d, idx) => ({
       ...d,
+      image: getAssetUrl(d.image || '/assets/logo.png'),
+      avatar: getAssetUrl(d.avatar || d.image || '/assets/logo.png'),
       position: String(idx + 1).padStart(2, '0'),
       points: (d.puntosNum || 0).toLocaleString() + ' pts'
     }));
@@ -4270,7 +4280,7 @@ export function getSiteImages() {
     let changed = false;
     if (!parsed.heroSlides || !Array.isArray(parsed.heroSlides) || parsed.heroSlides.length === 0) {
       parsed.heroSlides = [...INITIAL_HERO_SLIDES];
-      if (parsed.heroBanner && parsed.heroBanner !== '/assets/hero1.png') {
+      if (parsed.heroBanner && !parsed.heroBanner.includes('hero1.png')) {
         parsed.heroSlides[0] = { ...parsed.heroSlides[0], image: parsed.heroBanner };
       }
       changed = true;
@@ -4278,7 +4288,18 @@ export function getSiteImages() {
     if (changed) {
       localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(parsed));
     }
-    return { ...INITIAL_SITE_IMAGES, ...parsed };
+    const combined = { ...INITIAL_SITE_IMAGES, ...parsed };
+    return {
+      ...combined,
+      heroBanner: getAssetUrl(combined.heroBanner || '/assets/hero1.png'),
+      eventoBanner: getAssetUrl(combined.eventoBanner || '/assets/Evento.png'),
+      logoPlatino: getAssetUrl(combined.logoPlatino || '/assets/Logo Platino.png'),
+      logoAtap: getAssetUrl(combined.logoAtap || '/assets/logo.png'),
+      heroSlides: (combined.heroSlides || []).map((s) => ({
+        ...s,
+        image: getAssetUrl(s.image || '/assets/hero1.png')
+      }))
+    };
   } catch (e) {
     console.error('Error getting site images:', e);
     return INITIAL_SITE_IMAGES;

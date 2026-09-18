@@ -2,6 +2,7 @@ import { CircleUserRound, LogOut, Menu, ShieldCheck, Trophy, User, X } from 'luc
 import { NavLink } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import LoginModal from '../LoginModal/LoginModal'
+import { getAssetUrl } from '../../utils/assetHelper'
 import './Navbar.css'
 
 const BASE_LINKS = [
@@ -109,7 +110,7 @@ export default function Navbar({
     <>
       <header className="site-header navbar-pill" ref={headerRef}>
         <NavLink className="brand" to="/" aria-label="ATAP inicio">
-          <img className="brand-logo" src="/assets/logo.png" alt="" />
+          <img className="brand-logo" src={getAssetUrl('/assets/logo.png')} alt="" />
           <span>
             <strong>ASOCIACIÓN DE</strong>
             <strong>TENISTAS AMATEUR</strong>
@@ -147,13 +148,13 @@ export default function Navbar({
                     usuarioAutenticado.avatar !== '/assets/logo.png' &&
                     !usuarioAutenticado.avatar.includes('logo.png') ? (
                       <img
-                        src={usuarioAutenticado.avatar}
+                        src={getAssetUrl(usuarioAutenticado.avatar)}
                         alt={usuarioAutenticado.nombre || 'Avatar'}
                         className="user-avatar-img"
                       />
                     ) : (
                       <div className="default-avatar-badge is-atap-logo">
-                        <img src="/assets/logo.png" alt="ATAP" className="default-avatar-logo" />
+                        <img src={getAssetUrl('/assets/logo.png')} alt="ATAP" className="default-avatar-logo" />
                       </div>
                     )}
                   </span>

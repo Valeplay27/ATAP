@@ -12,7 +12,7 @@ import {
   X
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { getRanking, OFFICIAL_CATEGORIES, normalizeCategory } from '../../services/atapStorage'
+import { getRanking, OFFICIAL_CATEGORIES, normalizeCategory, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import SimplePage from '../Shared/SimplePage'
 import PlayerHeroModal from '../../components/PlayerHeroModal/PlayerHeroModal'
 import './Players.css'
@@ -94,10 +94,10 @@ export default function Players({ usuario }) {
               {usuario.avatar &&
               usuario.avatar !== '/assets/logo.png' &&
               !usuario.avatar.includes('logo.png') ? (
-                <img src={usuario.avatar} alt={usuario.nombre} />
+                <img src={getAssetUrl(usuario.avatar)} alt={usuario.nombre} />
               ) : (
                 <div className="default-avatar-badge is-atap-logo">
-                  <img src="/assets/logo.png" alt="ATAP" className="default-avatar-logo" />
+                  <img src={getAssetUrl('/assets/logo.png')} alt="ATAP" className="default-avatar-logo" />
                 </div>
               )}
             </div>
@@ -237,13 +237,10 @@ export default function Players({ usuario }) {
                 {/* Foto Jugador */}
                 <div className="player-pro-photo-wrap">
                   <img
-                    src={player.image || '/assets/logo.png'}
+                    src={getAssetUrl(player.image || '/assets/logo.png')}
                     alt={player.name}
                     className="player-pro-photo"
-                    onError={(e) => {
-                      e.target.onerror = null
-                      e.target.src = '/assets/logo.png'
-                    }}
+                    onError={(e) => handleImageFallback(e, '/assets/logo.png')}
                   />
                 </div>
 

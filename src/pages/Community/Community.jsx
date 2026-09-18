@@ -13,7 +13,7 @@ import {
   Eye,
   CheckCircle2
 } from 'lucide-react'
-import { getNews } from '../../services/atapStorage'
+import { getNews, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './Community.css'
 
 export default function Community() {
@@ -162,7 +162,11 @@ export default function Community() {
             <div className={`spotlight-card ${featuredPost.tipo === 'texto' ? 'is-text-spotlight' : ''}`}>
               {featuredPost.tipo === 'imagen' && featuredPost.imagen ? (
                 <div className="spotlight-media-wrap">
-                  <img src={featuredPost.imagen} alt={featuredPost.titulo} />
+                  <img
+                    src={getAssetUrl(featuredPost.imagen)}
+                    alt={featuredPost.titulo}
+                    onError={(e) => handleImageFallback(e, '/assets/hero1.png')}
+                  />
                   <span className="spotlight-badge-overlay">
                     ⭐ NOTICIA DESTACADA
                   </span>
@@ -241,7 +245,12 @@ export default function Community() {
                   {/* CARD CON IMAGEN */}
                   {item.tipo === 'imagen' && item.imagen ? (
                     <div className="card-cover-wrapper">
-                      <img src={item.imagen} alt={item.titulo} loading="lazy" />
+                      <img
+                        src={getAssetUrl(item.imagen)}
+                        alt={item.titulo}
+                        loading="lazy"
+                        onError={(e) => handleImageFallback(e, '/assets/hero1.png')}
+                      />
                       <span className="card-cat-badge">{item.categoria}</span>
                       {item.destacada && <span className="card-star-badge">⭐ Destacada</span>}
                     </div>
@@ -359,7 +368,11 @@ export default function Community() {
             {/* IMAGEN PRINCIPAL EN MODAL (SI TIENE) */}
             {readingArticle.tipo === 'imagen' && readingArticle.imagen && (
               <div className="article-modal-media">
-                <img src={readingArticle.imagen} alt={readingArticle.titulo} />
+                <img
+                  src={getAssetUrl(readingArticle.imagen)}
+                  alt={readingArticle.titulo}
+                  onError={(e) => handleImageFallback(e, '/assets/hero1.png')}
+                />
               </div>
             )}
 

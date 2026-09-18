@@ -4,7 +4,9 @@ import {
   getTournaments,
   normalizeCategory,
   isTournamentDateActive,
-  extractTournamentMatches
+  extractTournamentMatches,
+  getAssetUrl,
+  handleImageFallback
 } from '../../services/atapStorage'
 import TournamentRegisterModal from '../../components/TournamentRegisterModal/TournamentRegisterModal'
 import TournamentBracket from '../../components/TournamentBracket/TournamentBracket'
@@ -104,13 +106,10 @@ export default function Tournaments({ usuario }) {
                     >
                       {/* POSTER IMAGE */}
                       <img
-                        src={tournament.image}
+                        src={getAssetUrl(tournament.image || '/assets/Evento.png')}
                         alt={tournament.title}
                         className="wta-poster-img"
-                        onError={(e) => {
-                          e.target.onerror = null
-                          e.target.src = '/assets/Evento.png'
-                        }}
+                        onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
                       />
 
                       {/* DARK GRADIENT OVERLAY */}

@@ -1,4 +1,5 @@
 import { Star } from 'lucide-react'
+import { getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './RankingCard.css'
 
 export default function RankingCard({ player }) {
@@ -6,12 +7,9 @@ export default function RankingCard({ player }) {
     <article className="ranking-card">
       <div className="ranking-position">{player.position}</div>
       <img
-        src={player.image}
+        src={getAssetUrl(player.image || '/assets/logo.png')}
         alt={player.name}
-        onError={(e) => {
-          e.target.onerror = null
-          e.target.src = '/assets/logo.png'
-        }}
+        onError={(e) => handleImageFallback(e, '/assets/logo.png')}
       />
       <a
         className="ranking-favorite"

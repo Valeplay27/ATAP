@@ -91,7 +91,9 @@ import {
   saveRegisteredUser,
   deleteRegisteredUser,
   addPlayerToTournamentBank,
-  maskDni
+  maskDni,
+  getAssetUrl,
+  handleImageFallback
 } from '../../services/atapStorage'
 import { api, playerApi, tournamentApi, rankingApi, contentApi } from '../../services/api'
 import TournamentBracket from '../../components/TournamentBracket/TournamentBracket'
@@ -101,12 +103,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [activeTab, setActiveTab] = useState('dashboard')
   const [tournaments, setTournaments] = useState([])
   const [ranking, setRanking] = useState([])
-  const [siteImages, setSiteImages] = useState({
-    heroBanner: '/assets/hero1.png',
-    eventoBanner: '/assets/Evento.png',
-    logoPlatino: '/assets/Logo Platino.png',
-    logoAtap: '/assets/logo.png'
-  })
+  const [siteImages, setSiteImages] = useState(() => getSiteImages())
   const [heroSlides, setHeroSlides] = useState([])
   const [sponsors, setSponsors] = useState([])
   const [sponsorUrlInputs, setSponsorUrlInputs] = useState({})
@@ -4314,12 +4311,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
                   <div className="slide-admin-preview banner-preview-box">
                     <img
-                      src={slide.image || '/assets/hero1.png'}
+                      src={getAssetUrl(slide.image || '/assets/hero1.png')}
                       alt={`Diapositiva ${idx + 1}`}
-                      onError={(e) => {
-                        e.target.onerror = null
-                        e.target.src = '/assets/hero1.png'
-                      }}
+                      onError={(e) => handleImageFallback(e, '/assets/hero1.png')}
                     />
                     <span className="preview-overlay-badge">1920x1080 px (16:9)</span>
                   </div>
@@ -4416,7 +4410,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 </div>
                 <p className="banner-spec-note">Formato requerido: Banner panorámico 1920x1080 píxeles (16:9)</p>
                 <div className="img-preview-box banner-preview-box">
-                  <img src={siteImageInputs.eventoBanner || siteImages.eventoBanner} alt="Evento Banner" />
+                  <img
+                    src={getAssetUrl(siteImageInputs.eventoBanner || siteImages.eventoBanner)}
+                    alt="Evento Banner"
+                    onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
+                  />
                   <span className="preview-overlay-badge">1920x1080 px</span>
                 </div>
                 <div className="img-input-controls">
@@ -4451,7 +4449,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               <div className="image-edit-card panel">
                 <h4>Logo Platino Sponsor</h4>
                 <div className="img-preview-box" style={{ background: '#00304A' }}>
-                  <img src={siteImageInputs.logoPlatino || siteImages.logoPlatino} alt="Logo Platino" />
+                  <img
+                    src={getAssetUrl(siteImageInputs.logoPlatino || siteImages.logoPlatino)}
+                    alt="Logo Platino"
+                    onError={(e) => handleImageFallback(e, '/assets/Logo Platino.png')}
+                  />
                 </div>
                 <div className="img-input-controls">
                   <input
@@ -4485,7 +4487,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               <div className="image-edit-card panel">
                 <h4>Logo Oficial ATAP</h4>
                 <div className="img-preview-box" style={{ background: '#00304A' }}>
-                  <img src={siteImageInputs.logoAtap || siteImages.logoAtap} alt="Logo ATAP" />
+                  <img
+                    src={getAssetUrl(siteImageInputs.logoAtap || siteImages.logoAtap)}
+                    alt="Logo ATAP"
+                    onError={(e) => handleImageFallback(e, '/assets/logo.png')}
+                  />
                 </div>
                 <div className="img-input-controls">
                   <input
@@ -5149,13 +5155,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
               <div className="avatar-preview-box">
                 <img
-                  src={newAvatarUrl || avatarModalPlayer.image}
+                  src={getAssetUrl(newAvatarUrl || avatarModalPlayer.image || '/assets/logo.png')}
                   alt={avatarModalPlayer.name}
                   className="modal-avatar-img"
-                  onError={(e) => {
-                    e.target.onerror = null
-                    e.target.src = '/assets/logo.png'
-                  }}
+                  onError={(e) => handleImageFallback(e, '/assets/logo.png')}
                 />
                 <span className="preview-overlay-badge">500x500 px</span>
               </div>
@@ -6152,7 +6155,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               {/* FOTO CON LOGO ATAP PREDETERMINADO */}
               <div className="quick-player-logo-notice">
                 <div className="logo-preview-avatar">
-                  <img src="/assets/logo.png" alt="Logo ATAP" />
+                  <img src={getAssetUrl('/assets/logo.png')} alt="Logo ATAP" />
                 </div>
                 <div className="logo-notice-details">
                   <span className="logo-label-badge">🛡️ Foto de Perfil Asignada: Logo ATAP</span>

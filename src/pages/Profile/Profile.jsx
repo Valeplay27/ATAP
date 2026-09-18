@@ -3,6 +3,7 @@ import { ArrowRight, Calendar, Camera, Check, Edit3, FileText, LogOut, Mail, Map
 import { NavLink } from 'react-router-dom'
 import { maskDni } from '../../services/atapStorage'
 import { api, authApi } from '../../services/api'
+import { getAssetUrl } from '../../utils/assetHelper'
 import './Profile.css'
 
 export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }) {
@@ -244,10 +245,10 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
           <div className="profile-hero-top">
             <div className="profile-avatar-wrap">
               {avatar && avatar !== '/assets/logo.png' && !avatar.includes('logo.png') ? (
-                <img src={avatar} alt={nombre} className="profile-hero-avatar" />
+                <img src={getAssetUrl(avatar)} alt={nombre} className="profile-hero-avatar" />
               ) : (
                 <div className="profile-hero-avatar default-avatar-badge is-atap-logo">
-                  <img src="/assets/logo.png" alt="ATAP" className="default-avatar-logo" />
+                  <img src={getAssetUrl('/assets/logo.png')} alt="ATAP" className="default-avatar-logo" />
                 </div>
               )}
               {isEditing ? (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getTournaments, INITIAL_TOURNAMENTS } from '../../services/atapStorage'
+import { getTournaments, INITIAL_TOURNAMENTS, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './QuickNav.css'
 
 export default function QuickNav() {
@@ -43,12 +43,9 @@ export default function QuickNav() {
         >
           <div className="quick-tourney-bg">
             <img
-              src={t.image || '/assets/Evento.png'}
+              src={getAssetUrl(t.image || '/assets/Evento.png')}
               alt={t.title}
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = '/assets/Evento.png'
-              }}
+              onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
             />
           </div>
           <div className="quick-tourney-overlay" />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Star, X, Trophy, Calendar, Award, Flame, User, Users } from 'lucide-react'
-import { getPlayerMatchHistory, getPlayerBothProfiles } from '../../services/atapStorage'
+import { getPlayerMatchHistory, getPlayerBothProfiles, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './PlayerHeroModal.css'
 
 export default function PlayerHeroModal({
@@ -168,13 +168,10 @@ export default function PlayerHeroModal({
           {/* Foto destacada del jugador estilo Hero */}
           <div className="p-hero-photo-col">
             <img
-              src={player.image || '/assets/logo.png'}
+              src={getAssetUrl(player.image || '/assets/logo.png')}
               alt={player.name}
               className="p-hero-cutout-img"
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = '/assets/logo.png'
-              }}
+              onError={(e) => handleImageFallback(e, '/assets/logo.png')}
             />
           </div>
         </div>

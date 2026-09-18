@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { MessageSquare, Mail } from 'lucide-react'
-import { getSiteImages } from '../../services/atapStorage'
+import { getSiteImages, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './Footer.css'
 
 export default function Footer() {
@@ -22,12 +22,9 @@ export default function Footer() {
           <NavLink className="brand footer-brand" to="/" aria-label="ATAP - Asociación de Tenistas Amateur del Perú">
             <img
               className="footer-logo"
-              src={siteImages.logoAtap || '/assets/logo.png'}
+              src={getAssetUrl(siteImages.logoAtap || '/assets/logo.png')}
               alt="Asociación de Tenistas Amateur del Perú"
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = '/assets/logo.png'
-              }}
+              onError={(e) => handleImageFallback(e, '/assets/logo.png')}
             />
             <span className="footer-brand-text">
               <strong>ASOCIACIÓN DE</strong>

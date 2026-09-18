@@ -4,7 +4,7 @@ import { ArrowRight, ChevronDown } from 'lucide-react'
 import Hero from '../../components/Hero/Hero'
 import QuickNav from '../../components/QuickNav/QuickNav'
 import RankingCard from '../../components/RankingCard/RankingCard'
-import { getRanking, getSiteImages, getSponsors } from '../../services/atapStorage'
+import { getRanking, getSiteImages, getSponsors, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './Home.css'
 
 function SignupPanel({ onOpenRegister, eventImage }) {
@@ -12,8 +12,9 @@ function SignupPanel({ onOpenRegister, eventImage }) {
 		<article className="signup-panel information-panel panel">
 			<img
 				className="event-image"
-				src={eventImage || '/assets/Evento.png'}
+				src={getAssetUrl(eventImage || '/assets/Evento.png')}
 				alt="Cancha de tenis preparada para un evento"
+				onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
 			/>
 			<div className="event-overlay" />
 			<div className="event-copy">
@@ -93,15 +94,10 @@ function SocialPanel() {
 			</div>
 			<div className="social-artwork">
 				<img
-					src="/assets/redes.png"
+					src={getAssetUrl('/assets/redes.png')}
 					alt="ATAP en Redes Sociales"
 					className="social-artwork-img"
-					onError={(e) => {
-						if (!e.target.dataset.tried) {
-							e.target.dataset.tried = 'true';
-							e.target.src = '/assets/Redes.png';
-						}
-					}}
+					onError={(e) => handleImageFallback(e, '/assets/redes.png')}
 				/>
 			</div>
 		</article>
@@ -148,7 +144,11 @@ function InformationSection() {
 	return (
 		<section className="information-grid">
 			<article className="faq-card panel">
-				<img src="/assets/logo.png" alt="Asociación de Tenistas Amateur del Perú" />
+				<img
+					src={getAssetUrl('/assets/logo.png')}
+					alt="Asociación de Tenistas Amateur del Perú"
+					onError={(e) => handleImageFallback(e, '/assets/logo.png')}
+				/>
 				<h2>
 					Preguntas
 					<br />
@@ -181,7 +181,12 @@ function SponsorsSection({ platinoLogo, sponsors = [] }) {
 	return (
 		<section className="sponsors-card panel">
 			<p className="sponsor-kicker">Main sponsor</p>
-			<img className="platino-logo" src={platinoLogo || '/assets/Logo Platino.png'} alt="Platino Perú" />
+			<img
+				className="platino-logo"
+				src={getAssetUrl(platinoLogo || '/assets/Logo Platino.png')}
+				alt="Platino Perú"
+				onError={(e) => handleImageFallback(e, '/assets/Logo Platino.png')}
+			/>
 			<p className="sponsor-kicker">Partners and suppliers</p>
 			{sponsorsWithImages.length > 0 ? (
 				<div className="sponsor-logos-grid">

@@ -1,10 +1,15 @@
 import { CalendarDays, ChevronRight, Clock3 } from 'lucide-react'
+import { getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './TournamentCard.css'
 
 export default function TournamentCard({ tournament }) {
   return (
     <article className="tournament-card">
-      <img src={tournament.image} alt={tournament.title} />
+      <img
+        src={getAssetUrl(tournament?.image || '/assets/Evento.png')}
+        alt={tournament?.title}
+        onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
+      />
       <div className="tournament-info">
         <span className="tag">{tournament.level}</span>
         <h3>{tournament.title}</h3>

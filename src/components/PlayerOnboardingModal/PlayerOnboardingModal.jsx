@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Edit3, Plus, X } from 'lucide-react'
 import { saveRegisteredUser, maskDni } from '../../services/atapStorage'
 import { api, authApi } from '../../services/api'
+import { getAssetUrl } from '../../utils/assetHelper'
 import './PlayerOnboardingModal.css'
 
 export default function PlayerOnboardingModal({
@@ -434,7 +435,7 @@ export default function PlayerOnboardingModal({
         {step === 1 && (
           <div className="onboarding-step-content step-1">
             <div className="onboarding-brand-header">
-              <img className="onboarding-brand-logo" src="/assets/logo.png" alt="ATAP Logo" />
+              <img className="onboarding-brand-logo" src={getAssetUrl('/assets/logo.png')} alt="ATAP Logo" />
               <div className="onboarding-brand-text">
                 <span>ASOCIACIÓN DE</span>
                 <span>TENISTAS AMATEUR</span>
@@ -623,7 +624,7 @@ export default function PlayerOnboardingModal({
                   <img src={formData.avatar} alt="Foto de perfil" className="avatar-preview-img" />
                 ) : (
                   <div className="avatar-placeholder-content">
-                    <img src="/assets/logo.png" alt="" className="avatar-placeholder-logo" />
+                    <img src={getAssetUrl('/assets/logo.png')} alt="" className="avatar-placeholder-logo" />
                   </div>
                 )}
                 <button

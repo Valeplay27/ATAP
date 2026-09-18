@@ -7,7 +7,9 @@ import {
   getAvailableSeasons,
   getSeasonRanking,
   OFFICIAL_CATEGORIES,
-  normalizeCategory
+  normalizeCategory,
+  getAssetUrl,
+  handleImageFallback
 } from '../../services/atapStorage'
 import SimplePage from '../Shared/SimplePage'
 import PlayerHeroModal from '../../components/PlayerHeroModal/PlayerHeroModal'
@@ -169,13 +171,10 @@ export default function Ranking() {
           >
             <div className="podium-medal silver" title="2do Lugar">2</div>
             <img
-              src={top3[1]?.image || '/assets/logo.png'}
+              src={getAssetUrl(top3[1]?.image || '/assets/logo.png')}
               alt={top3[1]?.name}
               className="podium-avatar"
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = '/assets/logo.png'
-              }}
+              onError={(e) => handleImageFallback(e, '/assets/logo.png')}
             />
             <h3 title={top3[1]?.name}>{top3[1]?.name}</h3>
             <div className="podium-country-tag">
@@ -200,13 +199,10 @@ export default function Ranking() {
             </div>
             <div className="podium-medal gold" title="1er Lugar">1</div>
             <img
-              src={top3[0]?.image || '/assets/logo.png'}
+              src={getAssetUrl(top3[0]?.image || '/assets/logo.png')}
               alt={top3[0]?.name}
               className="podium-avatar champ"
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = '/assets/logo.png'
-              }}
+              onError={(e) => handleImageFallback(e, '/assets/logo.png')}
             />
             <h3 title={top3[0]?.name}>{top3[0]?.name}</h3>
             <div className="podium-country-tag champ-tag">
@@ -228,13 +224,10 @@ export default function Ranking() {
           >
             <div className="podium-medal bronze" title="3er Lugar">3</div>
             <img
-              src={top3[2]?.image || '/assets/logo.png'}
+              src={getAssetUrl(top3[2]?.image || '/assets/logo.png')}
               alt={top3[2]?.name}
               className="podium-avatar"
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = '/assets/logo.png'
-              }}
+              onError={(e) => handleImageFallback(e, '/assets/logo.png')}
             />
             <h3 title={top3[2]?.name}>{top3[2]?.name}</h3>
             <div className="podium-country-tag">
@@ -335,13 +328,10 @@ export default function Ranking() {
                         <td>
                           <div className="player-cell">
                             <img
-                              src={item.image || '/assets/logo.png'}
+                              src={getAssetUrl(item.image || '/assets/logo.png')}
                               alt={item.name}
                               className="table-avatar"
-                              onError={(e) => {
-                                e.target.onerror = null
-                                e.target.src = '/assets/logo.png'
-                              }}
+                              onError={(e) => handleImageFallback(e, '/assets/logo.png')}
                             />
                             <div>
                               <strong>{item.name}</strong>
@@ -386,13 +376,10 @@ export default function Ranking() {
                       <td>
                         <div className="player-cell">
                           <img
-                            src={item.image || '/assets/logo.png'}
+                            src={getAssetUrl(item.image || '/assets/logo.png')}
                             alt={item.name}
                             className="table-avatar"
-                            onError={(e) => {
-                              e.target.onerror = null
-                              e.target.src = '/assets/logo.png'
-                            }}
+                            onError={(e) => handleImageFallback(e, '/assets/logo.png')}
                           />
                           <div>
                             <strong>{item.name}</strong>
