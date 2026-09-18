@@ -1,17 +1,9 @@
--- ==========================================================
--- BASE DE DATOS OFICIAL: ATAP (Circuito Tenis Amateur del Perú)
--- Compatible con: phpMyAdmin / MySQL 8.0+ / MariaDB / WampServer / XAMPP
--- Generado automáticamente para importación directa en phpMyAdmin
--- ==========================================================
+
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE DATABASE IF NOT EXISTS `atap_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `atap_db`;
 
--- Esquema Relacional de Base de Datos para ATAP Tenis Circuito Amateur
--- Motor MySQL 8.0+ / MariaDB
 
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(64) PRIMARY KEY,
@@ -157,9 +149,6 @@ CREATE TABLE IF NOT EXISTS site_settings (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ==========================================================
--- 1. USUARIOS (Administrador + Jugadores Oficiales)
--- ==========================================================
 INSERT INTO users (id, nombre, email, password_hash, auth_provider, dni_masked, dni_hash, telefono, whatsapp, categoria, rol, es_admin, perfil_incompleto, completado_onboarding, avatar_url, fecha_registro) VALUES
 ('user-admin-atap', 'Administrador ATAP', 'vladimiryt18@gmail.com', '$2b$10$0EOW8z8qYGWxWC8Rf9ZJG.P85aZH.CIjn7/Ri6SWYf7w1bz6qS5ja', 'local', '*****000', '7e071fd9b023ed8f18458a73613a0834f6220bd5cc50357ba3493c6040a9ea8c', '987654321', '987654321', 'Comité ATAP', 'Administrador', TRUE, FALSE, TRUE, '/assets/logo.png', '2026-01-01')
 ON DUPLICATE KEY UPDATE nombre=VALUES(nombre);
@@ -213,9 +202,7 @@ INSERT INTO users (id, nombre, email, dni_masked, dni_hash, categoria, rol, es_a
 ('p-16', 'Rodrigo Paredes', 'rodrigo.paredes@amateur.pe', '*****645', '3c2308b1bc64683e5aed4111841da5bc3b3295b01a852f1dc4e68510f79dd37f', '6ta', 'Jugador ATAP', FALSE, FALSE, TRUE, '/assets/logo.png', '2026-01-15')
 ON DUPLICATE KEY UPDATE nombre=VALUES(nombre);
 
--- ==========================================================
--- 2. RANKING OFICIAL ATAP
--- ==========================================================
+
 INSERT INTO ranking (id, user_id, name, dni_masked, dni_hash, modalidad, categoria, puntos_num, points_str, titulos, titulos_ganados, efectividad, mano_dominante, mejor_golpe, avatar_url) VALUES
 ('p-1', 'p-1', 'Carlos Mendoza', '*****567', '97a6d21df7c51e8289ac1a8c026aaac143e15aa1957f54f42e30d8f8a85c3a55', 'singles', '4ta', 1450, '1,450 pts', 3, 3, '85%', 'Diestro', 'Drive invertido', '/assets/logo.png')
 ON DUPLICATE KEY UPDATE puntos_num=VALUES(puntos_num);
@@ -265,9 +252,8 @@ INSERT INTO ranking (id, user_id, name, dni_masked, dni_hash, modalidad, categor
 ('p-16', 'p-16', 'Rodrigo Paredes', '*****645', '3c2308b1bc64683e5aed4111841da5bc3b3295b01a852f1dc4e68510f79dd37f', 'singles', '6ta', 720, '720 pts', 0, 0, '65%', 'Zurdo', 'Drop shot', '/assets/logo.png')
 ON DUPLICATE KEY UPDATE puntos_num=VALUES(puntos_num);
 
--- ==========================================================
--- 3. TORNEOS OFICIALES
--- ==========================================================
+
+
 INSERT INTO tournaments (id, title, slug, estado, modalidad, categoria, fechas_display, fecha_inicio, fecha_fin, sede, direccion, superficie, precio, precio_display, premio, imagen_url, descripcion, es_destacado, categorias_cupos, grupos, bracket) VALUES
 ('t-apertura-2026', 'Torneo Apertura ATAP 2026', 'torneo-apertura-atap-2026', 'abierto', 'singles', '4ta, 5ta A, 5ta B, 6ta', '15 Mar - 29 Mar 2026', '2026-03-15', '2026-03-29', 'Club Lawn Tennis de la Exposición', 'Av. 28 de Julio 744, Jesús María, Lima', 'Arcilla / Polvo de Ladrillo', 85, 'S/ 85.00', 'S/ 2,500 + Trofeos Oficiales', '/assets/apertura.jpg', 'El torneo oficial inaugural del Circuito Amateur de Tenis del Perú (ATAP) 2026.', TRUE, '[{"id":"cat-4","nombre":"4ta","cupos":16,"inscritos":8},{"id":"cat-5a","nombre":"5ta A","cupos":16,"inscritos":12},{"id":"cat-5b","nombre":"5ta B","cupos":32,"inscritos":16},{"id":"cat-6","nombre":"6ta","cupos":32,"inscritos":20}]', '[{"id":"grupo-a","nombre":"Grupo A","participantes":[],"partidos":[]},{"id":"grupo-b","nombre":"Grupo B","participantes":[],"partidos":[]},{"id":"grupo-c","nombre":"Grupo C","participantes":[],"partidos":[]},{"id":"grupo-d","nombre":"Grupo D","participantes":[],"partidos":[]}]', '{"rounds":[{"roundIndex":1,"roundName":"Cuartos de final","matches":[]},{"roundIndex":2,"roundName":"Semifinales","matches":[]},{"roundIndex":3,"roundName":"Final","matches":[]}],"champion":null}')
 ON DUPLICATE KEY UPDATE title=VALUES(title);
@@ -275,9 +261,7 @@ INSERT INTO tournaments (id, title, slug, estado, modalidad, categoria, fechas_d
 ('t-copa-dobles-2026', 'Copa Nacional de Dúos y Dobles ATAP', 'copa-nacional-duos-dobles-atap-2026', 'proximo', 'dobles', '4ta Dobles, 5ta A Dobles, 5ta B Dobles', '12 Abr - 26 Abr 2026', '2026-04-12', '2026-04-26', 'Rinconada Country Club', 'Av. Manuel Prado Ugarteche 901, La Molina, Lima', 'Arcilla / Polvo de Ladrillo', 140, 'S/ 140.00 por dupla', 'S/ 3,000 + Palas/Raquetas Oficiales', '/assets/dobles.jpg', 'Competición en parejas y dúos oficiales del circuito amateur en Lima.', FALSE, '[{"id":"cat-d4","nombre":"4ta Dobles","cupos":16,"inscritos":4},{"id":"cat-d5a","nombre":"5ta A Dobles","cupos":16,"inscritos":6},{"id":"cat-d5b","nombre":"5ta B Dobles","cupos":16,"inscritos":8}]', '[]', 'null')
 ON DUPLICATE KEY UPDATE title=VALUES(title);
 
--- ==========================================================
--- 4. PATROCINADORES (SPONSORS)
--- ==========================================================
+
 INSERT INTO sponsors (id, name, category, logo_url, link, description, active, order_index) VALUES
 ('sp-1', 'Wilson Perú', 'Equipamiento Oficial', '/assets/sponsors/wilson.png', 'https://wilson.com', 'Pelotas oficiales y raquetas del circuito ATAP', TRUE, 1)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
@@ -288,9 +272,7 @@ INSERT INTO sponsors (id, name, category, logo_url, link, description, active, o
 ('sp-3', 'Babolat', 'Partner Técnico', '/assets/sponsors/babolat.png', 'https://babolat.com', 'Encordado oficial y accesorios de tenis', TRUE, 3)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
--- ==========================================================
--- 5. NOTICIAS (NEWS)
--- ==========================================================
+
 INSERT INTO news (id, title, summary, content, category, image_url, author, date_display, featured) VALUES
 ('news-1', 'Arranca la Temporada Oficial 2026 del Circuito ATAP', 'Más de 200 tenistas amateurs disputarán el Torneo Apertura en las mejores canchas de Lima.', 'La Asociación de Tenistas Amateur del Perú da inicio a su calendario oficial 2026 con 6 torneos puntuables y el Master Final de fin de año.', 'Institucional', '/assets/news1.jpg', 'Comité Directivo ATAP', '10 Feb 2026', TRUE)
 ON DUPLICATE KEY UPDATE title=VALUES(title);
