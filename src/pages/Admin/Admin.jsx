@@ -104,7 +104,12 @@ import {
   saveContactInfo,
   resetContactInfo,
   getAssetUrl,
-  handleImageFallback
+  handleImageFallback,
+  updateMatchSchedule,
+  setMatchLiveStatus,
+  updateLiveMatchScore,
+  getDailyRecoveryKey,
+  regenerateDailyRecoveryKey
 } from '../../services/atapStorage'
 import { api, playerApi, tournamentApi, rankingApi, contentApi } from '../../services/api'
 import TournamentBracket from '../../components/TournamentBracket/TournamentBracket'
@@ -155,6 +160,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [set2Score, setSet2Score] = useState('6-3')
   const [set3Score, setSet3Score] = useState('')
   const [pointsAwardInput, setPointsAwardInput] = useState(100)
+  const [matchHoraInput, setMatchHoraInput] = useState('')
+  const [isLiveMatchInput, setIsLiveMatchInput] = useState(false)
 
   // Player Avatar Modal
   const [avatarModalPlayer, setAvatarModalPlayer] = useState(null)
@@ -254,6 +261,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [playerTableSearch, setPlayerTableSearch] = useState('')
   const [playerTableCategory, setPlayerTableCategory] = useState('todas')
   const [playerActionNotice, setPlayerActionNotice] = useState(null)
+  const [dailyRecoveryKey, setDailyRecoveryKey] = useState(() => getDailyRecoveryKey())
 
   // Bank of Participants Add Player Modal (for Sorteos & Tournaments)
   const [showBankAddModal, setShowBankAddModal] = useState(false)
@@ -266,6 +274,21 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setTimeout(() => setToastMessage(''), 3500)
   }
 
+  function handleRegenerateKey() {
+    const newKey = regenerateDailyRecoveryKey()
+    setDailyRecoveryKey(newKey)
+    showToast(`¡Nueva clave diaria de recuperación generada: ${newKey}!`)
+  }
+
+  function handleCopyKey() {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(dailyRecoveryKey)
+      showToast('¡Clave diaria copiada al portapapeles!')
+    } else {
+      showToast(`Clave: ${dailyRecoveryKey}`)
+    }
+  }
+
   function loadData() {
     const tourneys = getTournaments()
     setTournaments(tourneys)
@@ -273,6 +296,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       setSelectedTourneyId(tourneys[0].id)
     }
     setRegisteredUsersList(getRegisteredUsers())
+    setDailyRecoveryKey(getDailyRecoveryKey())
 
     const currentPrices = {}
     tourneys.forEach((t) => {
@@ -1237,21 +1261,60 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       scoreModalMatch.id,
       winnerSlot,
       scoreStr,
-      Number(pointsAwardInput) || 100
+      Number(pointsAwardInput) || 100,
+      matchHoraInput
     )
 
     if (res.error) {
       showToast(res.error)
     } else {
       setTournaments(getTournaments())
-      showToast('¡Marcador guardado! El ganador avanzó y se sumaron los puntos al ranking.')
+      showToast('¡Marcador oficial finalizado! El ganador avanzó y se sumaron los puntos al ranking.')
       setScoreModalMatch(null)
     }
+  }
+
+  // Handler: Save Live Score (Real-time updates without finalizing tournament prematurely)
+  function handleSaveLiveScore() {
+    if (!scoreModalMatch || !currentTourney) return
+
+    const parts = [set1Score, set2Score, set3Score].filter(Boolean)
+    const scoreStr = parts.join(', ') || '0-0'
+
+    const res = updateLiveMatchScore(currentTourney.id, scoreModalMatch.id, {
+      score: scoreStr,
+      hora: matchHoraInput,
+      isLive: true
+    })
+
+    if (res.error) {
+      showToast(res.error)
+    } else {
+      setTournaments(getTournaments())
+      showToast('🔴 ¡Marcador en vivo actualizado! Transmitiendo en directo a la afición.')
+      setScoreModalMatch(null)
+    }
+  }
+
+  // Bracket handlers for hora and live status
+  function handleUpdateMatchHora(matchId, hora) {
+    if (!currentTourney) return
+    updateMatchSchedule(currentTourney.id, matchId, hora)
+    setTournaments(getTournaments())
+  }
+
+  function handleToggleMatchLive(matchId, isLive) {
+    if (!currentTourney) return
+    setMatchLiveStatus(currentTourney.id, matchId, isLive)
+    setTournaments(getTournaments())
+    showToast(isLive ? '🔴 Partido marcado como EN VIVO' : 'Modo En Vivo desactivado')
   }
 
   // Handler: Open Score Modal from bracket
   function handleOpenScoreModal(match) {
     setScoreModalMatch(match)
+    setMatchHoraInput(match.hora || '')
+    setIsLiveMatchInput(Boolean(match.isLive))
     if (match.player1?.isBye || match.player1?.name === 'BYE') {
       setWinnerSlot(2)
       setSet1Score('BYE')
@@ -1267,6 +1330,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       setSet1Score('BYE')
       setSet2Score('')
       setSet3Score('')
+    } else if (match.score) {
+      setWinnerSlot(match.winnerSlot || 1)
+      const parts = match.score.split(',').map((s) => s.trim())
+      setSet1Score(parts[0] || '')
+      setSet2Score(parts[1] || '')
+      setSet3Score(parts[2] || '')
     } else {
       setWinnerSlot(match.winnerSlot || 1)
       setSet1Score('6-4')
@@ -2688,6 +2757,53 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               </div>
             )}
 
+            {/* CLAVE MAESTRA DIARIA DE RECUPERACIÓN (WHATSAPP - MÁX. 9 DÍGITOS) */}
+            <div className="daily-recovery-security-card">
+              <div className="daily-recovery-card-header">
+                <div className="daily-recovery-badge">
+                  <ShieldCheck size={18} />
+                  <span>Seguridad & Recuperación de Cuentas</span>
+                </div>
+                <span className="daily-recovery-tag">Cambio automático cada medianoche</span>
+              </div>
+              <div className="daily-recovery-content">
+                <div className="daily-recovery-info">
+                  <h3>Clave Diaria de Recuperación de Jugadores (Máx. 9 Dígitos)</h3>
+                  <p>
+                    Cuando un jugador olvide su contraseña y te contacte al WhatsApp oficial del circuito, facilítale esta clave numérica. Al ingresarla, el sistema le abrirá el modal <strong>NUEVA CLAVE</strong> para que establezca su nueva contraseña (mínimo 8 caracteres obligatorios).
+                  </p>
+                  <div className="daily-recovery-subinfo">
+                    <Clock size={14} />
+                    <span>Fecha activa: <strong>{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong></span>
+                  </div>
+                </div>
+                <div className="daily-recovery-actions">
+                  <div className="daily-recovery-key-display" title="Clave activa del día">
+                    <Lock size={16} className="key-icon" />
+                    <span className="key-digits">{dailyRecoveryKey}</span>
+                  </div>
+                  <div className="daily-recovery-buttons">
+                    <button
+                      type="button"
+                      className="btn-daily-copy"
+                      onClick={handleCopyKey}
+                      title="Copiar clave al portapapeles"
+                    >
+                      <Check size={16} /> Copiar Clave
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-daily-regen"
+                      onClick={handleRegenerateKey}
+                      title="Regenerar clave para hoy"
+                    >
+                      <Shuffle size={16} /> Regenerar Clave
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="players-management-layout">
               {/* FORMULARIO DE REGISTRO / EDICIÓN */}
               <div className="player-form-card" id="player-crud-form-card">
@@ -3819,6 +3935,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 onClearMatchSlot={handleClearMatchSlot}
                 onOpenScoreModal={handleOpenScoreModal}
                 onAssignBye={handleOpenByeModal}
+                onUpdateMatchHora={handleUpdateMatchHora}
+                onToggleMatchLive={handleToggleMatchLive}
               />
             </div>
           </div>
@@ -4402,6 +4520,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     isAdmin={true}
                     onOpenScoreModal={handleOpenScoreModal}
                     onAssignBye={handleOpenByeModal}
+                    onUpdateMatchHora={handleUpdateMatchHora}
+                    onToggleMatchLive={handleToggleMatchLive}
                   />
                 </div>
               )}
@@ -6321,6 +6441,43 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 </label>
               </div>
 
+              {/* CONFIGURACIÓN DE HORA Y MODO EN VIVO */}
+              <div className="score-live-schedule-panel">
+                <div className="score-field-group">
+                  <label htmlFor="modal-match-hora">
+                    🕒 Hora del Partido (como la requiera el Administrador):
+                  </label>
+                  <input
+                    id="modal-match-hora"
+                    type="text"
+                    value={matchHoraInput}
+                    onChange={(e) => setMatchHoraInput(e.target.value)}
+                    placeholder="Escribe la hora deseada (ej: 4:00 PM, 16:30)"
+                    className="modal-hora-input"
+                  />
+                  <small className="score-field-hint">
+                    Déjalo vacío si aún no está programado. Se mostrará en el cuadro tal como lo escribas.
+                  </small>
+                </div>
+
+                <div className="score-field-group">
+                  <label>🔴 Transmisión Oficial:</label>
+                  <button
+                    type="button"
+                    className={`btn-toggle-modal-live ${isLiveMatchInput ? 'is-live-active' : ''}`}
+                    onClick={() => setIsLiveMatchInput(!isLiveMatchInput)}
+                  >
+                    <span className={isLiveMatchInput ? 'live-dot-pulse' : 'live-dot-off'} />
+                    <span>{isLiveMatchInput ? '🔴 Modo EN VIVO Activado' : '⚪ Modo Regular (Sin distintivo en vivo)'}</span>
+                  </button>
+                  <small className="score-field-hint">
+                    {isLiveMatchInput
+                      ? 'El partido exhibirá el distintivo "🔴 EN VIVO" con actualización de marcadores en tiempo real.'
+                      : 'Activa esta opción para transmitir los resultados en directo.'}
+                  </small>
+                </div>
+              </div>
+
               <div className="bye-quick-toggle-wrap">
                 <button
                   type="button"
@@ -6410,8 +6567,20 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 >
                   Cancelar
                 </button>
+                {isLiveMatchInput && (
+                  <button
+                    type="button"
+                    className="button btn-save-live-score-modal"
+                    onClick={handleSaveLiveScore}
+                    title="Guarda el marcador parcial en tiempo real sin cerrar el partido"
+                  >
+                    <span className="live-dot-pulse" /> 🔴 Guardar Marcador En Vivo
+                  </button>
+                )}
                 <button type="submit" className="button button-lime">
-                  Guardar y Avanzar Ganador
+                  {scoreModalMatch?.round?.toLowerCase().includes('final')
+                    ? '🏆 Finalizar Partido y Coronar Campeón'
+                    : 'Guardar y Avanzar Ganador'}
                 </button>
               </div>
             </form>

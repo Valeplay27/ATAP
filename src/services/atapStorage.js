@@ -18,7 +18,8 @@ export const STORAGE_KEYS = {
   ACTIVE_SEASON: 'atap_temporada_activa',
   POLICIES: 'atap_politicas_reglas',
   HOME_BANNERS: 'atap_home_banners',
-  CONTACT_INFO: 'atap_contacto_soporte'
+  CONTACT_INFO: 'atap_contacto_soporte',
+  DAILY_RECOVERY_KEY: 'atap_clave_recuperacion_diaria'
 };
 
 // Categorías oficiales exclusivas del circuito amateur de tenis ATAP (de mayor a menor nivel)
@@ -1809,8 +1810,9 @@ export function isTournamentDateActive(dateStr, startDate, endDate) {
 }
 
 export function extractTournamentMatches(tournament) {
-  if (!tournament) return { jugados: [], futuros: [], all: [] };
+  if (!tournament) return { enVivo: [], jugados: [], futuros: [], all: [] };
 
+  const enVivo = [];
   const jugados = [];
   const futuros = [];
   const seenIds = new Set();
@@ -1830,6 +1832,7 @@ export function extractTournamentMatches(tournament) {
           const p2Name = m.player2?.name || (typeof m.player2 === 'string' ? m.player2 : 'Por definir');
           const isPlayed = Boolean(m.winnerSlot || (m.score && m.score.trim()));
           const winnerName = m.winnerSlot === 1 ? p1Name : m.winnerSlot === 2 ? p2Name : m.winnerName || '';
+          const isLive = Boolean(m.isLive);
 
           const item = {
             id: matchId,
@@ -1843,11 +1846,15 @@ export function extractTournamentMatches(tournament) {
             winnerSlot: m.winnerSlot,
             winnerName,
             cancha: m.cancha || 'Cancha Central',
-            horario: m.horario || m.hora || 'Programado',
-            isPlayed
+            hora: m.hora || '',
+            horario: m.hora || m.horario || '',
+            isPlayed,
+            isLive
           };
 
-          if (isPlayed) {
+          if (isLive) {
+            enVivo.push(item);
+          } else if (isPlayed) {
             jugados.push(item);
           } else {
             futuros.push(item);
@@ -1872,6 +1879,7 @@ export function extractTournamentMatches(tournament) {
           const p2Name = m.player2?.name || (typeof m.player2 === 'string' ? m.player2 : 'Por clasificar');
           const isPlayed = Boolean(m.winnerSlot || (m.score && m.score.trim()));
           const winnerName = m.winnerSlot === 1 ? p1Name : m.winnerSlot === 2 ? p2Name : m.winnerName || '';
+          const isLive = Boolean(m.isLive);
 
           const item = {
             id: matchId,
@@ -1885,11 +1893,15 @@ export function extractTournamentMatches(tournament) {
             winnerSlot: m.winnerSlot,
             winnerName,
             cancha: m.cancha || 'Cancha Principal',
-            horario: m.horario || m.hora || 'Por disputar',
-            isPlayed
+            hora: m.hora || '',
+            horario: m.hora || m.horario || '',
+            isPlayed,
+            isLive
           };
 
-          if (isPlayed) {
+          if (isLive) {
+            enVivo.push(item);
+          } else if (isPlayed) {
             jugados.push(item);
           } else {
             futuros.push(item);
@@ -1914,20 +1926,25 @@ export function extractTournamentMatches(tournament) {
         categoria: res.categoria || tournament.categoria || '4ta',
         player1: res.jugador1,
         player2: res.jugador2,
-        score: res.score,
+        score: res.score || '',
         winnerSlot: res.ganador === res.jugador1 ? 1 : 2,
         winnerName: res.ganador,
+        cancha: 'Cancha Central',
+        hora: '',
+        horario: '',
         puntos: res.puntos,
         observaciones: res.observaciones,
-        isPlayed: true
+        isPlayed: true,
+        isLive: false
       });
     });
   }
 
   return {
+    enVivo,
     jugados,
     futuros,
-    all: [...jugados, ...futuros]
+    all: [...enVivo, ...jugados, ...futuros]
   };
 }
 
@@ -3062,13 +3079,29 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   }
 
   // Update match details
+  if (matchData.hora !== undefined) {
+    targetMatch.hora = (matchData.hora || '').trim();
+  }
+  if (matchData.isLive !== undefined) {
+    targetMatch.isLive = Boolean(matchData.isLive);
+  }
+
+  // If this is a live score update without concluding the match
+  if (matchData.isLive && !matchData.isFinal && (matchData.winnerSlot === null || matchData.winnerSlot === undefined)) {
+    targetMatch.score = matchData.score || '';
+    saveTournaments(tournaments);
+    return { success: true, match: targetMatch, isLive: true };
+  }
+
+  // Concluding the match
+  targetMatch.isLive = false;
   const winnerSlot = Number(matchData.winnerSlot);
   const winnerPlayer = winnerSlot === 1 ? targetMatch.player1 : targetMatch.player2;
   let pointsAward = Number(matchData.pointsAward) || 0;
 
   targetMatch.score = matchData.score || '';
   targetMatch.winnerSlot = winnerSlot;
-  targetMatch.winnerName = winnerPlayer.name;
+  targetMatch.winnerName = winnerPlayer?.name || '';
 
   // Advance winner if next match exists (knockout bracket)
   if (targetMatch.nextMatchId) {
@@ -3098,11 +3131,110 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   return { success: true, match: targetMatch, champion: tournament.bracket?.champion };
 }
 
-export function recordMatchResult(tournamentId, matchId, winnerSlot, scoreString, pointsAward = 100) {
+export function updateMatchSchedule(tournamentId, matchId, hora) {
+  const tournaments = getTournaments();
+  const index = tournaments.findIndex((t) => t.id === tournamentId);
+  if (index === -1) return { error: 'Torneo no encontrado.' };
+
+  const tournament = tournaments[index];
+  let targetMatch = null;
+
+  if (tournament.bracket && tournament.bracket.rounds) {
+    tournament.bracket.rounds.forEach((r) => {
+      if (r.matches) {
+        const found = r.matches.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+  if (!targetMatch && tournament.faseGrupos) {
+    tournament.faseGrupos.forEach((g) => {
+      if (g.partidos) {
+        const found = g.partidos.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+
+  if (!targetMatch) return { error: 'Partido no encontrado.' };
+  targetMatch.hora = (hora || '').trim();
+  saveTournaments(tournaments);
+  return { success: true, match: targetMatch };
+}
+
+export function setMatchLiveStatus(tournamentId, matchId, isLive) {
+  const tournaments = getTournaments();
+  const index = tournaments.findIndex((t) => t.id === tournamentId);
+  if (index === -1) return { error: 'Torneo no encontrado.' };
+
+  const tournament = tournaments[index];
+  let targetMatch = null;
+
+  if (tournament.bracket && tournament.bracket.rounds) {
+    tournament.bracket.rounds.forEach((r) => {
+      if (r.matches) {
+        const found = r.matches.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+  if (!targetMatch && tournament.faseGrupos) {
+    tournament.faseGrupos.forEach((g) => {
+      if (g.partidos) {
+        const found = g.partidos.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+
+  if (!targetMatch) return { error: 'Partido no encontrado.' };
+  targetMatch.isLive = Boolean(isLive);
+  saveTournaments(tournaments);
+  return { success: true, match: targetMatch };
+}
+
+export function updateLiveMatchScore(tournamentId, matchId, { score = '', hora = undefined, isLive = true }) {
+  const tournaments = getTournaments();
+  const index = tournaments.findIndex((t) => t.id === tournamentId);
+  if (index === -1) return { error: 'Torneo no encontrado.' };
+
+  const tournament = tournaments[index];
+  let targetMatch = null;
+
+  if (tournament.bracket && tournament.bracket.rounds) {
+    tournament.bracket.rounds.forEach((r) => {
+      if (r.matches) {
+        const found = r.matches.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+  if (!targetMatch && tournament.faseGrupos) {
+    tournament.faseGrupos.forEach((g) => {
+      if (g.partidos) {
+        const found = g.partidos.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+
+  if (!targetMatch) return { error: 'Partido no encontrado.' };
+  targetMatch.score = score;
+  targetMatch.isLive = Boolean(isLive);
+  if (hora !== undefined) {
+    targetMatch.hora = (hora || '').trim();
+  }
+  saveTournaments(tournaments);
+  return { success: true, match: targetMatch };
+}
+
+export function recordMatchResult(tournamentId, matchId, winnerSlot, scoreString, pointsAward = 100, hora = undefined) {
   return updateMatchScore(tournamentId, matchId, {
     winnerSlot,
     score: scoreString,
-    pointsAward
+    pointsAward,
+    isLive: false,
+    hora
   });
 }
 
@@ -4972,5 +5104,100 @@ export function saveContactInfo(info) {
 export function resetContactInfo() {
   return saveContactInfo(DEFAULT_CONTACT_INFO);
 }
+
+// =========================================================
+// CLAVE MAESTRA DIARIA DE RECUPERACIÓN (MÁXIMO 9 DÍGITOS)
+// =========================================================
+
+function generate8DigitKey() {
+  // Genera un número entero seguro de 8 dígitos (máximo 9 dígitos)
+  const min = 10000000;
+  const max = 99999999;
+  return String(Math.floor(min + Math.random() * (max - min + 1)));
+}
+
+export function getDailyRecoveryKey() {
+  try {
+    if (typeof localStorage === 'undefined') return '84920173';
+    const todayStr = new Date().toLocaleDateString('sv'); // 'YYYY-MM-DD'
+    const raw = localStorage.getItem(STORAGE_KEYS.DAILY_RECOVERY_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && data.date === todayStr && data.key && String(data.key).length <= 9) {
+        return String(data.key);
+      }
+    }
+    // Generar nueva clave de 8 dígitos para hoy
+    const newKey = generate8DigitKey();
+    const payload = { date: todayStr, key: newKey };
+    localStorage.setItem(STORAGE_KEYS.DAILY_RECOVERY_KEY, JSON.stringify(payload));
+    emitAtapUpdate(STORAGE_KEYS.DAILY_RECOVERY_KEY, payload);
+    return newKey;
+  } catch (e) {
+    console.error('Error in getDailyRecoveryKey:', e);
+    return '84920173';
+  }
+}
+
+export function regenerateDailyRecoveryKey() {
+  try {
+    const todayStr = new Date().toLocaleDateString('sv');
+    const newKey = generate8DigitKey();
+    const payload = { date: todayStr, key: newKey };
+    localStorage.setItem(STORAGE_KEYS.DAILY_RECOVERY_KEY, JSON.stringify(payload));
+    emitAtapUpdate(STORAGE_KEYS.DAILY_RECOVERY_KEY, payload);
+    return newKey;
+  } catch (e) {
+    console.error('Error in regenerateDailyRecoveryKey:', e);
+    return '84920173';
+  }
+}
+
+export function validateDailyRecoveryKey(inputCode) {
+  if (!inputCode) return false;
+  const activeKey = getDailyRecoveryKey();
+  const cleanInput = inputCode.toString().trim().replace(/\s+/g, '').toUpperCase();
+  const cleanActive = activeKey.toString().trim().replace(/\s+/g, '').toUpperCase();
+  return cleanInput === cleanActive;
+}
+
+export function resetUserPassword(identifier, newPassword, recoveryKey) {
+  if (!validateDailyRecoveryKey(recoveryKey)) {
+    return { error: 'La clave de recuperación ingresada es incorrecta o ha expirado.' };
+  }
+
+  const cleanPass = (newPassword || '').toString().trim();
+  if (cleanPass.length < 8) {
+    return { error: 'La nueva clave debe tener al menos 8 caracteres obligatorios.' };
+  }
+
+  const cleanId = (identifier || '').toString().trim().toLowerCase().replace(/\s+/g, '');
+  if (!cleanId) {
+    return { error: 'Por favor ingresa tu DNI o Correo electrónico.' };
+  }
+
+  const users = getRegisteredUsers();
+  const targetUser = users.find((u) => {
+    const uEmail = (u.email || '').toLowerCase().trim();
+    const uDni = (u.dni || u.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
+    const uDniClean = uDni.replace(/\*/g, '');
+    return (
+      uEmail === cleanId ||
+      uDni === cleanId ||
+      (cleanId.length >= 3 && uDni.endsWith(cleanId.slice(-3))) ||
+      (uDniClean && cleanId.includes(uDniClean))
+    );
+  });
+
+  if (!targetUser) {
+    return { error: 'No se encontró ningún jugador registrado con este DNI o correo electrónico.' };
+  }
+
+  targetUser.password = cleanPass;
+  saveRegisteredUser(targetUser);
+
+  return { success: true, user: targetUser };
+}
+
 
 

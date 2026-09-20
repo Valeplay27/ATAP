@@ -1281,3 +1281,69 @@
   border-radius: 999px;
   font-size: 12px;
 }
+
+/* =========================================================
+   PARTIDOS EN VIVO EN MODAL DE TORNEOS
+   ========================================================= */
+
+.live-match-card.is-match-live-card {
+  border: 2px solid #EF4444;
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.22);
+  border-left: 4px solid #EF4444;
+  background: #FFFFFF;
+}
+
+.live-state-chip.live-broadcasting {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.live-round-badge.live-pulse-badge {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: #FFFFFF;
+}
+
+.live-status-subtag.live-highlight-subtag {
+  background: #FEE2E2;
+  color: #991B1B;
+  font-weight: 800;
+}
+
+.live-score-highlight.live-now {
+  background: #FFF1F2;
+  border: 1px solid #FFE4E6;
+}
+
+.live-score-pulse {
+  color: #DC2626 !important;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900 !important;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+.live-dot-pulse-red {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #EF4444;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+  animation: liveDotPulseRed 1.2s infinite ease-in-out;
+}
+
+@keyframes liveDotPulseRed {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.4;
+  }
+}
+

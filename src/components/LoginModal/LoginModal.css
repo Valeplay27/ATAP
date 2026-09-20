@@ -503,4 +503,140 @@
   background: #F8FAFC;
   color: #25005C;
   border-color: #CBD5E1;
+}
+
+/* =========================================================
+   RECUPERACIÓN DE CONTRASEÑA Y NUEVA CLAVE
+   ========================================================= */
+
+.recovery-flow-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.recovery-whatsapp-box {
+  width: 100%;
+  margin: 12px 0 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #F0FDF4 0%, #E8FBF2 100%);
+  border: 1.5px solid #A7F3D0;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+}
+
+.recovery-wa-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.wa-icon-bubble {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #25D366;
+  color: #FFFFFF;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.35);
+}
+
+.recovery-wa-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #065F46;
+}
+
+.recovery-wa-number {
+  font-size: 15px;
+  font-weight: 800;
+  color: #047857;
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.recovery-wa-help {
+  margin: 0;
+  font-size: 11.5px;
+  color: #065F46;
+  line-height: 1.4;
+  text-align: left;
+  width: 100%;
+}
+
+.recovery-wa-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  background: #25D366;
+  color: #FFFFFF;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+
+.recovery-wa-btn:hover {
+  background: #20BA5A;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4);
+  color: #FFFFFF;
+}
+
+.nueva-clave-title {
+  color: #25005C !important;
+  font-size: 32px !important;
+  letter-spacing: 0.5px;
+}
+
+.recovery-rules-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin-top: 4px;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-recovery-back {
+  background: transparent;
+  border: 1.5px solid #E2E8F0;
+  color: #64727A;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn-recovery-back:hover {
+  background: #F8FAFC;
+  color: #25005C;
+  border-color: #CBD5E1;
 }

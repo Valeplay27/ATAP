@@ -212,7 +212,7 @@ export default function Tournaments({ usuario }) {
 
       {/* MODAL DE EN VIVO / LIVE (PARTIDOS JUGADOS Y FUTUROS) */}
       {selectedLiveTourney && (() => {
-        const { jugados, futuros, all } = extractTournamentMatches(selectedLiveTourney)
+        const { enVivo = [], jugados, futuros, all } = extractTournamentMatches(selectedLiveTourney)
         const categories = selectedLiveTourney.categorias || []
 
         const filterByCat = (list) => {
@@ -222,6 +222,7 @@ export default function Tournaments({ usuario }) {
           )
         }
 
+        const filteredEnVivo = filterByCat(enVivo)
         const filteredJugados = filterByCat(jugados)
         const filteredFuturos = filterByCat(futuros)
         const filteredAll = filterByCat(all)
@@ -294,9 +295,19 @@ export default function Tournaments({ usuario }) {
                 </div>
               )}
 
-              {/* FILTRO DE PARTIDOS: TODOS | JUGADOS | FUTUROS */}
+              {/* FILTRO DE PARTIDOS: TODOS | JUGADOS | FUTUROS | EN VIVO */}
               <div className="live-filter-strip">
                 <div className="live-filter-pills">
+                  {filteredEnVivo.length > 0 && (
+                    <button
+                      type="button"
+                      className={`live-filter-pill ${liveMatchesFilter === 'envivo' ? 'active' : ''}`}
+                      onClick={() => setLiveMatchesFilter('envivo')}
+                      style={{ background: liveMatchesFilter === 'envivo' ? '#DC2626' : '#FEF2F2', color: liveMatchesFilter === 'envivo' ? '#FFF' : '#DC2626', borderColor: '#FECACA' }}
+                    >
+                      🔴 EN VIVO ({filteredEnVivo.length})
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`live-filter-pill ${liveMatchesFilter === 'all' ? 'active' : ''}`}
@@ -336,6 +347,58 @@ export default function Tournaments({ usuario }) {
 
               {/* CUERPO DEL MODAL LIVE */}
               <div className="live-modal-body">
+                {/* 0. SECCIÓN ESTELAR: PARTIDOS EN VIVO */}
+                {(liveMatchesFilter === 'all' || liveMatchesFilter === 'envivo') && filteredEnVivo.length > 0 && (
+                  <div className="live-section-block live-active-spotlight-block" style={{ marginBottom: '24px' }}>
+                    <div className="live-section-heading">
+                      <div className="live-section-title">
+                        <span className="live-pulsing-dot-red" />
+                        <h4 style={{ color: '#DC2626' }}>🔴 Partidos en Transmisión EN VIVO ({filteredEnVivo.length})</h4>
+                      </div>
+                      <span className="live-status-subtag live-highlight-subtag">En Juego Ahora</span>
+                    </div>
+
+                    <div className="live-matches-grid">
+                      {filteredEnVivo.map((m) => (
+                        <div className="live-match-card is-match-live-card" key={m.id}>
+                          <div className="live-match-header">
+                            <span className="live-round-badge live-pulse-badge">
+                              {m.etiqueta}
+                            </span>
+                            <span className="live-cat-badge">{m.categoria}</span>
+                            <span className="live-state-chip live-broadcasting">
+                              <span className="live-dot-pulse" /> EN VIVO
+                            </span>
+                          </div>
+
+                          <div className="live-match-opponents">
+                            <div className="live-opponent-row">
+                              <span className="opponent-name">{m.player1}</span>
+                            </div>
+                            <div className="live-vs-divider">vs</div>
+                            <div className="live-opponent-row">
+                              <span className="opponent-name">{m.player2}</span>
+                            </div>
+                          </div>
+
+                          {m.score && (
+                            <div className="live-score-highlight live-now">
+                              <span className="score-title">Marcador En Vivo:</span>
+                              <span className="score-numbers live-score-pulse">{m.score}</span>
+                            </div>
+                          )}
+
+                          <div className="live-schedule-footer">
+                            <span>📍 {m.cancha}</span>
+                            {Boolean(m.horario && m.horario.trim()) && (
+                              <span>🕒 {m.horario}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {/* 1. SECCIÓN: PARTIDOS JUGADOS */}
                 {(liveMatchesFilter === 'all' || liveMatchesFilter === 'jugados') && (
                   <div className="live-section-block">

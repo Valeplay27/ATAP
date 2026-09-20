@@ -81,7 +81,8 @@ export default function RegistroModal({ onClose }) {
               id="register-password"
               name="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Crea una contraseña"
+              placeholder="Mínimo 8 caracteres obligatorios"
+              minLength={8}
               autoComplete="new-password"
               required
             />

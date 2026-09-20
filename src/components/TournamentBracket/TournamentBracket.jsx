@@ -11,7 +11,9 @@ export default function TournamentBracket({
   onAssignPlayerToSlot,
   onSwapMatchSlots,
   onClearMatchSlot,
-  onAssignBye
+  onAssignBye,
+  onUpdateMatchHora,
+  onToggleMatchLive
 }) {
   const hasRounds = Boolean(bracket && bracket.rounds && bracket.rounds.length > 0)
   const hasGroups = Boolean(bracket && bracket.faseGrupos && bracket.faseGrupos.length > 0)
@@ -261,6 +263,7 @@ export default function TournamentBracket({
           <div className="bracket-rounds-wrapper">
             {bracket.rounds.map((round, rIndex) => {
               const isFirstRound = rIndex === 0
+              const isFinalRound = (round.name || '').toLowerCase().includes('final') && (round.matches?.length === 1 || rIndex === bracket.rounds.length - 1)
 
               return (
                 <div className="bracket-round-column" key={round.name || rIndex}>
@@ -302,17 +305,38 @@ export default function TournamentBracket({
                       return (
                         <div
                           key={match.id}
-                          className={'match-node-card' + (match.winnerSlot ? ' match-completed' : '') + (hasMatchConflict && !match.winnerSlot ? ' match-has-conflict' : '')}
+                          className={
+                            'match-node-card' +
+                            (match.winnerSlot ? ' match-completed' : '') +
+                            (hasMatchConflict && !match.winnerSlot ? ' match-has-conflict' : '') +
+                            (match.isLive ? ' match-is-live' : '') +
+                            (isFinalRound ? ' is-final-node' : '')
+                          }
                         >
                           <div className="match-node-header">
                             <div className="match-node-header-left">
                               <span>Match #{match.matchNum}</span>
+                              {isFinalRound && <span className="match-final-trophy-pill">🏆 Gran Final</span>}
+                              {match.isLive && (
+                                <span className="match-live-pulse-badge" title="Partido en transmisión directa">
+                                  <span className="live-dot-pulse" /> EN VIVO
+                                </span>
+                              )}
+                              {Boolean(match.hora && match.hora.trim()) && (
+                                <span className="match-time-chip" title="Hora definida por el Administrador">
+                                  🕒 {match.hora}
+                                </span>
+                              )}
                               {(match.isBye || match.score === 'BYE') && (
                                 <span className="match-bye-pill">⚡ BYE</span>
                               )}
                             </div>
                             {match.score && (
-                              <span className={`match-final-score ${match.score === 'BYE' || match.isBye ? 'is-bye-score' : ''}`}>
+                              <span
+                                className={`match-final-score ${
+                                  match.score === 'BYE' || match.isBye ? 'is-bye-score' : ''
+                                } ${match.isLive ? 'is-live-score' : ''}`}
+                              >
                                 {match.score}
                               </span>
                             )}
@@ -610,6 +634,21 @@ export default function TournamentBracket({
                                   </div>
                                 </div>
                               )}
+
+                              {isFinalRound && (
+                                <div className="final-admin-schedule-row">
+                                  <span className="final-time-label">🕒 Hora Final:</span>
+                                  <input
+                                    type="text"
+                                    className="input-final-time-quick"
+                                    placeholder="Escribe la hora deseada (ej. 4:00 PM, 16:30)"
+                                    value={match.hora || ''}
+                                    onChange={(e) => onUpdateMatchHora && onUpdateMatchHora(match.id, e.target.value)}
+                                    title="Escribe la hora como la requieras"
+                                  />
+                                </div>
+                              )}
+
                               {!match.winnerSlot && ((hasPlayer1 && (match.player2?.isBye || match.player2?.name === 'BYE')) || (hasPlayer2 && (match.player1?.isBye || match.player1?.name === 'BYE'))) && onAssignBye && (
                                 <button
                                   type="button"
@@ -619,15 +658,51 @@ export default function TournamentBracket({
                                   <Zap size={12} /> Confirmar Victoria por BYE
                                 </button>
                               )}
-                              {canScore && onOpenScoreModal && !((hasPlayer1 && (match.player2?.isBye || match.player2?.name === 'BYE')) || (hasPlayer2 && (match.player1?.isBye || match.player1?.name === 'BYE'))) && (
-                                <button
-                                  type="button"
-                                  className="btn-enter-score"
-                                  onClick={() => onOpenScoreModal(match)}
-                                >
-                                  <Flame size={12} /> Cargar Marcador
-                                </button>
+
+                              {match.isLive && onOpenScoreModal && (
+                                <div className="match-admin-live-row">
+                                  <button
+                                    type="button"
+                                    className="btn-enter-score btn-live-score-active"
+                                    onClick={() => onOpenScoreModal(match)}
+                                  >
+                                    <span className="live-dot-pulse" /> 🔴 Actualizar Marcador EN VIVO
+                                  </button>
+                                  {onToggleMatchLive && (
+                                    <button
+                                      type="button"
+                                      className="btn-toggle-live-ghost"
+                                      onClick={() => onToggleMatchLive(match.id, false)}
+                                      title="Pausar transmisión en vivo"
+                                    >
+                                      ⏸ Pausar En Vivo
+                                    </button>
+                                  )}
+                                </div>
                               )}
+
+                              {!match.isLive && canScore && onOpenScoreModal && !((hasPlayer1 && (match.player2?.isBye || match.player2?.name === 'BYE')) || (hasPlayer2 && (match.player1?.isBye || match.player1?.name === 'BYE'))) && (
+                                <div className="match-admin-btn-group">
+                                  <button
+                                    type="button"
+                                    className="btn-enter-score"
+                                    onClick={() => onOpenScoreModal(match)}
+                                  >
+                                    <Flame size={12} /> {isFinalRound ? 'Cargar Marcador / En Vivo' : 'Cargar Marcador'}
+                                  </button>
+                                  {isFinalRound && onToggleMatchLive && hasPlayer1 && hasPlayer2 && (
+                                    <button
+                                      type="button"
+                                      className="btn-quick-live-trigger"
+                                      onClick={() => onToggleMatchLive(match.id, true)}
+                                      title="Activar distintivo EN VIVO en este partido"
+                                    >
+                                      🔴 Activar En Vivo
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
                               {match.winnerSlot && onOpenScoreModal && (
                                 <button
                                   type="button"

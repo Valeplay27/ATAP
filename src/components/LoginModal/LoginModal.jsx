@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { X, User, UserPlus, Mail, MailCheck, Lock, ArrowRight, CheckCircle2, Phone, CreditCard, Eye, EyeOff } from 'lucide-react'
-import { getRegisteredUsers, saveRegisteredUser, isUserProfileIncomplete, maskDni } from '../../services/atapStorage'
+import { X, User, UserPlus, Mail, MailCheck, Lock, ArrowRight, CheckCircle2, Phone, CreditCard, Eye, EyeOff, KeyRound, MessageCircle, Check } from 'lucide-react'
+import { getRegisteredUsers, saveRegisteredUser, isUserProfileIncomplete, maskDni, getContactInfo, validateDailyRecoveryKey, resetUserPassword } from '../../services/atapStorage'
 import { authApi, setAuthToken } from '../../services/api'
 import './LoginModal.css'
 
@@ -16,6 +16,16 @@ export default function LoginModal({
   const [mostrarRegistro, setMostrarRegistro] = useState(initialRegister || Boolean(prefillData))
   const [correoEnviado, setCorreoEnviado] = useState(false)
   const [olvidoEnviado, setOlvidoEnviado] = useState(false)
+  // Modo de recuperación: null | 'pedir_codigo' | 'nueva_clave' | 'exito'
+  const [modoRecuperacion, setModoRecuperacion] = useState(null)
+  const [recupIdentificador, setRecupIdentificador] = useState('')
+  const [recupCodigoInput, setRecupCodigoInput] = useState('')
+  const [nuevaClaveInput, setNuevaClaveInput] = useState('')
+  const [confirmarNuevaClaveInput, setConfirmarNuevaClaveInput] = useState('')
+  const [showNuevaClave, setShowNuevaClave] = useState(false)
+  const [showConfirmarNuevaClave, setShowConfirmarNuevaClave] = useState(false)
+  const [recupError, setRecupError] = useState('')
+  const [recupTargetUser, setRecupTargetUser] = useState(null)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [usuarioRegistrado, setUsuarioRegistrado] = useState(null)
@@ -126,8 +136,8 @@ export default function LoginModal({
         return
       }
 
-      if (!password || password.length < 4) {
-        setError('La contraseña debe tener al menos 4 caracteres.')
+      if (!password || password.length < 8) {
+        setError('La contraseña debe tener al menos 8 caracteres obligatorios.')
         return
       }
 
@@ -290,8 +300,101 @@ export default function LoginModal({
 
   function handleOlvidoPassword(e) {
     e.preventDefault()
-    setOlvidoEnviado(true)
+    setError('')
+    setRecupError('')
+    setModoRecuperacion('pedir_codigo')
   }
+
+  function handleValidarCodigoRecuperacion(e) {
+    e.preventDefault()
+    setRecupError('')
+
+    const cleanId = (recupIdentificador || '').toString().trim().toLowerCase().replace(/\s+/g, '')
+    if (!cleanId) {
+      setRecupError('Por favor ingresa tu DNI o Correo electrónico.')
+      return
+    }
+
+    const cleanCode = (recupCodigoInput || '').toString().trim()
+    if (!cleanCode) {
+      setRecupError('Por favor ingresa la clave de recuperación proporcionada por el administrador.')
+      return
+    }
+
+    if (!validateDailyRecoveryKey(cleanCode)) {
+      setRecupError('La clave diaria ingresada no es válida o ha expirado. Solicítala al WhatsApp de administración.')
+      return
+    }
+
+    const users = getRegisteredUsers()
+    const target = users.find((u) => {
+      const uEmail = (u.email || '').toLowerCase().trim()
+      const uDni = (u.dni || u.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
+      const uDniClean = uDni.replace(/\*/g, '')
+      return (
+        uEmail === cleanId ||
+        uDni === cleanId ||
+        (cleanId.length >= 3 && uDni.endsWith(cleanId.slice(-3))) ||
+        (uDniClean && cleanId.includes(uDniClean))
+      )
+    })
+
+    if (!target) {
+      setRecupError('No se encontró ningún jugador registrado con este DNI o correo electrónico.')
+      return
+    }
+
+    setRecupTargetUser(target)
+    setRecupError('')
+    setModoRecuperacion('nueva_clave')
+  }
+
+  function handleGuardarNuevaClave(e) {
+    e.preventDefault()
+    setRecupError('')
+
+    const p1 = (nuevaClaveInput || '').toString().trim()
+    const p2 = (confirmarNuevaClaveInput || '').toString().trim()
+
+    if (!p1 || p1.length < 8) {
+      setRecupError('La contraseña debe tener al menos 8 caracteres obligatorios.')
+      return
+    }
+
+    if (p1 !== p2) {
+      setRecupError('Las contraseñas no coinciden. Por favor verifícalas.')
+      return
+    }
+
+    const result = resetUserPassword(recupIdentificador, p1, recupCodigoInput)
+    if (result.error) {
+      setRecupError(result.error)
+      return
+    }
+
+    // Sincronizar en background con backend MySQL si aplica
+    if (result.user?.email && result.user?.dni) {
+      authApi.register({
+        dni: result.user.dni,
+        nombre: result.user.nombre,
+        email: result.user.email,
+        password: p1,
+        telefono: result.user.telefono,
+        categoria: result.user.categoria
+      }).catch(() => {})
+    }
+
+    setUsuarioRegistrado(result.user)
+    setModoRecuperacion('exito')
+  }
+
+  const contactInfo = getContactInfo()
+  const waNumero = contactInfo?.whatsapp?.numero || '+51 977 884 423'
+  const waDigits = waNumero.replace(/\D/g, '') || '51977884423'
+  const waMsg = encodeURIComponent(
+    `Hola ATAP, olvidé mi contraseña de mi cuenta de jugador${recupIdentificador ? ` (${recupIdentificador})` : ''}. Por favor envíenme la clave diaria de recuperación para restablecerla.`
+  )
+  const waUrl = `https://wa.me/${waDigits}?text=${waMsg}`
 
   return (
     <div className="login-modal-backdrop" onMouseDown={onClose}>
@@ -335,22 +438,209 @@ export default function LoginModal({
               <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
-        ) : olvidoEnviado ? (
-          <div style={{ textAlign: 'center', padding: '15px 0' }}>
-            <div className="login-modal-icon" style={{ margin: '0 auto 18px' }} aria-hidden="true">
+        ) : modoRecuperacion === 'pedir_codigo' ? (
+          <div className="recovery-flow-wrapper">
+            <div className="login-modal-icon" aria-hidden="true">
+              <KeyRound size={26} />
+            </div>
+            <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Recuperación Oficial ATAP</p>
+            <h2 id="login-title">¿OLVIDASTE TU CLAVE?</h2>
+            <p className="login-modal-description">
+              Solicita tu <strong>Clave Diaria de Recuperación</strong> al WhatsApp de administración para autorizar el cambio de tu contraseña.
+            </p>
+
+            {recupError && (
+              <div className="login-error-message" role="alert">
+                {recupError}
+              </div>
+            )}
+
+            <div className="recovery-whatsapp-box">
+              <div className="recovery-wa-info">
+                <div className="wa-icon-bubble">
+                  <MessageCircle size={20} />
+                </div>
+                <div>
+                  <div className="recovery-wa-label">WhatsApp de Atención ATAP</div>
+                  <div className="recovery-wa-number">{waNumero}</div>
+                </div>
+              </div>
+              <p className="recovery-wa-help">
+                El administrador te proporcionará la clave activa de hoy (máximo 9 dígitos).
+              </p>
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="recovery-wa-btn"
+              >
+                <MessageCircle size={17} />
+                <span>Solicitar Clave por WhatsApp</span>
+              </a>
+            </div>
+
+            <form className="login-form" onSubmit={handleValidarCodigoRecuperacion}>
+              <div className="login-form-group">
+                <label htmlFor="recup-identificador">DNI o Correo electrónico</label>
+                <div className="login-input-wrap">
+                  <User size={16} aria-hidden="true" />
+                  <input
+                    id="recup-identificador"
+                    type="text"
+                    placeholder="Ej: 72345678 o tu@correo.com"
+                    value={recupIdentificador}
+                    onChange={(e) => setRecupIdentificador(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="login-form-group">
+                <label htmlFor="recup-codigo">Clave Diaria del Administrador (Máx. 9 dígitos)</label>
+                <div className="login-input-wrap">
+                  <Lock size={16} aria-hidden="true" />
+                  <input
+                    id="recup-codigo"
+                    type="text"
+                    maxLength={9}
+                    placeholder="Ej: 84920173"
+                    value={recupCodigoInput}
+                    onChange={(e) => setRecupCodigoInput(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                    style={{ letterSpacing: '2px', fontWeight: 'bold' }}
+                    required
+                  />
+                </div>
+              </div>
+
+              <button className="login-submit" type="submit" style={{ marginTop: '8px' }}>
+                Validar y Continuar
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+
+              <button
+                type="button"
+                className="btn-recovery-back"
+                onClick={() => {
+                  setModoRecuperacion(null)
+                  setRecupError('')
+                }}
+              >
+                Volver a Iniciar Sesión
+              </button>
+            </form>
+          </div>
+        ) : modoRecuperacion === 'nueva_clave' ? (
+          <div className="recovery-flow-wrapper">
+            <div className="login-modal-icon" aria-hidden="true">
               <Lock size={26} />
             </div>
-            <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Recuperación de cuenta</p>
-            <h2 id="login-title">ENLACE ENVIADO</h2>
+            <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Seguridad del Jugador</p>
+            <h2 id="login-title" className="nueva-clave-title">NUEVA CLAVE</h2>
+            <p className="login-modal-description">
+              Ingresa tu nueva contraseña para <strong>{recupTargetUser?.nombre || recupIdentificador}</strong>. La clave debe tener al menos 8 caracteres obligatorios.
+            </p>
+
+            {recupError && (
+              <div className="login-error-message" role="alert">
+                {recupError}
+              </div>
+            )}
+
+            <form className="login-form" onSubmit={handleGuardarNuevaClave}>
+              <div className="login-form-group">
+                <label htmlFor="nueva-clave">Nueva Contraseña</label>
+                <div className="login-input-wrap">
+                  <Lock size={16} aria-hidden="true" />
+                  <input
+                    id="nueva-clave"
+                    type={showNuevaClave ? 'text' : 'password'}
+                    placeholder="Mínimo 8 caracteres obligatorios"
+                    minLength={8}
+                    value={nuevaClaveInput}
+                    onChange={(e) => setNuevaClaveInput(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowNuevaClave(!showNuevaClave)}
+                    aria-label={showNuevaClave ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  >
+                    {showNuevaClave ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="login-form-group">
+                <label htmlFor="confirmar-nueva-clave">Confirmar Nueva Contraseña</label>
+                <div className="login-input-wrap">
+                  <Lock size={16} aria-hidden="true" />
+                  <input
+                    id="confirmar-nueva-clave"
+                    type={showConfirmarNuevaClave ? 'text' : 'password'}
+                    placeholder="Repite tu nueva contraseña"
+                    minLength={8}
+                    value={confirmarNuevaClaveInput}
+                    onChange={(e) => setConfirmarNuevaClaveInput(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowConfirmarNuevaClave(!showConfirmarNuevaClave)}
+                    aria-label={showConfirmarNuevaClave ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  >
+                    {showConfirmarNuevaClave ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="recovery-rules-pill">
+                <Check size={14} color={nuevaClaveInput.length >= 8 ? '#00CFA0' : '#8E9BAE'} />
+                <span style={{ color: nuevaClaveInput.length >= 8 ? '#008764' : '#64727A' }}>
+                  8 caracteres obligatorios ({nuevaClaveInput.length}/8)
+                </span>
+              </div>
+
+              <button className="login-submit" type="submit" style={{ marginTop: '10px' }}>
+                Guardar Nueva Clave
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+
+              <button
+                type="button"
+                className="btn-recovery-back"
+                onClick={() => {
+                  setModoRecuperacion(null)
+                  setRecupError('')
+                }}
+              >
+                Cancelar
+              </button>
+            </form>
+          </div>
+        ) : modoRecuperacion === 'exito' ? (
+          <div style={{ textAlign: 'center', padding: '15px 0', width: '100%' }}>
+            <div className="login-modal-icon" style={{ margin: '0 auto 18px', background: '#DDF8EF', color: '#008764' }} aria-hidden="true">
+              <CheckCircle2 size={28} />
+            </div>
+            <p className="login-modal-kicker" style={{ color: '#00CFA0' }}>Recuperación Exitosa</p>
+            <h2 id="login-title">¡CONTRASEÑA ACTUALIZADA!</h2>
             <p className="login-modal-description" style={{ margin: '0 auto 24px' }}>
-              Si el correo está registrado, recibirás un enlace seguro para restablecer tu contraseña en los próximos minutos.
+              Tu nueva clave de acceso ha sido guardada correctamente. Ya puedes comenzar a competir e interactuar en el circuito ATAP.
             </p>
             <button
               className="login-submit"
               type="button"
-              onClick={() => setOlvidoEnviado(false)}
+              onClick={() => {
+                if (usuarioRegistrado && onLogin) {
+                  onLogin(usuarioRegistrado)
+                }
+                onClose()
+              }}
             >
-              Volver a iniciar sesión
+              Comenzar a Jugar
+              <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
         ) : (
@@ -466,7 +756,8 @@ export default function LoginModal({
                         id="register-password"
                         name="password"
                         type={showRegPassword ? 'text' : 'password'}
-                        placeholder="Mínimo 4 caracteres"
+                        placeholder="Mínimo 8 caracteres obligatorios"
+                        minLength={8}
                         value={regPassword}
                         onChange={(e) => setRegPassword(e.target.value)}
                         autoComplete="new-password"
