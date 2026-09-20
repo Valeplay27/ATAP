@@ -241,7 +241,8 @@ export default function PlayerOnboardingModal({
       rol: 'Jugador ATAP',
       iniciales: iniciales,
       completadoOnboarding: true,
-      titulosGanados: formData.titulosGanados || '0',
+      titulosGanados: Math.max(0, parseInt(formData.titulosGanados, 10) || 0),
+      titulos: Math.max(0, parseInt(formData.titulosGanados, 10) || 0),
       zonas: formData.zonas && formData.zonas.length > 0 ? formData.zonas : ['Lima Centro'],
       manoDominante: formData.manoDominante || 'Diestro',
       disponibilidad: formData.disponibilidad && formData.disponibilidad.length > 0 ? formData.disponibilidad : ['SAB', 'DOM']
@@ -682,22 +683,39 @@ export default function PlayerOnboardingModal({
             <div className="onboarding-block">
               <span className="onboarding-field-tag">TÍTULOS GANADOS</span>
               <div className="onboarding-trajectory-grid">
-                {['0', '1', '2', '2+'].map((t) => (
+                {['0', '1', '2', '3'].map((t) => (
                   <button
                     key={t}
                     type="button"
-                    className={`trajectory-card ${formData.titulosGanados === t ? 'selected' : ''}`}
+                    className={`trajectory-card ${String(formData.titulosGanados) === t ? 'selected' : ''}`}
                     onClick={() => updateField('titulosGanados', t)}
                   >
-                    {t === '2+' ? (
-                      <span className="trajectory-trophy-label">
-                        2+ <span role="img" aria-label="Trofeo">🏆</span>
-                      </span>
-                    ) : (
-                      t
-                    )}
+                    {t}
                   </button>
                 ))}
+              </div>
+              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>O escribe la cantidad exacta:</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  value={formData.titulosGanados ?? ''}
+                  onChange={(e) => updateField('titulosGanados', e.target.value.replace(/\D/g, ''))}
+                  style={{
+                    width: '84px',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(0, 207, 160, 0.4)',
+                    background: 'rgba(0, 24, 39, 0.6)',
+                    color: '#00CFA0',
+                    fontWeight: '700',
+                    fontSize: '15px',
+                    textAlign: 'center'
+                  }}
+                />
+                <span style={{ fontSize: '13px', color: '#FFD700', fontWeight: '700' }}>🏆 títulos</span>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import { Trophy, Check, Flame, Users, Calendar } from 'lucide-react'
+import { Trophy, Check, Flame, Users, Calendar, Zap } from 'lucide-react'
 import './TournamentBracket.css'
 
 export default function TournamentBracket({
@@ -10,7 +10,8 @@ export default function TournamentBracket({
   availableGroupPlayers = [],
   onAssignPlayerToSlot,
   onSwapMatchSlots,
-  onClearMatchSlot
+  onClearMatchSlot,
+  onAssignBye
 }) {
   const hasRounds = Boolean(bracket && bracket.rounds && bracket.rounds.length > 0)
   const hasGroups = Boolean(bracket && bracket.faseGrupos && bracket.faseGrupos.length > 0)
@@ -20,6 +21,7 @@ export default function TournamentBracket({
 
   const arePlayersMatching = (p1, p2) => {
     if (!p1 || !p2) return false
+    if (p1.isBye || p2.isBye || p1.id === 'bye' || p2.id === 'bye' || p1.name === 'BYE' || p2.name === 'BYE') return false
     const id1 = p1.id
     const id2 = p2.id
     if (id1 && id2 && id1 === id2) return true
@@ -107,7 +109,7 @@ export default function TournamentBracket({
 
   // Detectar si un jugador está asignado en más de un partido de la ronda
   const isPlayerDuplicatedInRound = (player, currentMatchId) => {
-    if (!player || !bracket?.rounds?.[0]?.matches) return false
+    if (!player || player.isBye || player.id === 'bye' || player.name === 'BYE' || !bracket?.rounds?.[0]?.matches) return false
     const matches = bracket.rounds[0].matches
     for (const m of matches) {
       if (m.id === currentMatchId) continue
@@ -303,41 +305,98 @@ export default function TournamentBracket({
                           className={'match-node-card' + (match.winnerSlot ? ' match-completed' : '') + (hasMatchConflict && !match.winnerSlot ? ' match-has-conflict' : '')}
                         >
                           <div className="match-node-header">
-                            <span>Match #{match.matchNum}</span>
-                            {match.score && <span className="match-final-score">{match.score}</span>}
+                            <div className="match-node-header-left">
+                              <span>Match #{match.matchNum}</span>
+                              {(match.isBye || match.score === 'BYE') && (
+                                <span className="match-bye-pill">⚡ BYE</span>
+                              )}
+                            </div>
+                            {match.score && (
+                              <span className={`match-final-score ${match.score === 'BYE' || match.isBye ? 'is-bye-score' : ''}`}>
+                                {match.score}
+                              </span>
+                            )}
                           </div>
 
                           <div className="match-participants">
                             {/* SLOT 1 */}
                             {isInteractive && isAdmin && isFirstRound && !hasPlayer1 && onAssignPlayerToSlot ? (
                               <div className="player-slot is-unassigned-interactive">
-                                <select
-                                  className="slot-interactive-picker"
-                                  value=""
-                                  onChange={(e) => {
-                                    if (e.target.value) {
-                                      onAssignPlayerToSlot(match.id, 1, e.target.value)
-                                    }
-                                  }}
-                                >
-                                  <option value="">+ Asignar jugador de grupo...</option>
-                                  {groupsList.map((g) => (
-                                    <optgroup key={g.id} label={g.nombre}>
-                                      {(g.participantes || []).map((p) => {
-                                        const status = getPlayerAssignmentStatus(p, match.id, 1)
-                                        return (
-                                          <option
-                                            key={p.id}
-                                            value={p.id}
-                                            disabled={!status.isAvailable}
-                                          >
-                                            {status.label}
-                                          </option>
-                                        )
-                                      })}
-                                    </optgroup>
-                                  ))}
-                                </select>
+                                <div className="slot-picker-wrap">
+                                  <select
+                                    className="slot-interactive-picker"
+                                    value=""
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        onAssignPlayerToSlot(match.id, 1, e.target.value)
+                                      }
+                                    }}
+                                  >
+                                    <option value="">+ Asignar jugador de grupo...</option>
+                                    <option value="__BYE__">⚡ Asignar BYE (Pase Libre)</option>
+                                    {groupsList.map((g) => (
+                                      <optgroup key={g.id} label={g.nombre}>
+                                        {(g.participantes || []).map((p) => {
+                                          const status = getPlayerAssignmentStatus(p, match.id, 1)
+                                          return (
+                                            <option
+                                              key={p.id}
+                                              value={p.id}
+                                              disabled={!status.isAvailable}
+                                            >
+                                              {status.label}
+                                            </option>
+                                          )
+                                        })}
+                                      </optgroup>
+                                    ))}
+                                  </select>
+                                  {hasPlayer2 && !match.player2?.isBye && onAssignBye && (
+                                    <button
+                                      type="button"
+                                      className="btn-quick-give-bye"
+                                      title={`Otorgar victoria por BYE a ${match.player2.name}`}
+                                      onClick={() => onAssignBye(match, 1)}
+                                    >
+                                      <Zap size={11} /> Dar BYE
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ) : match.player1?.isBye || match.player1?.name === 'BYE' ? (
+                              <div
+                                className={
+                                  'player-slot is-bye-slot' +
+                                  (match.winnerSlot === 1
+                                    ? ' is-winner'
+                                    : match.winnerSlot === 2
+                                    ? ' is-loser'
+                                    : '')
+                                }
+                              >
+                                <div className="player-slot-info">
+                                  <div className="player-slot-name-row">
+                                    <span className="slot-bye-tag">⚡ BYE</span>
+                                    <span className="player-slot-name is-bye-text">Pase Libre</span>
+                                  </div>
+                                  <span className="player-slot-cat">Avanza contrincante</span>
+                                </div>
+                                <div className="slot-right-actions">
+                                  {isInteractive &&
+                                    isAdmin &&
+                                    isFirstRound &&
+                                    !match.winnerSlot &&
+                                    onClearMatchSlot && (
+                                      <button
+                                        type="button"
+                                        className="btn-clear-slot"
+                                        title="Quitar BYE"
+                                        onClick={() => onClearMatchSlot(match.id, 1)}
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                </div>
                               </div>
                             ) : (
                               <div
@@ -411,33 +470,81 @@ export default function TournamentBracket({
                             {/* SLOT 2 */}
                             {isInteractive && isAdmin && isFirstRound && !hasPlayer2 && onAssignPlayerToSlot ? (
                               <div className="player-slot is-unassigned-interactive">
-                                <select
-                                  className="slot-interactive-picker"
-                                  value=""
-                                  onChange={(e) => {
-                                    if (e.target.value) {
-                                      onAssignPlayerToSlot(match.id, 2, e.target.value)
-                                    }
-                                  }}
-                                >
-                                  <option value="">+ Asignar jugador de grupo...</option>
-                                  {groupsList.map((g) => (
-                                    <optgroup key={g.id} label={g.nombre}>
-                                      {(g.participantes || []).map((p) => {
-                                        const status = getPlayerAssignmentStatus(p, match.id, 2)
-                                        return (
-                                          <option
-                                            key={p.id}
-                                            value={p.id}
-                                            disabled={!status.isAvailable}
-                                          >
-                                            {status.label}
-                                          </option>
-                                        )
-                                      })}
-                                    </optgroup>
-                                  ))}
-                                </select>
+                                <div className="slot-picker-wrap">
+                                  <select
+                                    className="slot-interactive-picker"
+                                    value=""
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        onAssignPlayerToSlot(match.id, 2, e.target.value)
+                                      }
+                                    }}
+                                  >
+                                    <option value="">+ Asignar jugador de grupo...</option>
+                                    <option value="__BYE__">⚡ Asignar BYE (Pase Libre)</option>
+                                    {groupsList.map((g) => (
+                                      <optgroup key={g.id} label={g.nombre}>
+                                        {(g.participantes || []).map((p) => {
+                                          const status = getPlayerAssignmentStatus(p, match.id, 2)
+                                          return (
+                                            <option
+                                              key={p.id}
+                                              value={p.id}
+                                              disabled={!status.isAvailable}
+                                            >
+                                              {status.label}
+                                            </option>
+                                          )
+                                        })}
+                                      </optgroup>
+                                    ))}
+                                  </select>
+                                  {hasPlayer1 && !match.player1?.isBye && onAssignBye && (
+                                    <button
+                                      type="button"
+                                      className="btn-quick-give-bye"
+                                      title={`Otorgar victoria por BYE a ${match.player1.name}`}
+                                      onClick={() => onAssignBye(match, 2)}
+                                    >
+                                      <Zap size={11} /> Dar BYE
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ) : match.player2?.isBye || match.player2?.name === 'BYE' ? (
+                              <div
+                                className={
+                                  'player-slot is-bye-slot' +
+                                  (match.winnerSlot === 2
+                                    ? ' is-winner'
+                                    : match.winnerSlot === 1
+                                    ? ' is-loser'
+                                    : '')
+                                }
+                              >
+                                <div className="player-slot-info">
+                                  <div className="player-slot-name-row">
+                                    <span className="slot-bye-tag">⚡ BYE</span>
+                                    <span className="player-slot-name is-bye-text">Pase Libre</span>
+                                  </div>
+                                  <span className="player-slot-cat">Avanza contrincante</span>
+                                </div>
+                                <div className="slot-right-actions">
+                                  {isInteractive &&
+                                    isAdmin &&
+                                    isFirstRound &&
+                                    !match.winnerSlot &&
+                                    onClearMatchSlot && (
+                                      <button
+                                        type="button"
+                                        className="btn-clear-slot"
+                                        title="Quitar BYE"
+                                        onClick={() => onClearMatchSlot(match.id, 2)}
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                </div>
                               </div>
                             ) : (
                               <div
@@ -503,7 +610,16 @@ export default function TournamentBracket({
                                   </div>
                                 </div>
                               )}
-                              {canScore && onOpenScoreModal && (
+                              {!match.winnerSlot && ((hasPlayer1 && (match.player2?.isBye || match.player2?.name === 'BYE')) || (hasPlayer2 && (match.player1?.isBye || match.player1?.name === 'BYE'))) && onAssignBye && (
+                                <button
+                                  type="button"
+                                  className="btn-enter-score btn-bye-highlight"
+                                  onClick={() => onAssignBye(match, (match.player1?.isBye || match.player1?.name === 'BYE') ? 1 : 2)}
+                                >
+                                  <Zap size={12} /> Confirmar Victoria por BYE
+                                </button>
+                              )}
+                              {canScore && onOpenScoreModal && !((hasPlayer1 && (match.player2?.isBye || match.player2?.name === 'BYE')) || (hasPlayer2 && (match.player1?.isBye || match.player1?.name === 'BYE'))) && (
                                 <button
                                   type="button"
                                   className="btn-enter-score"
@@ -518,7 +634,7 @@ export default function TournamentBracket({
                                   className="btn-edit-score"
                                   onClick={() => onOpenScoreModal(match)}
                                 >
-                                  Editar Marcador ({match.score})
+                                  {match.score === 'BYE' || match.isBye ? '⚡ Editar BYE / Puntos' : `Editar Marcador (${match.score})`}
                                 </button>
                               )}
                             </div>

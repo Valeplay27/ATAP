@@ -40,7 +40,12 @@ import {
   Lock,
   ScrollText,
   UserPlus,
-  UserCheck
+  UserCheck,
+  PhoneCall,
+  MessageSquare,
+  MapPin,
+  Mail,
+  Zap
 } from 'lucide-react'
 import {
   getTournaments,
@@ -48,6 +53,7 @@ import {
   updateRegistrationStatus,
   generateTournamentBracket,
   recordMatchResult,
+  recordByeMatch,
   getRanking,
   updatePlayerAvatar,
   getSiteImages,
@@ -92,11 +98,17 @@ import {
   deleteRegisteredUser,
   addPlayerToTournamentBank,
   maskDni,
+  getHomeBanners,
+  saveHomeBanners,
+  getContactInfo,
+  saveContactInfo,
+  resetContactInfo,
   getAssetUrl,
   handleImageFallback
 } from '../../services/atapStorage'
 import { api, playerApi, tournamentApi, rankingApi, contentApi } from '../../services/api'
 import TournamentBracket from '../../components/TournamentBracket/TournamentBracket'
+import { Link } from 'react-router-dom'
 import './Admin.css'
 
 export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }) {
@@ -107,6 +119,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [heroSlides, setHeroSlides] = useState([])
   const [sponsors, setSponsors] = useState([])
   const [sponsorUrlInputs, setSponsorUrlInputs] = useState({})
+  const [homeBanners, setHomeBanners] = useState(() => getHomeBanners())
+  const [homeBannerInputs, setHomeBannerInputs] = useState(() => getHomeBanners())
 
   // Selected tournament for tabs
   const [selectedTourneyId, setSelectedTourneyId] = useState('')
@@ -125,6 +139,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [selectedPolicyIndex, setSelectedPolicyIndex] = useState(0)
   const [isSavingPolicies, setIsSavingPolicies] = useState(false)
   const [hasPoliciesChanges, setHasPoliciesChanges] = useState(false)
+
+  // Contact and Support info state
+  const [contactInfo, setContactInfo] = useState(() => getContactInfo())
+  const [contactInputs, setContactInputs] = useState(() => getContactInfo())
+  const [isSavingContact, setIsSavingContact] = useState(false)
 
   // Price edits state: { [tournamentId]: priceNumber }
   const [priceInputs, setPriceInputs] = useState({})
@@ -193,6 +212,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [manualGroups, setManualGroups] = useState([])
   const [draggedPlayer, setDraggedPlayer] = useState(null)
   const [playoffSize, setPlayoffSize] = useState(4)
+  const [byeModalData, setByeModalData] = useState(null)
+  const [byePointsAward, setByePointsAward] = useState(100)
 
   // News / Community state
   const [newsList, setNewsList] = useState([])
@@ -223,8 +244,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     dni: '',
     categoria: '4ta',
     puntos: 0,
+    titulosGanados: 0,
     telefono: '',
     email: '',
+    instagram: '',
     image: '/assets/logo.png'
   })
   const [isEditingExistingPlayer, setIsEditingExistingPlayer] = useState(false)
@@ -275,6 +298,38 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setActiveSeasonYear(getActiveSeasonYear())
     setSeasonsList(getAvailableSeasons())
     setPoliciesList(getPoliciesAndRules())
+
+    const hb = getHomeBanners()
+    setHomeBanners(hb)
+    setHomeBannerInputs(hb)
+
+    const ci = getContactInfo()
+    setContactInfo(ci)
+    setContactInputs(ci)
+  }
+
+  function handleSaveContactSettings() {
+    setIsSavingContact(true)
+    try {
+      const saved = saveContactInfo(contactInputs)
+      setContactInfo(saved)
+      setContactInputs(saved)
+      showToast('¡Información de contacto, sedes y atención guardada exitosamente!')
+    } catch (e) {
+      console.error('Error saving contact settings:', e)
+      showToast('Error al guardar la información de contacto.')
+    } finally {
+      setIsSavingContact(false)
+    }
+  }
+
+  function handleResetContactSettings() {
+    if (window.confirm('¿Estás seguro de restablecer los datos de contacto y sedes a los valores oficiales predeterminados?')) {
+      const reset = resetContactInfo()
+      setContactInfo(reset)
+      setContactInputs(reset)
+      showToast('Datos de contacto restablecidos a los valores oficiales.')
+    }
   }
 
   function handleUpdatePolicyField(index, field, value) {
@@ -402,9 +457,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               <span>Iniciar Sesión</span>
             </button>
 
-            <a href="/" className="back-home-link">
+            <Link to="/" className="back-home-link">
               ← Volver al sitio principal
-            </a>
+            </Link>
           </div>
         </div>
       </main>
@@ -463,13 +518,16 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     )
   }
 
-  // Sync manualGroups with currentTourney
+  // Sync manualGroups and playoffSize with currentTourney
   useEffect(() => {
     if (!currentTourney) return
     if (currentTourney.bracket?.faseGrupos && currentTourney.bracket.faseGrupos.length > 0) {
       setManualGroups(JSON.parse(JSON.stringify(currentTourney.bracket.faseGrupos)))
     } else {
       setManualGroups(createDefaultGroups(currentTourney))
+    }
+    if (currentTourney.bracket?.size) {
+      setPlayoffSize(Number(currentTourney.bracket.size))
     }
   }, [selectedTourneyId, currentTourney?.id])
 
@@ -630,12 +688,76 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     })
     if (!res.error) {
       setTournaments(getTournaments())
-      showToast(`Estructura de eliminatorias cambiada a ${sizeNum} clasificados (${sizeNum === 8 ? 'Cuartos de final' : 'Semifinales'}).`)
+      const sizeLabels = {
+        4: 'Semifinales',
+        8: 'Cuartos de final',
+        16: 'Octavos de final',
+        32: 'Dieciseisavos de final',
+        64: '32-avos de final'
+      }
+      showToast(`Estructura de eliminatorias cambiada a ${sizeNum} clasificados (${sizeLabels[sizeNum] || 'Eliminatorias'}).`)
     }
   }
 
   function handleAssignPlayerToMatchSlot(matchId, slotNum, playerId) {
     if (!currentTourney) return
+
+    const currentRounds = currentTourney.bracket?.rounds?.length
+      ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
+      : generateKnockoutStructure(playoffSize)
+
+    const firstRound = currentRounds[0]
+    if (!firstRound) return
+
+    const targetMatch = (firstRound.matches || []).find((m) => m.id === matchId)
+    if (!targetMatch) return
+
+    // CASO ESPECIAL: ASIGNACIÓN DE BYE (PASE LIBRE)
+    if (playerId === '__BYE__' || playerId === 'bye') {
+      const oppositePlayer = slotNum === 1 ? targetMatch.player2 : targetMatch.player1
+      const byeData = {
+        id: 'bye',
+        name: 'BYE',
+        nombre: 'BYE',
+        categoria: 'Pase Libre',
+        grupoNombre: 'Pase Libre',
+        isBye: true
+      }
+
+      if (slotNum === 1) targetMatch.player1 = byeData
+      else targetMatch.player2 = byeData
+
+      // Si la casilla contraria ya tiene un jugador real, abrir modal para confirmar victoria por BYE y puntos
+      if (oppositePlayer && !oppositePlayer.isBye && oppositePlayer.name !== 'BYE') {
+        const oppSlot = slotNum === 1 ? 2 : 1
+        setByeModalData({
+          match: targetMatch,
+          winnerSlot: oppSlot,
+          byeSlot: slotNum,
+          player: oppositePlayer
+        })
+        setByePointsAward(100)
+        return
+      }
+
+      // Si la otra casilla aún está vacía, guardar la casilla como BYE
+      targetMatch.score = ''
+      targetMatch.winnerSlot = null
+      targetMatch.winnerName = null
+      targetMatch.isBye = false
+
+      const res = saveManualFixture(currentTourney.id, {
+        faseGrupos: manualGroups,
+        rounds: currentRounds,
+        size: playoffSize
+      })
+      if (!res.error) {
+        setTournaments(getTournaments())
+        showToast(`⚡ Casilla ${slotNum} del Match #${targetMatch.matchNum} asignada como BYE (Pase Libre).`)
+      }
+      return
+    }
+
     let foundPlayer = null
     let foundGroup = null
     for (const g of manualGroups) {
@@ -648,16 +770,6 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
     if (!foundPlayer) return
 
-    const currentRounds = currentTourney.bracket?.rounds?.length
-      ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
-      : generateKnockoutStructure(playoffSize)
-
-    const firstRound = currentRounds[0]
-    if (!firstRound) return
-
-    const targetMatch = (firstRound.matches || []).find((m) => m.id === matchId)
-    if (!targetMatch) return
-
     const norm = (str) => (str || '').trim().toLowerCase()
     const pId = foundPlayer.id
     const pName = norm(foundPlayer.nombre)
@@ -665,6 +777,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     const isMatch = (target) => {
       if (!target) return false
+      if (target.isBye || target.id === 'bye' || target.name === 'BYE') return false
       if (pId && target.id && pId === target.id) return true
       if (pDni && target.dni && pDni === (target.dni || '').toString().trim()) return true
       if (pName && target.name && pName === norm(target.name)) return true
@@ -706,6 +819,18 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       targetMatch.player2 = playerData
     }
 
+    // Si la casilla contraria ya es BYE, abrir modal para confirmar puntos y victoria por BYE!
+    if (oppositePlayer && (oppositePlayer.isBye || oppositePlayer.name === 'BYE')) {
+      setByeModalData({
+        match: targetMatch,
+        winnerSlot: slotNum,
+        byeSlot: slotNum === 1 ? 2 : 1,
+        player: playerData
+      })
+      setByePointsAward(100)
+      return
+    }
+
     targetMatch.score = ''
     targetMatch.winnerSlot = null
     targetMatch.winnerName = null
@@ -718,6 +843,39 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     if (!res.error) {
       setTournaments(getTournaments())
       showToast(`🎾 ${foundPlayer.nombre} (${foundGroup?.nombre || 'Grupo'}) asignado al Match #${targetMatch.matchNum}.`)
+    }
+  }
+
+  function handleOpenByeModal(match, byeSlot) {
+    if (!currentTourney || !match) return
+    const targetSlot = Number(byeSlot) || 2
+    const winnerSlot = targetSlot === 1 ? 2 : 1
+    const realPlayer = winnerSlot === 1 ? match.player1 : match.player2
+    if (!realPlayer || realPlayer.isBye || realPlayer.name === 'BYE') {
+      showToast('⚠️ Asigna primero al jugador en la casilla contraria para otorgarle la victoria por BYE.')
+      return
+    }
+    setByeModalData({
+      match,
+      winnerSlot,
+      byeSlot: targetSlot,
+      player: realPlayer
+    })
+    setByePointsAward(100)
+  }
+
+  function handleConfirmBye() {
+    if (!byeModalData || !currentTourney) return
+    const { match, winnerSlot, player } = byeModalData
+    const points = Math.max(0, parseInt(byePointsAward, 10) || 0)
+
+    const res = recordByeMatch(currentTourney.id, match.id, winnerSlot, points)
+    if (res.error) {
+      showToast(res.error)
+    } else {
+      setTournaments(getTournaments())
+      showToast(`¡Pase libre (BYE) asignado a ${player.name}! Avanzó a la siguiente ronda con +${points} pts de ranking.`)
+      setByeModalData(null)
     }
   }
 
@@ -734,6 +892,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
         const temp = match.player1
         match.player1 = match.player2
         match.player2 = temp
+        if (match.winnerSlot === 1) match.winnerSlot = 2
+        else if (match.winnerSlot === 2) match.winnerSlot = 1
         updated = true
         break
       }
@@ -767,6 +927,19 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
         match.score = ''
         match.winnerSlot = null
         match.winnerName = null
+        match.isBye = false
+
+        // Si este partido avanzó a un jugador a la siguiente ronda, retirarlo de la siguiente ronda
+        if (match.nextMatchId) {
+          for (const nextR of currentRounds) {
+            const nextMatch = (nextR.matches || []).find((nm) => nm.id === match.nextMatchId)
+            if (nextMatch && !nextMatch.winnerSlot) {
+              if (match.nextSlot === 1) nextMatch.player1 = null
+              else if (match.nextSlot === 2) nextMatch.player2 = null
+            }
+          }
+        }
+
         updated = true
         break
       }
@@ -1028,7 +1201,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const norm = (str) => (str || '').trim().toLowerCase()
 
     if (
-      p1 && p2 &&
+      p1 && p2 && !p1.isBye && !p2.isBye && p1.name !== 'BYE' && p2.name !== 'BYE' &&
       ((p1.id && p2.id && p1.id === p2.id) ||
        (p1.name && p2.name && norm(p1.name) === norm(p2.name)) ||
        (p1.dni && p2.dni && (p1.dni + '').trim() === (p2.dni + '').trim()))
@@ -1037,8 +1210,27 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       return
     }
 
+    const isByeMode = set1Score === 'BYE' || scoreModalMatch.isBye || p1?.isBye || p2?.isBye
+    if (isByeMode) {
+      const winner = winnerSlot === 1 ? p1 : p2
+      const res = recordByeMatch(
+        currentTourney.id,
+        scoreModalMatch.id,
+        winnerSlot,
+        Number(pointsAwardInput) || 0
+      )
+      if (res.error) {
+        showToast(res.error)
+      } else {
+        setTournaments(getTournaments())
+        showToast(`¡Victoria por BYE guardada para ${winner?.name || 'el ganador'}! Avanzó a la siguiente ronda con +${pointsAwardInput} pts.`)
+        setScoreModalMatch(null)
+      }
+      return
+    }
+
     const parts = [set1Score, set2Score, set3Score].filter(Boolean)
-    const scoreStr = parts.join(', ')
+    const scoreStr = parts.join(', ') || '6-4, 6-3'
 
     const res = recordMatchResult(
       currentTourney.id,
@@ -1051,6 +1243,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     if (res.error) {
       showToast(res.error)
     } else {
+      setTournaments(getTournaments())
       showToast('¡Marcador guardado! El ganador avanzó y se sumaron los puntos al ranking.')
       setScoreModalMatch(null)
     }
@@ -1059,10 +1252,27 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   // Handler: Open Score Modal from bracket
   function handleOpenScoreModal(match) {
     setScoreModalMatch(match)
-    setWinnerSlot(1)
-    setSet1Score('6-4')
-    setSet2Score('6-3')
-    setSet3Score('')
+    if (match.player1?.isBye || match.player1?.name === 'BYE') {
+      setWinnerSlot(2)
+      setSet1Score('BYE')
+      setSet2Score('')
+      setSet3Score('')
+    } else if (match.player2?.isBye || match.player2?.name === 'BYE') {
+      setWinnerSlot(1)
+      setSet1Score('BYE')
+      setSet2Score('')
+      setSet3Score('')
+    } else if (match.score === 'BYE' || match.isBye) {
+      setWinnerSlot(match.winnerSlot || 1)
+      setSet1Score('BYE')
+      setSet2Score('')
+      setSet3Score('')
+    } else {
+      setWinnerSlot(match.winnerSlot || 1)
+      setSet1Score('6-4')
+      setSet2Score('6-3')
+      setSet3Score('')
+    }
     setPointsAwardInput(match.nextMatchId ? 100 : 250)
   }
 
@@ -1158,6 +1368,65 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const updated = deleteSponsor(sponsorId)
     setSponsors(updated)
     showToast('Espacio de auspiciador eliminado.')
+  }
+
+  // Home Banners Handlers
+  async function handleBannerFileUpload(section, file) {
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La imagen no puede superar los 5 MB para no sobrecargar el almacenamiento.')
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor selecciona un archivo de imagen válido (JPG, PNG, WEBP).')
+      return
+    }
+    try {
+      const res = await api.uploadImage(file)
+      if (res?.url) {
+        setHomeBannerInputs((prev) => ({
+          ...prev,
+          [section]: {
+            ...prev[section],
+            image: res.url
+          }
+        }))
+        showToast('Imagen subida con éxito al servidor. Haz clic en Guardar para confirmar.')
+        return
+      }
+    } catch (e) {
+      console.warn('Upload banner image failed, using local reader:', e)
+    }
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target.result
+      setHomeBannerInputs((prev) => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          image: dataUrl
+        }
+      }))
+      showToast('Imagen cargada localmente. Haz clic en Guardar para confirmar.')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleSaveSingleBanner(sectionKey, label) {
+    const current = getHomeBanners()
+    const updated = {
+      ...current,
+      [sectionKey]: homeBannerInputs[sectionKey]
+    }
+    saveHomeBanners(updated)
+    setHomeBanners(getHomeBanners())
+    showToast(`¡${label} guardado con éxito!`)
+  }
+
+  function handleSaveAllHomeBanners() {
+    saveHomeBanners(homeBannerInputs)
+    setHomeBanners(getHomeBanners())
+    showToast('¡Todos los banners e información del Home fueron guardados con éxito!')
   }
 
   // Carrusel Hero Handlers
@@ -1793,8 +2062,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const cleanDni = (playerFormData.dni || '').toString().trim().replace(/\s+/g, '')
     const cleanCat = playerFormData.categoria || '4ta'
     const cleanPoints = Number(playerFormData.puntos) || 0
+    const cleanTitulos = Math.max(0, parseInt(playerFormData.titulosGanados, 10) || 0)
     const cleanTel = (playerFormData.telefono || '').trim()
     const cleanEmail = (playerFormData.email || '').trim()
+    const cleanInstagram = (playerFormData.instagram || '').trim().replace(/^@/, '')
 
     if (!cleanNombre || cleanNombre.length < 2) {
       setPlayerActionNotice({ type: 'error', message: 'Por favor ingresa un nombre y apellido válido (mínimo 2 caracteres).' })
@@ -1829,9 +2100,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       categoria: cleanCat,
       puntosNum: cleanPoints,
       points: cleanPoints.toLocaleString() + ' pts',
+      titulosGanados: cleanTitulos,
+      titulos: cleanTitulos,
       telefono: cleanTel,
       whatsapp: cleanTel,
       email: cleanEmail,
+      instagram: cleanInstagram,
       avatar: cleanImage,
       image: cleanImage,
       perfilIncompleto: isEditingExistingPlayer ? undefined : true,
@@ -1845,8 +2119,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       setPlayerActionNotice({
         type: 'success',
         message: isEditingExistingPlayer
-          ? `¡Datos de "${cleanNombre}" actualizados correctamente (${cleanPoints} pts)!`
-          : `¡Jugador "${cleanNombre}" creado con éxito en Categoría ${cleanCat} (${cleanPoints} pts)!`
+          ? `¡Datos de "${cleanNombre}" actualizados correctamente (${cleanPoints} pts, ${cleanTitulos} ${cleanTitulos === 1 ? 'título' : 'títulos'})!`
+          : `¡Jugador "${cleanNombre}" creado con éxito en Categoría ${cleanCat} (${cleanPoints} pts, ${cleanTitulos} ${cleanTitulos === 1 ? 'título' : 'títulos'})!`
       })
       setPlayerFormData({
         originalDni: '',
@@ -1854,8 +2128,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
         dni: '',
         categoria: '4ta',
         puntos: 0,
+        titulosGanados: 0,
         telefono: '',
         email: '',
+        instagram: '',
         image: '/assets/logo.png'
       })
       setIsEditingExistingPlayer(false)
@@ -1905,6 +2181,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   function handleStartEditPlayer(player) {
     const cleanDni = (player.dni || player.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
     const pts = player.puntosNum !== undefined ? Number(player.puntosNum) : (parseInt(player.points) || 0)
+    const tits = player.titulosGanados !== undefined ? Number(player.titulosGanados) : (player.titulos !== undefined ? Number(player.titulos) : 0)
     const cleanImage = player.image || player.avatar || '/assets/logo.png'
     setPlayerFormData({
       originalDni: cleanDni,
@@ -1912,8 +2189,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       dni: cleanDni,
       categoria: player.categoria || '4ta',
       puntos: pts,
+      titulosGanados: tits,
       telefono: player.telefono || player.whatsapp || '',
       email: player.email || '',
+      instagram: player.instagram || player.ig || '',
       image: cleanImage
     })
     setIsEditingExistingPlayer(true)
@@ -1932,8 +2211,10 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       dni: '',
       categoria: '4ta',
       puntos: 0,
+      titulosGanados: 0,
       telefono: '',
       email: '',
+      instagram: '',
       image: '/assets/logo.png'
     })
     setPlayerActionNotice(null)
@@ -2046,7 +2327,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
             </p>
           </div>
           <div className="admin-header-actions">
-            <a href="/" className="btn-secondary-link" target="_blank" rel="noreferrer">
+            <a href={getAssetUrl('/')} className="btn-secondary-link" target="_blank" rel="noreferrer">
               Ver Sitio Web <ExternalLink size={14} />
             </a>
             <button
@@ -2151,6 +2432,15 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
           >
             <ScrollText size={16} />
             <span>Políticas & Reglas {hasPoliciesChanges && <span className="tab-bubble-alert">●</span>}</span>
+          </button>
+
+          <button
+            type="button"
+            className={'admin-tab-btn' + (activeTab === 'contacto' ? ' active' : '')}
+            onClick={() => setActiveTab('contacto')}
+          >
+            <PhoneCall size={16} />
+            <span>Contacto y Sedes</span>
           </button>
         </nav>
       </div>
@@ -2491,7 +2781,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     <small className="field-hint">El DNI identifica al jugador y se utiliza para acceder a su perfil y torneos.</small>
                   </div>
 
-                  <div className="form-row-2col">
+                  <div className="form-row-3col">
                     <div className="form-group">
                       <label htmlFor="player-input-categoria">
                         Categoría Asignada <span className="req-star">*</span>
@@ -2524,6 +2814,21 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                         onChange={(e) => setPlayerFormData({ ...playerFormData, puntos: e.target.value })}
                       />
                     </div>
+
+                    <div className="form-group">
+                      <label htmlFor="player-input-titulos">
+                        Títulos Ganados (🏆)
+                      </label>
+                      <input
+                        id="player-input-titulos"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="0"
+                        value={playerFormData.titulosGanados}
+                        onChange={(e) => setPlayerFormData({ ...playerFormData, titulosGanados: e.target.value.replace(/\D/g, '') })}
+                      />
+                    </div>
                   </div>
 
                   <div className="form-row-2col">
@@ -2545,6 +2850,19 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                         placeholder="jugador@ejemplo.com"
                         value={playerFormData.email}
                         onChange={(e) => setPlayerFormData({ ...playerFormData, email: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row-2col">
+                    <div className="form-group">
+                      <label htmlFor="player-input-instagram">Instagram (Opcional)</label>
+                      <input
+                        id="player-input-instagram"
+                        type="text"
+                        placeholder="Ej: @lucianaperez o lucianaperez"
+                        value={playerFormData.instagram}
+                        onChange={(e) => setPlayerFormData({ ...playerFormData, instagram: e.target.value })}
                       />
                     </div>
                   </div>
@@ -2636,6 +2954,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                           <th>DNI</th>
                           <th>Categoría</th>
                           <th>Puntos</th>
+                          <th>Títulos</th>
                           <th>Estado</th>
                           <th>Contacto</th>
                           <th className="th-actions">Acciones</th>
@@ -2684,6 +3003,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                   {player.points || `${player.puntosNum || 0} pts`}
                                 </span>
                               </td>
+                              <td className="td-player-titles">
+                                <span className="titles-pill-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255, 215, 0, 0.12)', border: '1px solid rgba(255, 215, 0, 0.3)', color: '#FFD700', borderRadius: '12px', padding: '3px 8px', fontSize: '12px', fontWeight: '700' }}>
+                                  🏆 {player.titulosGanados !== undefined ? player.titulosGanados : (player.titulos || 0)}
+                                </span>
+                              </td>
                               <td className="td-player-status">
                                 <span
                                   className={`player-status-badge ${player.perfilIncompleto ? 'status-pending' : 'status-complete'}`}
@@ -2694,6 +3018,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                               </td>
                               <td className="td-player-contact">
                                 <span className="contact-text">{player.telefono || player.whatsapp || '—'}</span>
+                                {player.instagram && (
+                                  <span className="player-ig-hint" style={{ display: 'block', fontSize: '11px', color: '#00CFA0', marginTop: '2px' }}>
+                                    @{player.instagram.replace(/^@/, '')}
+                                  </span>
+                                )}
                               </td>
                               <td className="td-actions">
                                 <div className="player-actions-row">
@@ -3093,7 +3422,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 <div className="step-track-content">
                   <span className="step-track-label">Paso 2 • {currentTourney.title}</span>
                   <strong>Formato de Cuadro Eliminatorio</strong>
-                  <small>{playoffSize} clasificados ({playoffSize === 8 ? 'Cuartos de final' : 'Semifinales'})</small>
+                  <small>{playoffSize} clasificados ({
+                    playoffSize === 64 ? '32-avos de final' :
+                    playoffSize === 32 ? 'Dieciseisavos de final' :
+                    playoffSize === 16 ? 'Octavos de final' :
+                    playoffSize === 8 ? 'Cuartos de final' : 'Semifinales'
+                  })</small>
                 </div>
               </div>
               <div className="step-track-divider"></div>
@@ -3408,6 +3742,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     >
                       <option value={4}>Semifinales + Final (4 clasificados)</option>
                       <option value={8}>Cuartos + Semis + Final (8 clasificados)</option>
+                      <option value={16}>Octavos de final (16 clasificados)</option>
+                      <option value={32}>Dieciseisavos de final (32 clasificados)</option>
+                      <option value={64}>32-avos de final (64 clasificados)</option>
                     </select>
                   </div>
 
@@ -3481,6 +3818,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 onSwapMatchSlots={handleSwapMatchSlots}
                 onClearMatchSlot={handleClearMatchSlot}
                 onOpenScoreModal={handleOpenScoreModal}
+                onAssignBye={handleOpenByeModal}
               />
             </div>
           </div>
@@ -4063,6 +4401,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     bracket={currentTourney.bracket}
                     isAdmin={true}
                     onOpenScoreModal={handleOpenScoreModal}
+                    onAssignBye={handleOpenByeModal}
                   />
                 </div>
               )}
@@ -4204,7 +4543,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                         <span>📅 {n.fecha}</span>
                         <span>✍️ {n.autor}</span>
                         <a
-                          href="/comunidad"
+                          href={getAssetUrl('/comunidad')}
                           target="_blank"
                           rel="noreferrer"
                           className="slot-view-link"
@@ -4391,135 +4730,578 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
             </div>
           </div>
 
-          {/* SECCIÓN 2: OTRAS IMÁGENES Y LOGOS DEL SITIO */}
-          <div className="admin-section-card panel">
+          {/* SECCIÓN 2: BANNERS DEL HOME Y CONTENIDO DE PORTADA */}
+          <div className="admin-section-card panel home-banners-admin-section">
             <div className="panel-title-row">
               <div>
-                <h2>Otras Imágenes y Logos del Sitio Web</h2>
-                <p>Cambia el banner de eventos de la página de inicio y los logos oficiales en tiempo real.</p>
+                <div className="title-with-badge">
+                  <h2>Banners del Home y Contenido de Portada</h2>
+                  <span className="dimension-pill">Personalización Total</span>
+                </div>
+                <p>
+                  Edita la información, títulos, descripciones, botones e imágenes de los banners y tarjetas del Home en tiempo real.
+                </p>
               </div>
+              <button
+                type="button"
+                className="button button-lime btn-save-all-banners"
+                onClick={handleSaveAllHomeBanners}
+              >
+                <Save size={16} /> Guardar Todos los Banners
+              </button>
             </div>
 
-            <div className="site-images-grid">
+            <div className="home-banners-admin-grid">
 
-              {/* EVENTO BANNER */}
-              <div className="image-edit-card panel banner-card">
+              {/* BANNER 1: INSCRIPCIONES Y REGISTRO */}
+              <div className="banner-config-card panel">
                 <div className="card-header-with-badge">
-                  <h4>Banner de Eventos (Home)</h4>
-                  <span className="dimension-pill">📐 1920x1080 px</span>
+                  <div>
+                    <span className="banner-kicker-label">Sección 1</span>
+                    <h4>Banner de Inscripciones y Torneos</h4>
+                  </div>
+                  <span className="dimension-pill">📐 1920x1080 px (16:9)</span>
                 </div>
-                <p className="banner-spec-note">Formato requerido: Banner panorámico 1920x1080 píxeles (16:9)</p>
-                <div className="img-preview-box banner-preview-box">
+                <p className="banner-card-hint">
+                  Aparece debajo de las tarjetas de torneos rápidos. Invita a los tenistas a registrarse e inscribirse.
+                </p>
+
+                {/* Vista previa en vivo del banner */}
+                <div className="banner-live-preview-box">
                   <img
-                    src={getAssetUrl(siteImageInputs.eventoBanner || siteImages.eventoBanner)}
-                    alt="Evento Banner"
+                    src={getAssetUrl(homeBannerInputs.signupBanner?.image || '/assets/Evento.png')}
+                    alt="Vista previa banner"
                     onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
                   />
-                  <span className="preview-overlay-badge">1920x1080 px</span>
+                  <div className="preview-content-overlay">
+                    <span className="preview-kicker">{homeBannerInputs.signupBanner?.kicker || 'Regístrate ahora'}</span>
+                    <h5>
+                      {homeBannerInputs.signupBanner?.title || 'Inscripciones abiertas'}
+                      {homeBannerInputs.signupBanner?.highlight && (
+                        <em> {homeBannerInputs.signupBanner.highlight}</em>
+                      )}
+                    </h5>
+                    <p>{homeBannerInputs.signupBanner?.description || 'Participa en nuestros torneos...'}</p>
+                    <span className="preview-btn-mock">
+                      {homeBannerInputs.signupBanner?.buttonText || 'Registrarse'} →
+                    </span>
+                  </div>
                 </div>
-                <div className="img-input-controls">
-                  <input
-                    type="text"
-                    value={siteImageInputs.eventoBanner || ''}
-                    placeholder="URL de imagen https://..."
-                    onChange={(e) =>
-                      setSiteImageInputs({ ...siteImageInputs, eventoBanner: e.target.value })
-                    }
-                  />
-                  <label className="btn-file-upload">
-                    <Camera size={14} /> Subir archivo (1920x1080 px · Máx. 5 MB)
+
+                <div className="banner-form-fields">
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Antetítulo (Kicker):</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.signupBanner?.kicker || ''}
+                        placeholder="Ej. Regístrate ahora"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            signupBanner: { ...prev.signupBanner, kicker: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Texto destacado (color lima):</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.signupBanner?.highlight || ''}
+                        placeholder="Ej. torneos de tenis"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            signupBanner: { ...prev.signupBanner, highlight: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Título principal:</label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageFileUpload('eventoBanner', e.target.files[0])}
+                      type="text"
+                      value={homeBannerInputs.signupBanner?.title || ''}
+                      placeholder="Ej. Inscripciones abiertas"
+                      onChange={(e) =>
+                        setHomeBannerInputs((prev) => ({
+                          ...prev,
+                          signupBanner: { ...prev.signupBanner, title: e.target.value }
+                        }))
+                      }
                     />
-                  </label>
-                  <button
-                    type="button"
-                    className="btn-save-img"
-                    onClick={() => handleSaveSiteImage('eventoBanner')}
-                  >
-                    Guardar
-                  </button>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Descripción / Bajada:</label>
+                    <textarea
+                      rows={2}
+                      value={homeBannerInputs.signupBanner?.description || ''}
+                      placeholder="Ej. Participa en nuestros torneos y demuestra tu talento en la cancha."
+                      onChange={(e) =>
+                        setHomeBannerInputs((prev) => ({
+                          ...prev,
+                          signupBanner: { ...prev.signupBanner, description: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Texto del Botón:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.signupBanner?.buttonText || ''}
+                        placeholder="Ej. Registrarse"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            signupBanner: { ...prev.signupBanner, buttonText: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Acción del Botón:</label>
+                      <select
+                        value={homeBannerInputs.signupBanner?.buttonAction || 'register'}
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            signupBanner: { ...prev.signupBanner, buttonAction: e.target.value }
+                          }))
+                        }
+                      >
+                        <option value="register">Abrir ventana modal de Registro</option>
+                        <option value="link">Enlace web / URL personalizado</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {homeBannerInputs.signupBanner?.buttonAction === 'link' && (
+                    <div className="admin-form-group">
+                      <label>URL o Ancla del Botón:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.signupBanner?.buttonLink || ''}
+                        placeholder="Ej. /torneos o https://..."
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            signupBanner: { ...prev.signupBanner, buttonLink: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {/* Imagen de fondo */}
+                  <div className="banner-image-controls">
+                    <label>Imagen de Fondo (Banner 16:9):</label>
+                    <div className="image-input-upload-row">
+                      <input
+                        type="text"
+                        value={homeBannerInputs.signupBanner?.image || ''}
+                        placeholder="URL de imagen https://..."
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            signupBanner: { ...prev.signupBanner, image: e.target.value }
+                          }))
+                        }
+                      />
+                      <label className="btn-file-upload">
+                        <Camera size={14} /> Subir archivo (1920x1080 px · Máx. 5 MB)
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleBannerFileUpload('signupBanner', e.target.files[0])
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="card-save-footer">
+                    <button
+                      type="button"
+                      className="button button-lime"
+                      onClick={() => handleSaveSingleBanner('signupBanner', 'Banner de Inscripciones')}
+                    >
+                      <Save size={14} /> Guardar Banner de Registro
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* LOGO PLATINO */}
-              <div className="image-edit-card panel">
-                <h4>Logo Platino Sponsor</h4>
-                <div className="img-preview-box" style={{ background: '#00304A' }}>
-                  <img
-                    src={getAssetUrl(siteImageInputs.logoPlatino || siteImages.logoPlatino)}
-                    alt="Logo Platino"
-                    onError={(e) => handleImageFallback(e, '/assets/Logo Platino.png')}
-                  />
+              {/* BANNER 2: REDES SOCIALES */}
+              <div className="banner-config-card panel">
+                <div className="card-header-with-badge">
+                  <div>
+                    <span className="banner-kicker-label">Sección 2</span>
+                    <h4>Banner de Redes Sociales (Comunidad)</h4>
+                  </div>
+                  <span className="dimension-pill">📐 Formato PNG / Ilustración</span>
                 </div>
-                <div className="img-input-controls">
-                  <input
-                    type="text"
-                    value={siteImageInputs.logoPlatino || ''}
-                    placeholder="URL de imagen https://..."
-                    onChange={(e) =>
-                      setSiteImageInputs({ ...siteImageInputs, logoPlatino: e.target.value })
-                    }
-                  />
-                  <label className="btn-file-upload">
-                    <Camera size={14} /> Subir archivo (máx. 5 MB)
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageFileUpload('logoPlatino', e.target.files[0])}
+                <p className="banner-card-hint">
+                  Tarjeta para invitar a la comunidad a seguir las redes oficiales de Instagram y WhatsApp.
+                </p>
+
+                {/* Vista previa en vivo */}
+                <div className="banner-live-preview-box social-preview-box">
+                  <div className="social-preview-art">
+                    <img
+                      src={getAssetUrl(homeBannerInputs.socialBanner?.image || '/assets/Redes.png')}
+                      alt="Arte redes sociales"
+                      onError={(e) => handleImageFallback(e, '/assets/Redes.png')}
                     />
-                  </label>
-                  <button
-                    type="button"
-                    className="btn-save-img"
-                    onClick={() => handleSaveSiteImage('logoPlatino')}
-                  >
-                    Guardar
-                  </button>
+                  </div>
+                  <div className="social-preview-text">
+                    <span className="preview-eyebrow">{homeBannerInputs.socialBanner?.eyebrow || '// SÍGUENOS EN REDES'}</span>
+                    <h5>{homeBannerInputs.socialBanner?.title || 'Todo el tenis, en un solo lugar.'}</h5>
+                    <p>{homeBannerInputs.socialBanner?.description || 'Mantente al día con los torneos...'}</p>
+                  </div>
+                </div>
+
+                <div className="banner-form-fields">
+                  <div className="admin-form-group">
+                    <label>Antetítulo (Eyebrow):</label>
+                    <input
+                      type="text"
+                      value={homeBannerInputs.socialBanner?.eyebrow || ''}
+                      placeholder="Ej. // SÍGUENOS EN REDES"
+                      onChange={(e) =>
+                        setHomeBannerInputs((prev) => ({
+                          ...prev,
+                          socialBanner: { ...prev.socialBanner, eyebrow: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Título principal:</label>
+                    <input
+                      type="text"
+                      value={homeBannerInputs.socialBanner?.title || ''}
+                      placeholder="Ej. Todo el tenis, en un solo lugar."
+                      onChange={(e) =>
+                        setHomeBannerInputs((prev) => ({
+                          ...prev,
+                          socialBanner: { ...prev.socialBanner, title: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Descripción:</label>
+                    <textarea
+                      rows={2}
+                      value={homeBannerInputs.socialBanner?.description || ''}
+                      placeholder="Ej. Mantente al día con los torneos, resultados, noticias..."
+                      onChange={(e) =>
+                        setHomeBannerInputs((prev) => ({
+                          ...prev,
+                          socialBanner: { ...prev.socialBanner, description: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Enlace de Instagram:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.socialBanner?.instagramUrl || ''}
+                        placeholder="https://www.instagram.com/..."
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            socialBanner: { ...prev.socialBanner, instagramUrl: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Enlace de WhatsApp:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.socialBanner?.whatsappUrl || ''}
+                        placeholder="https://wa.me/51..."
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            socialBanner: { ...prev.socialBanner, whatsappUrl: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Imagen / Ilustración */}
+                  <div className="banner-image-controls">
+                    <label>Ilustración / Imagen de Redes:</label>
+                    <div className="image-input-upload-row">
+                      <input
+                        type="text"
+                        value={homeBannerInputs.socialBanner?.image || ''}
+                        placeholder="URL de imagen https://..."
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            socialBanner: { ...prev.socialBanner, image: e.target.value }
+                          }))
+                        }
+                      />
+                      <label className="btn-file-upload">
+                        <Camera size={14} /> Subir imagen (máx. 5 MB)
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleBannerFileUpload('socialBanner', e.target.files[0])
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="card-save-footer">
+                    <button
+                      type="button"
+                      className="button button-lime"
+                      onClick={() => handleSaveSingleBanner('socialBanner', 'Banner de Redes Sociales')}
+                    >
+                      <Save size={14} /> Guardar Banner de Redes
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* LOGO ATAP */}
-              <div className="image-edit-card panel">
-                <h4>Logo Oficial ATAP</h4>
-                <div className="img-preview-box" style={{ background: '#00304A' }}>
-                  <img
-                    src={getAssetUrl(siteImageInputs.logoAtap || siteImages.logoAtap)}
-                    alt="Logo ATAP"
-                    onError={(e) => handleImageFallback(e, '/assets/logo.png')}
-                  />
+              {/* SECCIÓN 3: PREGUNTAS FRECUENTES Y REGLAS */}
+              <div className="banner-config-card panel">
+                <div className="card-header-with-badge">
+                  <div>
+                    <span className="banner-kicker-label">Sección 3</span>
+                    <h4>Preguntas Frecuentes y Enlaces de Reglas</h4>
+                  </div>
+                  <span className="dimension-pill">⚙️ Información Home</span>
                 </div>
-                <div className="img-input-controls">
-                  <input
-                    type="text"
-                    value={siteImageInputs.logoAtap || ''}
-                    placeholder="URL de imagen https://..."
-                    onChange={(e) =>
-                      setSiteImageInputs({ ...siteImageInputs, logoAtap: e.target.value })
-                    }
-                  />
-                  <label className="btn-file-upload">
-                    <Camera size={14} /> Subir archivo (máx. 5 MB)
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageFileUpload('logoAtap', e.target.files[0])}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="btn-save-img"
-                    onClick={() => handleSaveSiteImage('logoAtap')}
-                  >
-                    Guardar
-                  </button>
+                <p className="banner-card-hint">
+                  Personaliza los textos de la tarjeta de contacto rápido y el encabezado de reglas del circuito.
+                </p>
+
+                <div className="banner-form-fields">
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Título Preguntas Frecuentes:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.faqSection?.title || ''}
+                        placeholder="Ej. Preguntas frecuentes"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            faqSection: { ...prev.faqSection, title: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Subtítulo de Ayuda:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.faqSection?.subtitle || ''}
+                        placeholder="Ej. ¿No se resolvió tu duda?"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            faqSection: { ...prev.faqSection, subtitle: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Texto Botón Escríbenos:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.faqSection?.buttonText || ''}
+                        placeholder="Ej. Escríbenos"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            faqSection: { ...prev.faqSection, buttonText: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Enlace de WhatsApp de Soporte:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.faqSection?.whatsappUrl || ''}
+                        placeholder="https://wa.me/51..."
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            faqSection: { ...prev.faqSection, whatsappUrl: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Antetítulo de Reglas:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.faqSection?.rulesEyebrow || ''}
+                        placeholder="Ej. Información para jugadores"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            faqSection: { ...prev.faqSection, rulesEyebrow: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Título de Reglas:</label>
+                      <input
+                        type="text"
+                        value={homeBannerInputs.faqSection?.rulesTitle || ''}
+                        placeholder="Ej. Reglas de torneos"
+                        onChange={(e) =>
+                          setHomeBannerInputs((prev) => ({
+                            ...prev,
+                            faqSection: { ...prev.faqSection, rulesTitle: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="card-save-footer">
+                    <button
+                      type="button"
+                      className="button button-lime"
+                      onClick={() => handleSaveSingleBanner('faqSection', 'Sección de Preguntas y Reglas')}
+                    >
+                      <Save size={14} /> Guardar Preguntas y Reglas
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {/* SECCIÓN 4: LOGOS OFICIALES PLATINO Y ATAP */}
+              <div className="banner-config-card panel logos-config-card">
+                <div className="card-header-with-badge">
+                  <div>
+                    <span className="banner-kicker-label">Sección 4</span>
+                    <h4>Logos Oficiales del Sitio (Platino y ATAP)</h4>
+                  </div>
+                  <span className="dimension-pill">📐 Logos Oficiales</span>
+                </div>
+                <p className="banner-card-hint">
+                  Cambia el logo del Main Sponsor Platino Perú y el escudo oficial de la Asociación ATAP.
+                </p>
+
+                <div className="official-logos-subgrid">
+                  {/* LOGO PLATINO */}
+                  <div className="mini-logo-edit-box">
+                    <h5>Logo Platino Sponsor</h5>
+                    <div className="img-preview-box" style={{ background: '#00304A' }}>
+                      <img
+                        src={getAssetUrl(siteImageInputs.logoPlatino || siteImages.logoPlatino)}
+                        alt="Logo Platino"
+                        onError={(e) => handleImageFallback(e, '/assets/Logo Platino.png')}
+                      />
+                    </div>
+                    <div className="img-input-controls">
+                      <input
+                        type="text"
+                        value={siteImageInputs.logoPlatino || ''}
+                        placeholder="URL de imagen https://..."
+                        onChange={(e) =>
+                          setSiteImageInputs({ ...siteImageInputs, logoPlatino: e.target.value })
+                        }
+                      />
+                      <label className="btn-file-upload">
+                        <Camera size={14} /> Subir archivo (máx. 5 MB)
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => handleImageFileUpload('logoPlatino', e.target.files[0])}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn-save-img"
+                        onClick={() => handleSaveSiteImage('logoPlatino')}
+                      >
+                        Guardar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* LOGO ATAP */}
+                  <div className="mini-logo-edit-box">
+                    <h5>Logo Oficial ATAP</h5>
+                    <div className="img-preview-box" style={{ background: '#00304A' }}>
+                      <img
+                        src={getAssetUrl(siteImageInputs.logoAtap || siteImages.logoAtap)}
+                        alt="Logo ATAP"
+                        onError={(e) => handleImageFallback(e, '/assets/logo.png')}
+                      />
+                    </div>
+                    <div className="img-input-controls">
+                      <input
+                        type="text"
+                        value={siteImageInputs.logoAtap || ''}
+                        placeholder="URL de imagen https://..."
+                        onChange={(e) =>
+                          setSiteImageInputs({ ...siteImageInputs, logoAtap: e.target.value })
+                        }
+                      />
+                      <label className="btn-file-upload">
+                        <Camera size={14} /> Subir archivo (máx. 5 MB)
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => handleImageFileUpload('logoAtap', e.target.files[0])}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn-save-img"
+                        onClick={() => handleSaveSiteImage('logoAtap')}
+                      >
+                        Guardar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -4534,6 +5316,13 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 <p>
                   Espacio configurado para logos de auspiciadores. Solo se agrega una imagen por auspiciador (sube archivo o pega URL). Puedes agregar más espacios en cualquier momento.
                 </p>
+                <div className="sponsors-filter-notice-box">
+                  <span className="notice-icon">💡</span>
+                  <div>
+                    <strong>Regla visual en el Home:</strong>
+                    <p>Para garantizar una presentación limpia y oficial, los auspiciadores que no tengan una imagen o logo cargado NO aparecerán como nombres de texto en la página principal. Solo se mostrarán las marcas que cuenten con su logo oficial.</p>
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
@@ -4786,7 +5575,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <a
-                            href="/ranking"
+                            href={getAssetUrl('/ranking')}
                             className="btn-view-archive-ranking"
                             title="Ver en Ranking Oficial"
                           >
@@ -4820,7 +5609,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
             <div className="policies-admin-top-actions">
               <a
-                href="/reglas"
+                href={getAssetUrl('/reglas')}
                 target="_blank"
                 rel="noreferrer"
                 className="btn-view-public-rules"
@@ -4997,6 +5786,478 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
         </section>
       )}
 
+      {/* TAB 9: CONTACTO Y SOPORTE OFICIAL */}
+      {activeTab === 'contacto' && (
+        <section className="admin-tab-panel contact-admin-panel">
+          <div className="admin-panel-topbar">
+            <div>
+              <span className="admin-pill-badge">Canales Oficiales</span>
+              <h2>Configuración de Contacto, Sedes y Atención</h2>
+              <p>
+                Personaliza la información que ven los jugadores en la página de Contacto: número y mensajes de WhatsApp, correos de atención, sedes del circuito y la visibilidad de los horarios de servicio.
+              </p>
+            </div>
+            <div className="admin-panel-topbar-actions">
+              <a
+                href={getAssetUrl('/contacto')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button btn-secondary"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <ExternalLink size={14} /> Ver Página de Contacto
+              </a>
+              <button
+                type="button"
+                className="button button-lime"
+                onClick={handleSaveContactSettings}
+                disabled={isSavingContact}
+              >
+                <Save size={15} /> {isSavingContact ? 'Guardando...' : 'Guardar Todo'}
+              </button>
+            </div>
+          </div>
+
+          <div className="contact-config-cards-grid">
+            {/* SECCIÓN 1: ENCABEZADO DE LA PÁGINA */}
+            <div className="banner-config-card panel">
+              <div className="card-header-with-badge">
+                <div>
+                  <span className="banner-kicker-label">Encabezado</span>
+                  <h4>Título y Presentación de Contacto</h4>
+                </div>
+                <span className="dimension-pill">📝 Textos de Portada</span>
+              </div>
+              <p className="banner-card-hint">
+                Mensaje introductorio que aparece en la parte superior de la página de contacto.
+              </p>
+              <div className="banner-form-fields">
+                <div className="admin-form-group">
+                  <label>Antetítulo (Eyebrow):</label>
+                  <input
+                    type="text"
+                    value={contactInputs.header?.eyebrow || ''}
+                    placeholder="Ej. ATENCIÓN AL JUGADOR Y AFILIADOS"
+                    onChange={(e) =>
+                      setContactInputs((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, eyebrow: e.target.value }
+                      }))
+                    }
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Título Principal:</label>
+                  <input
+                    type="text"
+                    value={contactInputs.header?.title || ''}
+                    placeholder="Ej. Contacto y Soporte Oficial ATAP"
+                    onChange={(e) =>
+                      setContactInputs((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, title: e.target.value }
+                      }))
+                    }
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Descripción / Mensaje a los Jugadores:</label>
+                  <textarea
+                    rows={2}
+                    value={contactInputs.header?.description || ''}
+                    placeholder="Describe el soporte que brinda la coordinación técnica y administrativa..."
+                    onChange={(e) =>
+                      setContactInputs((prev) => ({
+                        ...prev,
+                        header: { ...prev.header, description: e.target.value }
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 2: CANAL WHATSAPP */}
+            <div className="banner-config-card panel">
+              <div className="card-header-with-badge">
+                <div>
+                  <span className="banner-kicker-label">Canal 1</span>
+                  <h4>WhatsApp Oficial de ATAP</h4>
+                </div>
+                <span className="dimension-pill">💬 Enlace Directo</span>
+              </div>
+              <p className="banner-card-hint">
+                Configura el número y los textos de la tarjeta para envío de comprobantes y consultas rápidas.
+              </p>
+              <div className="banner-form-fields">
+                <div className="form-row-2col">
+                  <div className="admin-form-group">
+                    <label>Título de la Tarjeta:</label>
+                    <input
+                      type="text"
+                      value={contactInputs.whatsapp?.title || ''}
+                      placeholder="Ej. WhatsApp Oficial"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          whatsapp: { ...prev.whatsapp, title: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Texto del Botón:</label>
+                    <input
+                      type="text"
+                      value={contactInputs.whatsapp?.btnText || ''}
+                      placeholder="Ej. Iniciar Chat WhatsApp"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          whatsapp: { ...prev.whatsapp, btnText: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-2col">
+                  <div className="admin-form-group">
+                    <label>Teléfono Visible (con formato):</label>
+                    <input
+                      type="text"
+                      value={contactInputs.whatsapp?.phone || ''}
+                      placeholder="Ej. +51 977 884 423"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          whatsapp: { ...prev.whatsapp, phone: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Número WhatsApp para wa.me (solo dígitos con código de país):</label>
+                    <input
+                      type="text"
+                      value={contactInputs.whatsapp?.number || ''}
+                      placeholder="Ej. 51977884423"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          whatsapp: { ...prev.whatsapp, number: e.target.value.replace(/\D/g, '') }
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label>Subtexto / Descripción:</label>
+                  <input
+                    type="text"
+                    value={contactInputs.whatsapp?.subtext || ''}
+                    placeholder="Ej. Atención ágil para envío de comprobantes de pago y consultas en tiempo real."
+                    onChange={(e) =>
+                      setContactInputs((prev) => ({
+                        ...prev,
+                        whatsapp: { ...prev.whatsapp, subtext: e.target.value }
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 3: CORREO ELECTRÓNICO */}
+            <div className="banner-config-card panel">
+              <div className="card-header-with-badge">
+                <div>
+                  <span className="banner-kicker-label">Canal 2</span>
+                  <h4>Correo Electrónico Oficial</h4>
+                </div>
+                <span className="dimension-pill">✉️ Asuntos Formales</span>
+              </div>
+              <p className="banner-card-hint">
+                Canal para solicitudes formales, contratos de auspicio y trámites administrativos.
+              </p>
+              <div className="banner-form-fields">
+                <div className="form-row-2col">
+                  <div className="admin-form-group">
+                    <label>Título de la Tarjeta:</label>
+                    <input
+                      type="text"
+                      value={contactInputs.email?.title || ''}
+                      placeholder="Ej. Correo Electrónico"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          email: { ...prev.email, title: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Dirección de Correo:</label>
+                    <input
+                      type="email"
+                      value={contactInputs.email?.email || ''}
+                      placeholder="contacto@atap.pe"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          email: { ...prev.email, email: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label>Subtexto / Descripción:</label>
+                  <input
+                    type="text"
+                    value={contactInputs.email?.subtext || ''}
+                    placeholder="Ej. Para consultas formales, solicitudes de auspicios y asuntos administrativos."
+                    onChange={(e) =>
+                      setContactInputs((prev) => ({
+                        ...prev,
+                        email: { ...prev.email, subtext: e.target.value }
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 4: SEDES DEL CIRCUITO ("LA SEDE") */}
+            <div className="banner-config-card panel">
+              <div className="card-header-with-badge">
+                <div>
+                  <span className="banner-kicker-label">Canal 3</span>
+                  <h4>Sedes Oficiales del Circuito ("La Sede")</h4>
+                </div>
+                <span className="dimension-pill">📍 Ubicación & Canchas</span>
+              </div>
+              <p className="banner-card-hint">
+                Especifica la ciudad, sedes centrales y clubes asociados donde se disputan los torneos.
+              </p>
+              <div className="banner-form-fields">
+                <div className="form-row-2col">
+                  <div className="admin-form-group">
+                    <label>Título de la Tarjeta:</label>
+                    <input
+                      type="text"
+                      value={contactInputs.sede?.title || ''}
+                      placeholder="Ej. Sedes del Circuito"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          sede: { ...prev.sede, title: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Ubicación / Ciudad Principal:</label>
+                    <input
+                      type="text"
+                      value={contactInputs.sede?.location || ''}
+                      placeholder="Ej. Lima Metropolitana, Perú"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          sede: { ...prev.sede, location: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-2col">
+                  <div className="admin-form-group">
+                    <label>Clubes / Canchas Asociadas:</label>
+                    <input
+                      type="text"
+                      value={contactInputs.sede?.subtext || ''}
+                      placeholder="Ej. Club Lawn Tennis de la Exposición y clubes asociados del circuito amateur."
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          sede: { ...prev.sede, subtext: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Etiqueta / Badge:</label>
+                    <input
+                      type="text"
+                      value={contactInputs.sede?.tagText || ''}
+                      placeholder="Ej. Canchas Oficiales"
+                      onChange={(e) =>
+                        setContactInputs((prev) => ({
+                          ...prev,
+                          sede: { ...prev.sede, tagText: e.target.value }
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 5: HORARIOS DE SERVICIO */}
+            <div className="banner-config-card panel">
+              <div className="card-header-with-badge">
+                <div>
+                  <span className="banner-kicker-label">Canal 4</span>
+                  <h4>Horarios de Servicio y Atención</h4>
+                </div>
+                <span className={`dimension-pill ${contactInputs.horario?.visible ? 'status-pill-green' : 'status-pill-gray'}`}>
+                  {contactInputs.horario?.visible ? '🟢 Tarjeta Activa' : '⚪ Tarjeta Oculta'}
+                </span>
+              </div>
+              <p className="banner-card-hint">
+                Activa o desactiva la visualización de la tarjeta de horarios según la disponibilidad del equipo organizador.
+              </p>
+
+              {/* TOGGLE SWITCH DESTACADO */}
+              <div
+                style={{
+                  background: contactInputs.horario?.visible ? '#F0FDF4' : '#F8FAFC',
+                  border: `1.5px solid ${contactInputs.horario?.visible ? '#86EFAC' : '#E2E8F0'}`,
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={() =>
+                  setContactInputs((prev) => ({
+                    ...prev,
+                    horario: { ...prev.horario, visible: !prev.horario?.visible }
+                  }))
+                }
+              >
+                <div>
+                  <strong style={{ display: 'block', fontSize: '14px', color: contactInputs.horario?.visible ? '#15803D' : '#1E293B', marginBottom: '4px' }}>
+                    {contactInputs.horario?.visible ? '✓ Tarjeta de Horarios VISIBLE en la página de Contacto' : '✕ Tarjeta de Horarios OCULTA (Recomendado si no tienen horario de servicio fijo)'}
+                  </strong>
+                  <span style={{ fontSize: '13px', color: '#64748B' }}>
+                    {contactInputs.horario?.visible
+                      ? 'Los visitantes verán los horarios configurados abajo.'
+                      : 'Actualmente oculta para que los jugadores se comuniquen directamente por WhatsApp sin restricción horaria.'}
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={Boolean(contactInputs.horario?.visible)}
+                  onChange={(e) =>
+                    setContactInputs((prev) => ({
+                      ...prev,
+                      horario: { ...prev.horario, visible: e.target.checked }
+                    }))
+                  }
+                  style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: '#16A34A' }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              {contactInputs.horario?.visible && (
+                <div className="banner-form-fields">
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Título de la Tarjeta:</label>
+                      <input
+                        type="text"
+                        value={contactInputs.horario?.title || ''}
+                        placeholder="Ej. Horarios de Atención"
+                        onChange={(e) =>
+                          setContactInputs((prev) => ({
+                            ...prev,
+                            horario: { ...prev.horario, title: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Horario Principal:</label>
+                      <input
+                        type="text"
+                        value={contactInputs.horario?.primary || ''}
+                        placeholder="Ej. Lun a Sáb: 8:00 AM - 9:00 PM"
+                        onChange={(e) =>
+                          setContactInputs((prev) => ({
+                            ...prev,
+                            horario: { ...prev.horario, primary: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row-2col">
+                    <div className="admin-form-group">
+                      <label>Días de Torneo / Nota especial:</label>
+                      <input
+                        type="text"
+                        value={contactInputs.horario?.subtext || ''}
+                        placeholder="Ej. Domingos y días de torneo: 8:00 AM - 2:00 PM con soporte en cancha."
+                        onChange={(e) =>
+                          setContactInputs((prev) => ({
+                            ...prev,
+                            horario: { ...prev.horario, subtext: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Etiqueta / Badge:</label>
+                      <input
+                        type="text"
+                        value={contactInputs.horario?.tagText || ''}
+                        placeholder="Ej. Soporte Activo"
+                        onChange={(e) =>
+                          setContactInputs((prev) => ({
+                            ...prev,
+                            horario: { ...prev.horario, tagText: e.target.value }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="admin-policies-footer-sticky" style={{ marginTop: '28px' }}>
+            <button
+              type="button"
+              className="button button-lime"
+              onClick={handleSaveContactSettings}
+              disabled={isSavingContact}
+              style={{ fontSize: '15px', padding: '12px 28px' }}
+            >
+              <Save size={16} /> {isSavingContact ? 'Guardando...' : 'Guardar Todos los Cambios de Contacto y Sedes'}
+            </button>
+            <button
+              type="button"
+              className="button btn-secondary"
+              onClick={handleResetContactSettings}
+              style={{ fontSize: '13px' }}
+            >
+              Restablecer Valores Predeterminados
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* MODAL PARA CARGAR MARCADOR */}
       {scoreModalMatch && (
         <div className="admin-modal-backdrop" onClick={() => setScoreModalMatch(null)}>
@@ -5060,40 +6321,71 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 </label>
               </div>
 
-              <div className="form-group-row-3">
-                <div className="form-group">
-                  <label htmlFor="set-1">Set 1</label>
-                  <input
-                    id="set-1"
-                    type="text"
-                    value={set1Score}
-                    onChange={(e) => setSet1Score(e.target.value)}
-                    placeholder="6-4"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="set-2">Set 2</label>
-                  <input
-                    id="set-2"
-                    type="text"
-                    value={set2Score}
-                    onChange={(e) => setSet2Score(e.target.value)}
-                    placeholder="6-3"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="set-3">Set 3 (Opcional)</label>
-                  <input
-                    id="set-3"
-                    type="text"
-                    value={set3Score}
-                    onChange={(e) => setSet3Score(e.target.value)}
-                    placeholder="10-8 o 7-5"
-                  />
-                </div>
+              <div className="bye-quick-toggle-wrap">
+                <button
+                  type="button"
+                  className={`btn-toggle-bye-mode ${set1Score === 'BYE' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (set1Score === 'BYE') {
+                      setSet1Score('6-4')
+                      setSet2Score('6-3')
+                      setSet3Score('')
+                    } else {
+                      setSet1Score('BYE')
+                      setSet2Score('')
+                      setSet3Score('')
+                    }
+                  }}
+                >
+                  <Zap size={14} />
+                  <span>{set1Score === 'BYE' ? '✓ Modo Victoria por BYE Activado' : '⚡ Declarar Victoria por BYE (Pase Libre)'}</span>
+                </button>
               </div>
+
+              {set1Score === 'BYE' ? (
+                <div className="bye-mode-active-alert">
+                  <Zap size={18} />
+                  <div>
+                    <strong>Victoria por Pase Libre (BYE)</strong>
+                    <p>El contrincante será registrado como BYE y el jugador seleccionado avanzará directamente sin sets jugados.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="form-group-row-3">
+                  <div className="form-group">
+                    <label htmlFor="set-1">Set 1</label>
+                    <input
+                      id="set-1"
+                      type="text"
+                      value={set1Score}
+                      onChange={(e) => setSet1Score(e.target.value)}
+                      placeholder="6-4"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="set-2">Set 2</label>
+                    <input
+                      id="set-2"
+                      type="text"
+                      value={set2Score}
+                      onChange={(e) => setSet2Score(e.target.value)}
+                      placeholder="6-3"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="set-3">Set 3 (Opcional)</label>
+                    <input
+                      id="set-3"
+                      type="text"
+                      value={set3Score}
+                      onChange={(e) => setSet3Score(e.target.value)}
+                      placeholder="10-8 o 7-5"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="form-group">
                 <label htmlFor="points-award">Puntos a Otorgar al Ganador:</label>
@@ -5102,8 +6394,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   type="number"
                   value={pointsAwardInput}
                   onChange={(e) => setPointsAwardInput(e.target.value)}
-                  min="50"
-                  step="25"
+                  min="0"
+                  step="10"
                 />
                 <small style={{ color: '#796E8A', fontSize: '11px', marginTop: '4px' }}>
                   Estos puntos se sumarán inmediatamente a su récord en el ranking global.
@@ -5123,6 +6415,84 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA CONFIRMAR VICTORIA POR BYE */}
+      {byeModalData && (
+        <div className="admin-modal-backdrop" onClick={() => setByeModalData(null)}>
+          <div
+            className="admin-modal-card bye-confirm-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header bye-modal-header">
+              <div className="bye-header-title">
+                <Zap size={22} className="bye-lightning-icon" />
+                <h3>Asignar Victoria por BYE — Match #{byeModalData.match.matchNum}</h3>
+              </div>
+              <button
+                type="button"
+                className="btn-modal-close"
+                onClick={() => setByeModalData(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bye-modal-body">
+              <div className="bye-banner-info">
+                <div className="bye-icon-circle">🎾</div>
+                <div className="bye-banner-text">
+                  <h4>{byeModalData.player?.name || 'Jugador Seleccionado'}</h4>
+                  <span className="bye-cat-chip">{byeModalData.player?.categoria || '4ta'}</span>
+                  <p>
+                    Este jugador avanzará automáticamente a la siguiente ronda de <strong>{currentTourney?.title}</strong> sin tener que disputar este partido.
+                  </p>
+                </div>
+              </div>
+
+              <div className="form-group bye-points-field">
+                <label htmlFor="input-bye-points">
+                  🏆 Puntos de Ranking ATAP a otorgar por este pase libre:
+                </label>
+                <div className="points-input-affix">
+                  <input
+                    id="input-bye-points"
+                    type="number"
+                    min="0"
+                    step="10"
+                    value={byePointsAward}
+                    onChange={(e) => setByePointsAward(e.target.value)}
+                    className="bye-points-input"
+                    autoFocus
+                  />
+                  <span className="points-unit">pts</span>
+                </div>
+                <small className="bye-field-hint">
+                  Escribe los puntos correspondientes (ej. 100, 50 o 0). Se sumarán inmediatamente a su ranking global.
+                </small>
+              </div>
+
+              <div className="bye-actions-row">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setByeModalData(null)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-confirm-bye"
+                  onClick={handleConfirmBye}
+                >
+                  <Zap size={15} /> Confirmar BYE y Avanzar Jugador
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

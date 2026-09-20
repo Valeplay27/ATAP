@@ -16,7 +16,9 @@ export const STORAGE_KEYS = {
   NEWS: 'atap_comunidad_noticias',
   SEASONS_ARCHIVE: 'atap_temporadas_historicas',
   ACTIVE_SEASON: 'atap_temporada_activa',
-  POLICIES: 'atap_politicas_reglas'
+  POLICIES: 'atap_politicas_reglas',
+  HOME_BANNERS: 'atap_home_banners',
+  CONTACT_INFO: 'atap_contacto_soporte'
 };
 
 // Categorías oficiales exclusivas del circuito amateur de tenis ATAP (de mayor a menor nivel)
@@ -1507,6 +1509,42 @@ export const INITIAL_SPONSORS = [
   { id: 'sponsor-9', name: 'Auspiciador 9', logo: '' }
 ];
 
+export const INITIAL_HOME_BANNERS = {
+  signupBanner: {
+    kicker: 'Regístrate ahora',
+    title: 'Inscripciones abiertas',
+    highlight: 'torneos de tenis',
+    description: 'Participa en nuestros torneos y demuestra tu talento en la cancha.',
+    buttonText: 'Registrarse',
+    buttonAction: 'register',
+    buttonLink: '#registro',
+    image: getAssetUrl('/assets/Evento.png')
+  },
+  socialBanner: {
+    eyebrow: 'SÍGUENOS EN REDES',
+    title: 'Todo el tenis,\nen un solo lugar.',
+    description: 'Mantente al día con los torneos, resultados, noticias y mucho más. ¡Sé parte de nuestra comunidad!',
+    instagramUrl: 'https://www.instagram.com/atap_tenisperu/',
+    whatsappUrl: 'https://wa.me/51977884423',
+    image: getAssetUrl('/assets/Redes.png')
+  },
+  faqSection: {
+    title: 'Preguntas\nfrecuentes',
+    subtitle: '¿No se resolvió tu duda?',
+    buttonText: 'Escríbenos',
+    whatsappUrl: 'https://wa.me/51977884423',
+    rulesEyebrow: 'Información para jugadores',
+    rulesTitle: 'Reglas de torneos',
+    rulesList: [
+      'Reglas de torneos singles y dobles',
+      'Categorías y modalidades',
+      'Sistema de puntuación',
+      'Código de conducta',
+      'Fechas y horarios'
+    ]
+  }
+};
+
 export function emitAtapUpdate(key, data) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('atap_data_updated', {
@@ -2185,14 +2223,25 @@ export function generateTournamentBracket(tournamentId) {
     pool[j] = temp;
   }
 
-  // Determine bracket size: 4 or 8
-  const bracketSize = pool.length >= 6 ? 8 : 4;
+  // Determine bracket size: dynamically support 4, 8, 16, 32, 64
+  let bracketSize = 4;
+  if (pool.length > 32) {
+    bracketSize = 64;
+  } else if (pool.length > 16) {
+    bracketSize = 32;
+  } else if (pool.length > 8) {
+    bracketSize = 16;
+  } else if (pool.length >= 6) {
+    bracketSize = 8;
+  } else {
+    bracketSize = 4;
+  }
 
   // Complete pool if needed with ranking players
   const rankings = getRanking();
   let rankIdx = 0;
   while (pool.length < bracketSize) {
-    const rankP = rankings[rankIdx % rankings.length];
+    const rankP = rankings[rankIdx % rankings.length] || { name: `Jugador ${pool.length + 1}`, categoria: '4ta' };
     rankIdx++;
     pool.push({
       id: 'seed-' + pool.length,
@@ -2203,114 +2252,16 @@ export function generateTournamentBracket(tournamentId) {
   }
 
   const participants = pool.slice(0, bracketSize);
-  let rounds = [];
+  const rounds = generateKnockoutStructure(bracketSize);
 
-  if (bracketSize === 4) {
-    // Round 1: Semifinales (2 matches)
-    const m1 = {
-      id: 'm-sf-1',
-      round: 'Semifinales',
-      matchNum: 1,
-      player1: { name: participants[0].nombre, categoria: participants[0].categoria },
-      player2: { name: participants[1].nombre, categoria: participants[1].categoria },
-      score: '',
-      winnerSlot: null,
-      winnerName: null,
-      nextMatchId: 'm-f-1',
-      nextSlot: 1
-    };
-    const m2 = {
-      id: 'm-sf-2',
-      round: 'Semifinales',
-      matchNum: 2,
-      player1: { name: participants[2].nombre, categoria: participants[2].categoria },
-      player2: { name: participants[3].nombre, categoria: participants[3].categoria },
-      score: '',
-      winnerSlot: null,
-      winnerName: null,
-      nextMatchId: 'm-f-1',
-      nextSlot: 2
-    };
-    const mf = {
-      id: 'm-f-1',
-      round: 'Gran Final',
-      matchNum: 3,
-      player1: null,
-      player2: null,
-      score: '',
-      winnerSlot: null,
-      winnerName: null,
-      nextMatchId: null,
-      nextSlot: null
-    };
-
-    rounds = [
-      { name: 'Semifinales', matches: [m1, m2] },
-      { name: 'Gran Final', matches: [mf] }
-    ];
-  } else {
-    // 8 players: Cuartos -> Semis -> Final
-    const qfMatches = [];
-    for (let i = 0; i < 4; i++) {
-      qfMatches.push({
-        id: 'm-qf-' + (i + 1),
-        round: 'Cuartos de final',
-        matchNum: i + 1,
-        player1: { name: participants[i * 2].nombre, categoria: participants[i * 2].categoria },
-        player2: { name: participants[i * 2 + 1].nombre, categoria: participants[i * 2 + 1].categoria },
-        score: '',
-        winnerSlot: null,
-        winnerName: null,
-        nextMatchId: i < 2 ? 'm-sf-1' : 'm-sf-2',
-        nextSlot: (i % 2) + 1
-      });
-    }
-
-    const sfMatches = [
-      {
-        id: 'm-sf-1',
-        round: 'Semifinales',
-        matchNum: 5,
-        player1: null,
-        player2: null,
-        score: '',
-        winnerSlot: null,
-        winnerName: null,
-        nextMatchId: 'm-f-1',
-        nextSlot: 1
-      },
-      {
-        id: 'm-sf-2',
-        round: 'Semifinales',
-        matchNum: 6,
-        player1: null,
-        player2: null,
-        score: '',
-        winnerSlot: null,
-        winnerName: null,
-        nextMatchId: 'm-f-1',
-        nextSlot: 2
-      }
-    ];
-
-    const finalMatch = {
-      id: 'm-f-1',
-      round: 'Gran Final',
-      matchNum: 7,
-      player1: null,
-      player2: null,
-      score: '',
-      winnerSlot: null,
-      winnerName: null,
-      nextMatchId: null,
-      nextSlot: null
-    };
-
-    rounds = [
-      { name: 'Cuartos de final', matches: qfMatches },
-      { name: 'Semifinales', matches: sfMatches },
-      { name: 'Gran Final', matches: [finalMatch] }
-    ];
+  // Populate first round with participants
+  if (rounds.length > 0 && rounds[0].matches) {
+    rounds[0].matches.forEach((m, i) => {
+      const p1 = participants[i * 2];
+      const p2 = participants[i * 2 + 1];
+      if (p1) m.player1 = { name: p1.nombre, categoria: p1.categoria };
+      if (p2) m.player2 = { name: p2.nombre, categoria: p2.categoria };
+    });
   }
 
   tournament.bracket = {
@@ -2449,6 +2400,14 @@ export function saveRegisteredUser(userData) {
       : (index !== -1 && users[index].puntosNum !== undefined ? Number(users[index].puntosNum) : 0));
   const pointsStr = userData.points || `${pointsNum.toLocaleString()} pts`;
 
+  const titulosNum = userData.titulosGanados !== undefined
+    ? Math.max(0, parseInt(userData.titulosGanados, 10) || 0)
+    : (userData.titulos !== undefined
+      ? Math.max(0, parseInt(userData.titulos, 10) || 0)
+      : (index !== -1 && users[index].titulosGanados !== undefined
+        ? Math.max(0, parseInt(users[index].titulosGanados, 10) || 0)
+        : (index !== -1 && users[index].titulos !== undefined ? Math.max(0, parseInt(users[index].titulos, 10) || 0) : 0)));
+
   const cleanUser = {
     ...(index !== -1 ? users[index] : {}),
     ...userData,
@@ -2461,6 +2420,8 @@ export function saveRegisteredUser(userData) {
     categoria: userData.categoria || (index !== -1 ? users[index].categoria : '') || '4ta',
     puntosNum: pointsNum,
     points: pointsStr,
+    titulosGanados: titulosNum,
+    titulos: titulosNum,
     avatar: userData.avatar || (index !== -1 ? users[index].avatar : '/assets/logo.png') || '/assets/logo.png',
     image: userData.image || (index !== -1 ? users[index].image : '/assets/logo.png') || '/assets/logo.png',
     perfilIncompleto: userData.perfilIncompleto !== undefined ? Boolean(userData.perfilIncompleto) : (index !== -1 ? users[index].perfilIncompleto : true),
@@ -2509,8 +2470,11 @@ export function saveRegisteredUser(userData) {
           dni: maskedDni,
           puntosNum: cleanUser.puntosNum,
           points: cleanUser.points,
+          titulosGanados: titulosNum,
+          titulos: titulosNum,
           email: cleanUser.email || ranking[rankIdx].email || '',
           telefono: cleanUser.telefono || cleanUser.whatsapp || ranking[rankIdx].telefono || '',
+          instagram: cleanUser.instagram || cleanUser.ig || ranking[rankIdx].instagram || '',
           avatar: cleanUser.avatar || ranking[rankIdx].avatar || '/assets/logo.png',
           image: cleanUser.image || cleanUser.avatar || ranking[rankIdx].image || '/assets/logo.png'
         };
@@ -2523,13 +2487,14 @@ export function saveRegisteredUser(userData) {
           puntosNum: cleanUser.puntosNum,
           points: cleanUser.points,
           categoria: cleanUser.categoria || '4ta',
-          titulos: 0,
-          titulosGanados: 0,
+          titulos: titulosNum,
+          titulosGanados: titulosNum,
           golpe: 'Drive cruzado',
           mejorGolpe: 'Drive cruzado',
           mano: 'Diestro',
           manoDominante: 'Diestro',
           efectividad: '70%',
+          instagram: cleanUser.instagram || cleanUser.ig || '',
           image: cleanUser.image || cleanUser.avatar || '/assets/logo.png',
           avatar: cleanUser.avatar || cleanUser.image || '/assets/logo.png',
           email: cleanUser.email || '',
@@ -2985,112 +2950,50 @@ export function generateGroupMatches(participantes, grupoId, grupoNombre) {
 }
 
 export function generateKnockoutStructure(size = 4) {
-  if (size === 8) {
-    const qfMatches = [];
-    for (let i = 0; i < 4; i++) {
-      qfMatches.push({
-        id: 'm-qf-' + (i + 1),
-        round: 'Cuartos de final',
-        matchNum: i + 1,
-        player1: null,
-        player2: null,
-        score: '',
-        winnerSlot: null,
-        winnerName: null,
-        nextMatchId: i < 2 ? 'm-sf-1' : 'm-sf-2',
-        nextSlot: (i % 2) + 1
-      });
-    }
+  const sizeNum = Number(size) || 4;
 
-    const sfMatches = [
-      {
-        id: 'm-sf-1',
-        round: 'Semifinales',
-        matchNum: 5,
-        player1: null,
-        player2: null,
-        score: '',
-        winnerSlot: null,
-        winnerName: null,
-        nextMatchId: 'm-f-1',
-        nextSlot: 1
-      },
-      {
-        id: 'm-sf-2',
-        round: 'Semifinales',
-        matchNum: 6,
-        player1: null,
-        player2: null,
-        score: '',
-        winnerSlot: null,
-        winnerName: null,
-        nextMatchId: 'm-f-1',
-        nextSlot: 2
-      }
-    ];
+  const ALL_ROUNDS_CONFIG = [
+    { size: 64, matchesCount: 32, name: '32-avos de final', prefix: 'm-r32-', nextPrefix: 'm-r16-' },
+    { size: 32, matchesCount: 16, name: 'Dieciseisavos de final', prefix: 'm-r16-', nextPrefix: 'm-of-' },
+    { size: 16, matchesCount: 8,  name: 'Octavos de final', prefix: 'm-of-',  nextPrefix: 'm-qf-' },
+    { size: 8,  matchesCount: 4,  name: 'Cuartos de final', prefix: 'm-qf-',  nextPrefix: 'm-sf-' },
+    { size: 4,  matchesCount: 2,  name: 'Semifinales',      prefix: 'm-sf-',  nextPrefix: 'm-f-' },
+    { size: 2,  matchesCount: 1,  name: 'Gran Final',       prefix: 'm-f-',   nextPrefix: null }
+  ];
 
-    const finalMatch = {
-      id: 'm-f-1',
-      round: 'Gran Final',
-      matchNum: 7,
-      player1: null,
-      player2: null,
-      score: '',
-      winnerSlot: null,
-      winnerName: null,
-      nextMatchId: null,
-      nextSlot: null
-    };
-
-    return [
-      { name: 'Cuartos de final', matches: qfMatches },
-      { name: 'Semifinales', matches: sfMatches },
-      { name: 'Gran Final', matches: [finalMatch] }
-    ];
+  let startIdx = ALL_ROUNDS_CONFIG.findIndex((r) => r.size === sizeNum);
+  if (startIdx === -1) {
+    if (sizeNum >= 64) startIdx = 0;
+    else if (sizeNum >= 32) startIdx = 1;
+    else if (sizeNum >= 16) startIdx = 2;
+    else if (sizeNum >= 8) startIdx = 3;
+    else startIdx = 4;
   }
 
-  // Default: 4 players (Semifinales -> Gran Final)
-  const m1 = {
-    id: 'm-sf-1',
-    round: 'Semifinales',
-    matchNum: 1,
-    player1: null,
-    player2: null,
-    score: '',
-    winnerSlot: null,
-    winnerName: null,
-    nextMatchId: 'm-f-1',
-    nextSlot: 1
-  };
-  const m2 = {
-    id: 'm-sf-2',
-    round: 'Semifinales',
-    matchNum: 2,
-    player1: null,
-    player2: null,
-    score: '',
-    winnerSlot: null,
-    winnerName: null,
-    nextMatchId: 'm-f-1',
-    nextSlot: 2
-  };
-  const mf = {
-    id: 'm-f-1',
-    round: 'Gran Final',
-    matchNum: 3,
-    player1: null,
-    player2: null,
-    score: '',
-    winnerSlot: null,
-    winnerName: null,
-    nextMatchId: null,
-    nextSlot: null
-  };
+  const roundsToGenerate = ALL_ROUNDS_CONFIG.slice(startIdx);
+  let globalMatchNum = 1;
 
-  return [
-    { name: 'Semifinales', matches: [m1, m2] },
-    { name: 'Gran Final', matches: [mf] }
-  ];
+  return roundsToGenerate.map((cfg) => {
+    const matches = [];
+    for (let i = 0; i < cfg.matchesCount; i++) {
+      matches.push({
+        id: `${cfg.prefix}${i + 1}`,
+        round: cfg.name,
+        matchNum: globalMatchNum++,
+        player1: null,
+        player2: null,
+        score: '',
+        winnerSlot: null,
+        winnerName: null,
+        nextMatchId: cfg.nextPrefix ? `${cfg.nextPrefix}${Math.floor(i / 2) + 1}` : null,
+        nextSlot: cfg.nextPrefix ? (i % 2) + 1 : null
+      });
+    }
+    return {
+      name: cfg.name,
+      matches
+    };
+  });
 }
 
 export function saveManualFixture(tournamentId, { faseGrupos, rounds, bracket, size }) {
@@ -3187,7 +3090,7 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   }
 
   // Award points to winner and update live ranking
-  if (winnerPlayer && winnerPlayer.name) {
+  if (winnerPlayer && winnerPlayer.name && !winnerPlayer.isBye && winnerPlayer.name.toUpperCase() !== 'BYE' && pointsAward > 0) {
     awardPointsToPlayer(winnerPlayer.name, pointsAward);
   }
 
@@ -3201,6 +3104,92 @@ export function recordMatchResult(tournamentId, matchId, winnerSlot, scoreString
     score: scoreString,
     pointsAward
   });
+}
+
+export function recordByeMatch(tournamentId, matchId, winnerSlot, pointsAward = 100) {
+  const tournaments = getTournaments();
+  const index = tournaments.findIndex((t) => t.id === tournamentId);
+  if (index === -1) return { error: 'Torneo no encontrado.' };
+
+  const tournament = tournaments[index];
+  const allMatches = [];
+  let targetMatch = null;
+
+  if (tournament.bracket && tournament.bracket.rounds) {
+    tournament.bracket.rounds.forEach((r) => {
+      if (r.matches) {
+        allMatches.push(...r.matches);
+        const found = r.matches.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+
+  if (!targetMatch && tournament.faseGrupos) {
+    tournament.faseGrupos.forEach((g) => {
+      if (g.partidos) {
+        allMatches.push(...g.partidos);
+        const found = g.partidos.find((m) => m.id === matchId);
+        if (found) targetMatch = found;
+      }
+    });
+  }
+
+  if (!targetMatch) {
+    return { error: 'Partido no encontrado en el torneo.' };
+  }
+
+  const wSlot = Number(winnerSlot);
+  const byeSlot = wSlot === 1 ? 2 : 1;
+  const byeObj = {
+    id: 'bye',
+    name: 'BYE',
+    nombre: 'BYE',
+    categoria: 'Pase Libre',
+    grupoNombre: 'Pase Libre',
+    isBye: true
+  };
+
+  if (byeSlot === 1) targetMatch.player1 = byeObj;
+  else targetMatch.player2 = byeObj;
+
+  const winnerPlayer = wSlot === 1 ? targetMatch.player1 : targetMatch.player2;
+  if (!winnerPlayer || winnerPlayer.isBye || winnerPlayer.name === 'BYE') {
+    return { error: 'Se requiere un jugador válido para otorgarle la victoria por BYE.' };
+  }
+
+  targetMatch.isBye = true;
+  targetMatch.score = 'BYE';
+  targetMatch.winnerSlot = wSlot;
+  targetMatch.winnerName = winnerPlayer.name;
+
+  let points = Number(pointsAward) || 0;
+
+  // Advance winner if next match exists (knockout bracket)
+  if (targetMatch.nextMatchId) {
+    const nextMatch = allMatches.find((m) => m.id === targetMatch.nextMatchId);
+    if (nextMatch) {
+      if (targetMatch.nextSlot === 1) {
+        nextMatch.player1 = { ...winnerPlayer };
+      } else {
+        nextMatch.player2 = { ...winnerPlayer };
+      }
+    }
+  } else if (targetMatch.round && targetMatch.round.toLowerCase().includes('final') && !targetMatch.grupoId) {
+    // This was the Gran Final!
+    if (tournament.bracket) {
+      tournament.bracket.champion = { ...winnerPlayer };
+    }
+    tournament.estado = 'finalizado';
+    points = Math.max(points, 250);
+  }
+
+  if (points > 0 && winnerPlayer.name) {
+    awardPointsToPlayer(winnerPlayer.name, points);
+  }
+
+  saveTournaments(tournaments);
+  return { success: true, match: targetMatch, champion: tournament.bracket?.champion };
 }
 
 // ----------------- RANKING METHODS -----------------
@@ -3255,7 +3244,13 @@ export function getRanking() {
         list[foundIdx].dni = uDni || maskDni(list[foundIdx].dni);
         list[foundIdx].image = u.image || u.avatar || list[foundIdx].image || '/assets/logo.png';
         list[foundIdx].avatar = u.avatar || u.image || list[foundIdx].avatar || '/assets/logo.png';
+        if (u.titulosGanados !== undefined || u.titulos !== undefined) {
+          const tVal = Math.max(0, parseInt(u.titulosGanados !== undefined ? u.titulosGanados : u.titulos, 10) || 0);
+          list[foundIdx].titulosGanados = tVal;
+          list[foundIdx].titulos = tVal;
+        }
       } else {
+        const initTitulos = Math.max(0, parseInt(u.titulosGanados !== undefined ? u.titulosGanados : (u.titulos || 0), 10) || 0);
         list.push({
           id: 'p-' + (uDni.slice(-3) || Date.now()) + '-' + Date.now(),
           name: u.nombre || 'Jugador ATAP',
@@ -3264,8 +3259,8 @@ export function getRanking() {
           puntosNum: 0,
           points: '0 pts',
           categoria: u.categoria || '4ta',
-          titulos: 0,
-          titulosGanados: 0,
+          titulos: initTitulos,
+          titulosGanados: initTitulos,
           golpe: 'Drive cruzado',
           mejorGolpe: 'Drive cruzado',
           mano: 'Diestro',
@@ -3329,7 +3324,8 @@ export function getRanking() {
         dni: maskDni(p.dni || initMatch?.dni || ''),
         manoDominante: p.manoDominante || p.mano || initMatch?.manoDominante || 'Diestro',
         mejorGolpe: p.mejorGolpe || p.golpe || initMatch?.mejorGolpe || 'Drive cruzado',
-        titulosGanados: p.titulosGanados !== undefined ? p.titulosGanados : (p.titulos !== undefined ? p.titulos : (initMatch?.titulosGanados || 0)),
+        titulos: Math.max(0, parseInt(p.titulosGanados !== undefined ? p.titulosGanados : (p.titulos !== undefined ? p.titulos : (initMatch?.titulosGanados || 0)), 10) || 0),
+        titulosGanados: Math.max(0, parseInt(p.titulosGanados !== undefined ? p.titulosGanados : (p.titulos !== undefined ? p.titulos : (initMatch?.titulosGanados || 0)), 10) || 0),
         zonas: normalizedZonas,
         disponibilidad: (p.disponibilidad && p.disponibilidad.length > 0) ? p.disponibilidad : (initMatch?.disponibilidad || ['SAB', 'DOM']),
         genero: p.genero || initMatch?.genero || 'Masculino',
@@ -3624,6 +3620,10 @@ export function autoCheckAnnualRollover() {
 }
 
 export function awardPointsToPlayer(playerName, pointsToAdd, modality = 'singles') {
+  if (!playerName || playerName.trim().toUpperCase() === 'BYE') return null;
+  const numPoints = Number(pointsToAdd) || 0;
+  if (numPoints <= 0) return null;
+
   if (modality === 'dobles') {
     const doublesRank = getDoublesRanking();
     let dPlayer = doublesRank.find((p) => p.name.toLowerCase() === playerName.toLowerCase());
@@ -4329,11 +4329,89 @@ export function saveSiteImage(imageKey, newUrl) {
     if (imageKey === 'heroBanner' && current.heroSlides && current.heroSlides.length > 0) {
       current.heroSlides[0] = { ...current.heroSlides[0], image: newUrl };
     }
+    if (imageKey === 'eventoBanner') {
+      try {
+        const rawBanners = localStorage.getItem(STORAGE_KEYS.HOME_BANNERS);
+        const parsedBanners = rawBanners ? JSON.parse(rawBanners) : {};
+        parsedBanners.signupBanner = { ...(parsedBanners.signupBanner || {}), image: newUrl };
+        localStorage.setItem(STORAGE_KEYS.HOME_BANNERS, JSON.stringify(parsedBanners));
+        emitAtapUpdate(STORAGE_KEYS.HOME_BANNERS, parsedBanners);
+      } catch (err) {
+        console.warn('Error syncing signupBanner image:', err);
+      }
+    }
     localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(current));
     emitAtapUpdate(STORAGE_KEYS.IMAGES, current);
     return true;
   } catch (e) {
     console.error('Error saving site image:', e);
+    return false;
+  }
+}
+
+// ----------------- HOME BANNERS METHODS -----------------
+
+export function getHomeBanners() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.HOME_BANNERS);
+    let parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== 'object') {
+      parsed = {};
+    }
+    const siteImgs = getSiteImages();
+    const defaultEventImg = siteImgs?.eventoBanner || getAssetUrl('/assets/Evento.png');
+
+    return {
+      signupBanner: {
+        ...INITIAL_HOME_BANNERS.signupBanner,
+        image: defaultEventImg,
+        ...(parsed.signupBanner || {})
+      },
+      socialBanner: {
+        ...INITIAL_HOME_BANNERS.socialBanner,
+        ...(parsed.socialBanner || {})
+      },
+      faqSection: {
+        ...INITIAL_HOME_BANNERS.faqSection,
+        ...(parsed.faqSection || {})
+      }
+    };
+  } catch (e) {
+    console.error('Error getting home banners:', e);
+    return INITIAL_HOME_BANNERS;
+  }
+}
+
+export function saveHomeBanners(banners) {
+  try {
+    const current = getHomeBanners();
+    const updated = {
+      ...current,
+      ...banners,
+      signupBanner: {
+        ...current.signupBanner,
+        ...(banners?.signupBanner || {})
+      },
+      socialBanner: {
+        ...current.socialBanner,
+        ...(banners?.socialBanner || {})
+      },
+      faqSection: {
+        ...current.faqSection,
+        ...(banners?.faqSection || {})
+      }
+    };
+    localStorage.setItem(STORAGE_KEYS.HOME_BANNERS, JSON.stringify(updated));
+    if (updated.signupBanner?.image) {
+      const siteImgs = getSiteImages();
+      siteImgs.eventoBanner = updated.signupBanner.image;
+      localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(siteImgs));
+      emitAtapUpdate(STORAGE_KEYS.IMAGES, siteImgs);
+    }
+    emitAtapUpdate(STORAGE_KEYS.HOME_BANNERS, updated);
+    return true;
+  } catch (e) {
+    console.error('Error saving home banners:', e);
     return false;
   }
 }
@@ -4811,4 +4889,88 @@ export function savePoliciesAndRules(sections) {
 export function resetPoliciesAndRules() {
   return savePoliciesAndRules(DEFAULT_POLICIES_AND_RULES);
 }
+
+// ----------------- CONTACT AND SUPPORT INFO -----------------
+
+export const DEFAULT_CONTACT_INFO = {
+  header: {
+    eyebrow: 'ATENCIÓN AL JUGADOR Y AFILIADOS',
+    title: 'Contacto y Soporte Oficial ATAP',
+    description: '¿Tienes dudas sobre los torneos, validación de pagos, emparejamientos o el ranking oficial? Nuestro equipo de coordinación técnica y administrativa está listo para ayudarte.'
+  },
+  whatsapp: {
+    title: 'WhatsApp Oficial',
+    phone: '+51 977 884 423',
+    number: '51977884423',
+    subtext: 'Atención ágil para envío de comprobantes de pago y consultas en tiempo real.',
+    btnText: 'Iniciar Chat WhatsApp'
+  },
+  email: {
+    title: 'Correo Electrónico',
+    email: 'contacto@atap.pe',
+    subtext: 'Para consultas formales, solicitudes de auspicios y asuntos administrativos.',
+    writeBtnText: 'Escribir Correo',
+    copyBtnText: 'Copiar'
+  },
+  sede: {
+    title: 'Sedes del Circuito',
+    location: 'Lima Metropolitana, Perú',
+    subtext: 'Club Lawn Tennis de la Exposición y clubes asociados del circuito amateur.',
+    tagText: 'Canchas Oficiales'
+  },
+  horario: {
+    visible: false, // Por indicación del usuario: actualmente no tienen horario de servicio fijo
+    title: 'Horarios de Atención',
+    primary: 'Lun a Sáb: 8:00 AM - 9:00 PM',
+    subtext: 'Domingos y días de torneo: 8:00 AM - 2:00 PM con soporte en cancha.',
+    tagText: 'Soporte Activo'
+  }
+};
+
+export function getContactInfo() {
+  try {
+    if (typeof localStorage === 'undefined') return DEFAULT_CONTACT_INFO;
+    const raw = localStorage.getItem(STORAGE_KEYS.CONTACT_INFO);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.CONTACT_INFO, JSON.stringify(DEFAULT_CONTACT_INFO));
+      return DEFAULT_CONTACT_INFO;
+    }
+    const parsed = JSON.parse(raw);
+    return {
+      header: { ...DEFAULT_CONTACT_INFO.header, ...(parsed.header || {}) },
+      whatsapp: { ...DEFAULT_CONTACT_INFO.whatsapp, ...(parsed.whatsapp || {}) },
+      email: { ...DEFAULT_CONTACT_INFO.email, ...(parsed.email || {}) },
+      sede: { ...DEFAULT_CONTACT_INFO.sede, ...(parsed.sede || {}) },
+      horario: { ...DEFAULT_CONTACT_INFO.horario, ...(parsed.horario || {}) }
+    };
+  } catch (e) {
+    console.error('Error loading contact info:', e);
+    return DEFAULT_CONTACT_INFO;
+  }
+}
+
+export function saveContactInfo(info) {
+  try {
+    if (typeof localStorage === 'undefined') return info;
+    const current = getContactInfo();
+    const updated = {
+      header: { ...current.header, ...(info?.header || {}) },
+      whatsapp: { ...current.whatsapp, ...(info?.whatsapp || {}) },
+      email: { ...current.email, ...(info?.email || {}) },
+      sede: { ...current.sede, ...(info?.sede || {}) },
+      horario: { ...current.horario, ...(info?.horario || {}) }
+    };
+    localStorage.setItem(STORAGE_KEYS.CONTACT_INFO, JSON.stringify(updated));
+    emitAtapUpdate(STORAGE_KEYS.CONTACT_INFO, updated);
+    return updated;
+  } catch (e) {
+    console.error('Error saving contact info:', e);
+    return DEFAULT_CONTACT_INFO;
+  }
+}
+
+export function resetContactInfo() {
+  return saveContactInfo(DEFAULT_CONTACT_INFO);
+}
+
 

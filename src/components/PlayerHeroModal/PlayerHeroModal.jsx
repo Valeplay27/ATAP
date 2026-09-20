@@ -3,24 +3,108 @@ import { Star, X, Trophy, Calendar, Award, Flame, User, Users } from 'lucide-rea
 import { getPlayerMatchHistory, getPlayerBothProfiles, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './PlayerHeroModal.css'
 
+function InstagramIcon({ size = 14, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+    </svg>
+  )
+}
+
+// Resuelve el handle de Instagram (definido en perfil, registrado o circuito)
+function getPlayerInstagramHandle(player) {
+  if (!player) return ''
+  if (player.instagram) return player.instagram
+  if (player.ig) return player.ig
+
+  const cleanName = (player.name || player.nombre || '').toLowerCase().trim()
+  const cleanDni = (player.dni || player.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
+
+  // Cuentas curadas de estrellas del circuito
+  const CURATED_HANDLES = {
+    'luciana pérez': 'lucianaperez',
+    'luciana perez': 'lucianaperez',
+    'diego sánchez': 'diegosanchez.tennis',
+    'diego sanchez': 'diegosanchez.tennis',
+    'valeria torres': 'valeriatorres.tenis',
+    'mateo rojas': 'mateorojas_tenis',
+    'camila mendoza': 'camilamendoza.tenis',
+    'carlos benavides': 'carlosbenavides.tenis',
+    'rodrigo alva': 'rodrigoalva_tenis',
+    'joaquín vargas': 'joaquinvargas.pe',
+    'joaquin vargas': 'joaquinvargas.pe',
+    'gonzalo ugarte': 'gonzalougarte.tenis'
+  }
+
+  // 1. Buscar en usuarios registrados en localStorage (si alguien puso su IG en el perfil/onboarding)
+  try {
+    const raw = localStorage.getItem('atap_usuarios_registrados')
+    if (raw) {
+      const users = JSON.parse(raw)
+      if (Array.isArray(users)) {
+        const found = users.find((u) => {
+          const uName = (u.nombre || u.name || '').toLowerCase().trim()
+          const uDni = (u.dni || u.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
+          return (cleanName && uName === cleanName) || (cleanDni && uDni && (uDni === cleanDni || uDni.endsWith(cleanDni.slice(-3))))
+        })
+        if (found && (found.instagram || found.ig)) {
+          return found.instagram || found.ig
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 2. Buscar en sesión de usuario activo
+  try {
+    const rawUser = localStorage.getItem('atap_usuario')
+    if (rawUser) {
+      const active = JSON.parse(rawUser)
+      const aName = (active?.nombre || active?.name || '').toLowerCase().trim()
+      if (cleanName && aName === cleanName && (active?.instagram || active?.ig)) {
+        return active.instagram || active.ig
+      }
+    }
+  } catch (e) {}
+
+  // 3. Fallback al listado curado
+  if (CURATED_HANDLES[cleanName]) {
+    return CURATED_HANDLES[cleanName]
+  }
+
+  return ''
+}
+
 export default function PlayerHeroModal({
   player,
   onClose,
   initialTab = 'partidos',
   favorites = [],
   onToggleFavorite = () => {},
-  initialModality = 'singles'
+  initialModality = 'singles',
+  showDobles = true
 }) {
   const [activeTab, setActiveTab] = useState(initialTab)
-  const [selectedModality, setSelectedModality] = useState(initialModality || 'singles')
+  const [selectedModality, setSelectedModality] = useState(showDobles ? (initialModality || 'singles') : 'singles')
   const [matches, setMatches] = useState([])
   const [profiles, setProfiles] = useState(() => getPlayerBothProfiles(player?.name || player?.id))
 
+  const playerInstagram = getPlayerInstagramHandle(player)
+
   useEffect(() => {
-    if (initialModality) {
+    if (!showDobles) {
+      setSelectedModality('singles')
+    } else if (initialModality) {
       setSelectedModality(initialModality)
     }
-  }, [initialModality, player])
+  }, [initialModality, showDobles, player])
 
   useEffect(() => {
     if (player) {
@@ -41,7 +125,7 @@ export default function PlayerHeroModal({
 
   if (!player) return null
 
-  const activeProfile = selectedModality === 'dobles'
+  const activeProfile = (showDobles && selectedModality === 'dobles')
     ? (profiles.dobles || player)
     : (profiles.singles || player)
 
@@ -49,9 +133,8 @@ export default function PlayerHeroModal({
 
   // Filter matches specifically by the chosen modality (Singles shows singles matches, Dobles shows dobles matches)
   const currentMatches = matches.filter((m) => {
-    if (selectedModality === 'dobles') return m.modalidad === 'dobles'
-    if (selectedModality === 'singles') return m.modalidad === 'singles'
-    return true
+    if (showDobles && selectedModality === 'dobles') return m.modalidad === 'dobles'
+    return m.modalidad === 'singles'
   })
 
   const totalMatches = currentMatches.length
@@ -108,28 +191,46 @@ export default function PlayerHeroModal({
               <span>{player.altura || '1.74m'}</span>
               <span className="p-hero-sep">•</span>
               <span>🎾 {player.manoDominante || player.mano || 'Diestro'}</span>
+              {playerInstagram && (
+                <>
+                  <span className="p-hero-sep">•</span>
+                  <a
+                    href={`https://instagram.com/${playerInstagram.replace('@', '').trim()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-hero-ig-badge"
+                    title={`Ver Instagram de ${player.name}`}
+                  >
+                    <InstagramIcon size={13} />
+                    <span>@{playerInstagram.replace('@', '').trim()}</span>
+                  </a>
+                </>
+              )}
             </div>
 
-            {/* SELECTOR DE MODALIDAD DEL JUGADOR: Muestra claramente lo sacado en Singles vs Dobles */}
+            {/* SELECTOR DE MODALIDAD DEL JUGADOR: En Jugadores solo aparece Singles; en Ranking aparecen ambos a la vez */}
             <div className="p-hero-modality-bar" role="tablist" aria-label="Modalidad del jugador">
               <button
                 type="button"
                 className={`p-modal-mod-btn ${selectedModality === 'singles' ? 'active' : ''}`}
                 onClick={() => setSelectedModality('singles')}
-                title="Ver estadísticas y partidos de Singles"
+                title="Puntaje y partidos oficiales de Singles"
+                style={!showDobles ? { cursor: 'default' } : undefined}
               >
                 <User size={14} />
                 <span>Singles: <strong>{profiles.singles?.points || (selectedModality === 'singles' ? player.points : '0 pts')}</strong></span>
               </button>
-              <button
-                type="button"
-                className={`p-modal-mod-btn ${selectedModality === 'dobles' ? 'active' : ''}`}
-                onClick={() => setSelectedModality('dobles')}
-                title="Ver estadísticas y partidos de Dobles"
-              >
-                <Users size={14} />
-                <span>Dobles: <strong>{profiles.dobles?.points || (selectedModality === 'dobles' ? player.points : '0 pts')}</strong></span>
-              </button>
+              {showDobles && (
+                <button
+                  type="button"
+                  className={`p-modal-mod-btn ${selectedModality === 'dobles' ? 'active' : ''}`}
+                  onClick={() => setSelectedModality('dobles')}
+                  title="Ver estadísticas y partidos de Dobles"
+                >
+                  <Users size={14} />
+                  <span>Dobles: <strong>{profiles.dobles?.points || (selectedModality === 'dobles' ? player.points : '0 pts')}</strong></span>
+                </button>
+              )}
             </div>
 
             {/* Switcher de Pestañas */}
@@ -375,10 +476,26 @@ export default function PlayerHeroModal({
                   </strong>
                 </div>
 
-                {player.parejaReciente && (
+                {showDobles && player.parejaReciente && (
                   <div className="p-data-box">
                     <span className="p-data-k">Dupla Reciente en Dobles</span>
                     <strong className="p-data-v">👥 {player.parejaReciente}</strong>
+                  </div>
+                )}
+
+                {playerInstagram && (
+                  <div className="p-data-box">
+                    <span className="p-data-k">Instagram Oficial</span>
+                    <strong className="p-data-v">
+                      <a
+                        href={`https://instagram.com/${playerInstagram.replace('@', '').trim()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-data-instagram-link"
+                      >
+                        <InstagramIcon size={14} /> @{playerInstagram.replace('@', '').trim()}
+                      </a>
+                    </strong>
                   </div>
                 )}
               </div>

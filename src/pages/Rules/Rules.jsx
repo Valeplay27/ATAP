@@ -22,8 +22,33 @@ export default function Rules() {
   }, [])
 
   useEffect(() => {
+    function checkHash() {
+      const hash = window.location.hash
+      if (!hash) return
+      const cleanId = hash.replace('#rule-section-', '').replace('#', '')
+      if (cleanId && sections.some((s) => s.id === cleanId)) {
+        setActiveId(cleanId)
+        setTimeout(() => {
+          const element = document.getElementById(`rule-section-${cleanId}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 120)
+      }
+    }
+    checkHash()
+    window.addEventListener('hashchange', checkHash)
+    return () => window.removeEventListener('hashchange', checkHash)
+  }, [sections])
+
+  useEffect(() => {
     if (sections.length > 0 && !activeId) {
-      setActiveId(sections[0].id)
+      const hash = window.location.hash.replace('#rule-section-', '').replace('#', '')
+      if (hash && sections.some((s) => s.id === hash)) {
+        setActiveId(hash)
+      } else {
+        setActiveId(sections[0].id)
+      }
     }
   }, [sections, activeId])
 

@@ -666,3 +666,110 @@
 .btn-edit-score-mini:hover {
   background: #DDF8EF;
 }
+
+/* =========================================================
+   BYE (PASE LIBRE) STYLES
+   ========================================================= */
+.match-node-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.match-bye-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(0, 207, 160, 0.15);
+  color: #00875A;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #00CFA0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.match-final-score.is-bye-score {
+  color: #00875A;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.slot-picker-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.btn-quick-give-bye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #F0FDF4;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  font-family: 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-quick-give-bye:hover {
+  background: #DCFCE7;
+  border-color: #86EFAC;
+  color: #14532D;
+}
+
+.player-slot.is-bye-slot {
+  background: #F8FAFC;
+  border: 1.5px dashed #CBD5E1;
+  opacity: 0.9;
+}
+
+.player-slot.is-bye-slot.is-loser {
+  opacity: 0.45;
+  text-decoration: none;
+}
+
+.slot-bye-tag {
+  display: inline-flex;
+  align-items: center;
+  background: #00304A;
+  color: #C6FF00;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.player-slot-name.is-bye-text {
+  color: #64748B;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.btn-bye-highlight {
+  background: linear-gradient(135deg, #00875A 0%, #00304A 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid #00CFA0 !important;
+}
+
+.btn-bye-highlight:hover {
+  background: #00304A !important;
+  box-shadow: 0 4px 12px rgba(0, 207, 160, 0.3);
+}

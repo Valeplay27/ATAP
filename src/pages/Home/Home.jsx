@@ -4,41 +4,74 @@ import { ArrowRight, ChevronDown } from 'lucide-react'
 import Hero from '../../components/Hero/Hero'
 import QuickNav from '../../components/QuickNav/QuickNav'
 import RankingCard from '../../components/RankingCard/RankingCard'
-import { getRanking, getSiteImages, getSponsors, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
+import {
+	getRanking,
+	getSiteImages,
+	getSponsors,
+	getHomeBanners,
+	getPoliciesAndRules,
+	getAssetUrl,
+	handleImageFallback
+} from '../../services/atapStorage'
 import './Home.css'
 
-function SignupPanel({ onOpenRegister, eventImage }) {
+function SignupPanel({ onOpenRegister, bannerData }) {
+	const data = bannerData || {}
+	const kicker = data.kicker || 'Regístrate ahora'
+	const title = data.title || 'Inscripciones abiertas'
+	const highlight = data.highlight !== undefined ? data.highlight : 'torneos de tenis'
+	const desc = data.description || 'Participa en nuestros torneos y demuestra tu talento en la cancha.'
+	const btnText = data.buttonText || 'Registrarse'
+	const bgImg = data.image || '/assets/Evento.png'
+
+	const handleBtnClick = (e) => {
+		if (data.buttonAction === 'link' && data.buttonLink && data.buttonLink !== '#registro') {
+			return
+		}
+		if (onOpenRegister) {
+			e.preventDefault()
+			onOpenRegister()
+		}
+	}
+
 	return (
 		<article className="signup-panel information-panel panel">
 			<img
 				className="event-image"
-				src={getAssetUrl(eventImage || '/assets/Evento.png')}
-				alt="Cancha de tenis preparada para un evento"
+				src={getAssetUrl(bgImg)}
+				alt={title}
 				onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
 			/>
 			<div className="event-overlay" />
 			<div className="event-copy">
-				<p className="event-kicker">Regístrate ahora</p>
+				<p className="event-kicker">{kicker}</p>
 				<h2>
-					Inscripciones abiertas
-					<br />
-					<em>torneos de tenis</em>
+					{title}
+					{highlight && (
+						<>
+							<br />
+							<em>{highlight}</em>
+						</>
+					)}
 				</h2>
 				<span className="event-desc">
-					Participa en nuestros torneos y demuestra
-					<br className="desktop-break" /> tu talento en la cancha.
+					{desc}
 				</span>
-				{onOpenRegister ? (
+				{onOpenRegister && (!data.buttonAction || data.buttonAction === 'register') ? (
 					<button
 						type="button"
 						className="button button-lime event-register-button"
 						onClick={onOpenRegister}
 					>
-						Registrarse <ArrowRight size={15} />
+						{btnText} <ArrowRight size={15} />
 					</button>
 				) : (
-					<a href="#registro" className="button button-lime event-register-button">
-						Registrarse <ArrowRight size={15} />
+					<a
+						href={data.buttonLink || '#registro'}
+						onClick={handleBtnClick}
+						className="button button-lime event-register-button"
+					>
+						{btnText} <ArrowRight size={15} />
 					</a>
 				)}
 			</div>
@@ -46,24 +79,37 @@ function SignupPanel({ onOpenRegister, eventImage }) {
 	)
 }
 
-function SocialPanel() {
+function SocialPanel({ socialData }) {
+	const data = socialData || {}
+	const eyebrow = data.eyebrow || '// SÍGUENOS EN REDES'
+	const title = data.title || 'Todo el tenis,\nen un solo lugar.'
+	const desc = data.description || 'Mantente al día con los torneos, resultados, noticias y mucho más. ¡Sé parte de nuestra comunidad!'
+	const instagramUrl = data.instagramUrl || 'https://www.instagram.com/atap_tenisperu/'
+	const whatsappUrl = data.whatsappUrl || 'https://wa.me/51977884423'
+	const artworkImg = data.image || '/assets/Redes.png'
+
+	const cleanEyebrow = eyebrow.startsWith('//') ? eyebrow.replace(/^\/\/\s*/, '') : eyebrow
+
 	return (
 		<article className="social-panel panel">
 			<div className="social-copy">
 				<p className="eyebrow">
-					<span className="eyebrow-accent">//</span> SÍGUENOS EN REDES
+					<span className="eyebrow-accent">//</span> {cleanEyebrow}
 				</p>
 				<h2>
-					Todo el tenis,
-					<br />
-					en un solo lugar.
+					{title.split('\n').map((line, i) => (
+						<span key={i}>
+							{line}
+							{i < title.split('\n').length - 1 && <br />}
+						</span>
+					))}
 				</h2>
 				<p className="social-subtext">
-					Mantente al día con los torneos, resultados, noticias y mucho más. ¡Sé parte de nuestra comunidad!
+					{desc}
 				</p>
 				<div className="social-icons">
 					<a
-						href="https://www.instagram.com/atap_tenisperu/"
+						href={instagramUrl}
 						target="_blank"
 						rel="noopener noreferrer"
 						className="social-btn"
@@ -77,7 +123,7 @@ function SocialPanel() {
 						<span className="social-btn-label">Instagram</span>
 					</a>
 					<a
-						href="https://wa.me/51977884423"
+						href={whatsappUrl}
 						target="_blank"
 						rel="noopener noreferrer"
 						className="social-btn"
@@ -94,7 +140,7 @@ function SocialPanel() {
 			</div>
 			<div className="social-artwork">
 				<img
-					src={getAssetUrl('/assets/Redes.png')}
+					src={getAssetUrl(artworkImg)}
 					alt="ATAP en Redes Sociales"
 					className="social-artwork-img"
 					onError={(e) => handleImageFallback(e, '/assets/Redes.png')}
@@ -105,7 +151,6 @@ function SocialPanel() {
 }
 
 function RankingSection({ players = [] }) {
-	// En el inicio mostramos las 4 primeras promesas para un equilibrio estético perfecto con las tarjetas de la izquierda
 	const featuredPlayers = players.slice(0, 4)
 
 	return (
@@ -132,43 +177,243 @@ function RankingSection({ players = [] }) {
 	)
 }
 
-function InformationSection() {
-	const rules = [
+const DEFAULT_RULE_TOPICS = [
+	{
+		id: 'singles-dobles',
+		chapterId: 'reglas-torneo',
+		defaultTitle: 'Reglas de torneos singles y dobles',
+		badge: 'Capítulo 3',
+		summary: 'Modalidad Round Robin con partidos agendados directamente entre participantes con 3 partidos garantizados.',
+		highlights: [
+			{ label: 'Formato', text: 'Round Robin: 3 partidos garantizados en fase de grupos con total flexibilidad de horarios.' },
+			{ label: 'Definición', text: 'Mejor de 3 sets. En empate (1-1), el 3er set se define en Super Tie-Break a 10 puntos.' },
+			{ label: 'Tolerancia', text: '15 minutos de espera. El no presentarse genera W.O. (6/0 - 6/0) y asumir costo de cancha.' }
+		],
+		linkText: 'Ver Capítulo 3: Reglas del Torneo'
+	},
+	{
+		id: 'categorias',
+		chapterId: 'categorizacion',
+		defaultTitle: 'Categorías y modalidades',
+		badge: 'Capítulo 2',
+		summary: 'Niveles equilibrados con filtros rigurosos, ascensos automáticos y verificación de historial.',
+		highlights: [
+			{ label: 'Niveles', text: '5ta P (Principiante), 5ta B, 5ta A, 4ta y 3ra categoría para singles y dobles.' },
+			{ label: 'Filtros ATAP', text: 'Prohibido bajar de nivel. El Comité verifica antecedentes para garantizar juego justo.' },
+			{ label: 'Ascenso', text: 'Ganar torneos o clara superioridad genera ascenso inmediato a la categoría superior.' }
+		],
+		linkText: 'Ver Capítulo 2: Categorización de Jugador'
+	},
+	{
+		id: 'puntuacion',
+		chapterId: 'reglas-torneo',
+		defaultTitle: 'Sistema de puntuación',
+		badge: 'Capítulo 3',
+		summary: 'Puntos oficiales sumados por cada victoria para el ranking anual de singles y dobles del Circuito ATAP.',
+		highlights: [
+			{ label: 'Sets', text: 'Sets oficiales a 6 games. Super Tie-Break decisivo a 10 puntos con diferencia de 2.' },
+			{ label: 'Puntos ranking', text: 'Cada partido ganado y fase superada suma puntos oficiales para la tabla anual.' },
+			{ label: 'Reporte', text: 'Marcadores reportados inmediatamente tras finalizar el encuentro para actualizar la tabla en vivo.' }
+		],
+		linkText: 'Ver Sistema de Puntuación Oficial'
+	},
+	{
+		id: 'conducta',
+		chapterId: 'reglas-complementarias',
+		defaultTitle: 'Código de conducta',
+		badge: 'Capítulo 5',
+		summary: 'Compromiso con el Fair Play, honestidad en los fallos y respeto mutuo entre competidores.',
+		highlights: [
+			{ label: 'Juego limpio', text: 'Declaración de buena fe, autocantos transparentes y respeto al rival dentro y fuera de cancha.' },
+			{ label: 'Puntualidad', text: 'Respeto riguroso de fechas y horarios pactados para cuidar el tiempo del rival y las canchas.' },
+			{ label: 'Comité ATAP', text: 'Resoluciones inapelables en caso de reclamos, conductas antideportivas o irregularidades.' }
+		],
+		linkText: 'Ver Reglas Complementarias y Comité'
+	},
+	{
+		id: 'fechas-horarios',
+		chapterId: 'cambio-condiciones',
+		defaultTitle: 'Fechas y horarios',
+		badge: 'Capítulo 4',
+		summary: 'Flexibilidad de programación semanal y condiciones ante fuerza mayor, disponibilidad o clima.',
+		highlights: [
+			{ label: 'Programación', text: '1 partido por semana coordinado libremente entre ambos rivales según su tiempo.' },
+			{ label: 'Fase de grupos', text: '3 semanas continuas de duración. Es obligatorio disputar los partidos asignados.' },
+			{ label: 'Sedes y Finales', text: 'La final es cubierta 100% por ATAP. Modificaciones por clima se informan oportunamente.' }
+		],
+		linkText: 'Ver Condiciones de Fechas y Clima'
+	}
+]
+
+function getTopicForTitle(title, index, policies) {
+	const lower = (title || '').toLowerCase()
+	let match = null
+	if (lower.includes('single') || lower.includes('doble') || lower.includes('torneo')) {
+		match = DEFAULT_RULE_TOPICS[0]
+	} else if (lower.includes('categor') || lower.includes('modalidad')) {
+		match = DEFAULT_RULE_TOPICS[1]
+	} else if (lower.includes('puntuaci') || lower.includes('punto') || lower.includes('score')) {
+		match = DEFAULT_RULE_TOPICS[2]
+	} else if (lower.includes('conducta') || lower.includes('comit') || lower.includes('comportamiento')) {
+		match = DEFAULT_RULE_TOPICS[3]
+	} else if (lower.includes('fecha') || lower.includes('horario') || lower.includes('programaci')) {
+		match = DEFAULT_RULE_TOPICS[4]
+	} else if (DEFAULT_RULE_TOPICS[index]) {
+		match = DEFAULT_RULE_TOPICS[index]
+	}
+
+	if (match) {
+		const policy = policies.find((p) => p.id === match.chapterId)
+		return {
+			...match,
+			displayTitle: title || match.defaultTitle,
+			summary: policy?.summary || match.summary
+		}
+	}
+
+	return {
+		id: `custom-${index}`,
+		chapterId: 'reglas-torneo',
+		displayTitle: title,
+		badge: 'Reglamento',
+		summary: 'Consulta la normativa y directivas oficiales de la Asociación de Tenistas Amateur del Perú.',
+		highlights: [
+			{ label: 'Normativa oficial', text: 'Aplicable a todos los torneos y categorías del circuito ATAP.' },
+			{ label: 'Soporte', text: 'Ante cualquier consulta técnica o reglamentaria, contacta al Comité de Organización.' }
+		],
+		linkText: 'Ver Reglamento Oficial'
+	}
+}
+
+function InformationSection({ faqData }) {
+	const data = faqData || {}
+	const faqTitle = data.title || 'Preguntas\nfrecuentes'
+	const faqSubtitle = data.subtitle || '¿No se resolvió tu duda?'
+	const btnText = data.buttonText || 'Escríbenos'
+	const whatsappUrl = data.whatsappUrl || 'https://wa.me/51977884423'
+	const rulesEyebrow = data.rulesEyebrow || 'Información para jugadores'
+	const rulesTitle = data.rulesTitle || 'Reglas de torneos'
+	const rawRulesList = data.rulesList || [
 		'Reglas de torneos singles y dobles',
 		'Categorías y modalidades',
 		'Sistema de puntuación',
 		'Código de conducta',
-		'Fechas y horarios',
+		'Fechas y horarios'
 	]
+
+	const [expandedRule, setExpandedRule] = useState(null)
+	const [policies, setPolicies] = useState(() => getPoliciesAndRules())
+
+	useEffect(() => {
+		function handleUpdate() {
+			setPolicies(getPoliciesAndRules())
+		}
+		window.addEventListener('atap_data_updated', handleUpdate)
+		return () => window.removeEventListener('atap_data_updated', handleUpdate)
+	}, [])
+
+	const toggleRule = (topicId) => {
+		setExpandedRule((prev) => (prev === topicId ? null : topicId))
+	}
 
 	return (
 		<section className="information-grid">
 			<article className="faq-card panel">
-				<img
-					src={getAssetUrl('/assets/logo.png')}
-					alt="Asociación de Tenistas Amateur del Perú"
-					onError={(e) => handleImageFallback(e, '/assets/logo.png')}
-				/>
-				<h2>
-					Preguntas
-					<br />
-					frecuentes
-				</h2>
-				<p>¿No se resolvió tu duda?</p>
-				<a href="#contacto" className="whatsapp-button">
-					Escríbenos <ArrowRight size={12} />
-				</a>
+				<div className="faq-logo-wrap">
+					<img
+						src={getAssetUrl(data.logo || '/assets/logo.png')}
+						alt="Asociación de Tenistas Amateur del Perú"
+						className="faq-logo-img"
+						onError={(e) => handleImageFallback(e, '/assets/logo.png')}
+					/>
+				</div>
+				<div className="faq-content">
+					<h2>
+						{faqTitle.includes('\n') ? (
+							faqTitle.split('\n').map((l, i) => (
+								<span key={i}>
+									{l}
+									{i < faqTitle.split('\n').length - 1 && <br />}
+								</span>
+							))
+						) : faqTitle.toLowerCase().includes('preguntas frecuentes') ? (
+							<>
+								Preguntas
+								<br />
+								frecuentes
+							</>
+						) : (
+							faqTitle
+						)}
+					</h2>
+					<p>{faqSubtitle}</p>
+					<a
+						href={whatsappUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="whatsapp-button"
+					>
+						{btnText} <ArrowRight size={13} />
+					</a>
+				</div>
 			</article>
 			<article className="rules-card panel">
-				<p className="eyebrow">Información para jugadores</p>
-				<h2>Reglas de torneos</h2>
-				<div className="rules-list">
-					{rules.map((rule) => (
-						<a href="#reglamento" key={rule}>
-							{rule}
-							<ChevronDown size={14} />
-						</a>
-					))}
+				<p className="eyebrow">{rulesEyebrow}</p>
+				<h2>{rulesTitle}</h2>
+				<div className="rules-accordion">
+					{rawRulesList.map((ruleTitle, index) => {
+						const topic = getTopicForTitle(ruleTitle, index, policies)
+						const isExpanded = expandedRule === topic.id
+						return (
+							<div
+								key={topic.id || index}
+								className={`rules-accordion-item ${isExpanded ? 'is-expanded' : ''}`}
+							>
+								<button
+									type="button"
+									className="rules-accordion-trigger"
+									onClick={() => toggleRule(topic.id)}
+									aria-expanded={isExpanded}
+								>
+									<span className="rules-trigger-title">{topic.displayTitle}</span>
+									<ChevronDown
+										size={16}
+										className={`rules-accordion-chevron ${isExpanded ? 'is-open' : ''}`}
+									/>
+								</button>
+								{isExpanded && (
+									<div className="rules-accordion-panel">
+										<p className="rules-panel-summary">{topic.summary}</p>
+										<div className="rules-highlights-list">
+											{topic.highlights.map((h, hIdx) => (
+												<div key={hIdx} className="rules-highlight-row">
+													<span className="rules-highlight-bullet">✓</span>
+													<p className="rules-highlight-text">
+														<strong>{h.label}:</strong> {h.text}
+													</p>
+												</div>
+											))}
+										</div>
+										<div className="rules-panel-actions">
+											<Link
+												to={`/reglas#rule-section-${topic.chapterId}`}
+												className="rules-panel-link"
+											>
+												<span>{topic.linkText}</span>
+												<ArrowRight size={12} />
+											</Link>
+										</div>
+									</div>
+								)}
+							</div>
+						)
+					})}
+				</div>
+				<div className="rules-footer">
+					<Link to="/reglas" className="rules-card-footer-link">
+						<span>Ver todo el Reglamento Oficial ATAP ({policies.length} Capítulos)</span>
+						<ArrowRight size={13} />
+					</Link>
 				</div>
 			</article>
 		</section>
@@ -176,6 +421,7 @@ function InformationSection() {
 }
 
 function SponsorsSection({ platinoLogo, sponsors = [] }) {
+	// Solo auspiciadores que tengan una imagen/logo cargada (sin textos de relleno si no hay imagen)
 	const sponsorsWithImages = sponsors.filter((s) => s.logo && s.logo.trim() !== '')
 
 	return (
@@ -187,25 +433,21 @@ function SponsorsSection({ platinoLogo, sponsors = [] }) {
 				alt="Platino Perú"
 				onError={(e) => handleImageFallback(e, '/assets/Logo Platino.png')}
 			/>
-			<p className="sponsor-kicker">Partners and suppliers</p>
-			{sponsorsWithImages.length > 0 ? (
-				<div className="sponsor-logos-grid">
-					{sponsorsWithImages.map((s, idx) => (
-						<div className="sponsor-logo-item" key={s.id || idx}>
-							<img
-								src={s.logo}
-								alt={s.name || `Auspiciador ${idx + 1}`}
-								className="sponsor-logo-img"
-							/>
-						</div>
-					))}
-				</div>
-			) : (
-				<div className="sponsor-list">
-					{sponsors.map((partner, idx) => (
-						<strong key={partner.id || idx}>{partner.name || `Auspiciador ${idx + 1}`}</strong>
-					))}
-				</div>
+			{sponsorsWithImages.length > 0 && (
+				<>
+					<p className="sponsor-kicker">Partners and suppliers</p>
+					<div className="sponsor-logos-grid">
+						{sponsorsWithImages.map((s, idx) => (
+							<div className="sponsor-logo-item" key={s.id || idx}>
+								<img
+									src={s.logo}
+									alt={s.name || `Auspiciador ${idx + 1}`}
+									className="sponsor-logo-img"
+								/>
+							</div>
+						))}
+					</div>
+				</>
 			)}
 		</section>
 	)
@@ -215,12 +457,14 @@ export default function Home({ onOpenRegister }) {
 	const [rankingList, setRankingList] = useState(() => getRanking())
 	const [siteImages, setSiteImages] = useState(() => getSiteImages())
 	const [sponsorsList, setSponsorsList] = useState(() => getSponsors())
+	const [homeBanners, setHomeBanners] = useState(() => getHomeBanners())
 
 	useEffect(() => {
 		function handleUpdate() {
 			setRankingList(getRanking())
 			setSiteImages(getSiteImages())
 			setSponsorsList(getSponsors())
+			setHomeBanners(getHomeBanners())
 		}
 		window.addEventListener('atap_data_updated', handleUpdate)
 		return () => window.removeEventListener('atap_data_updated', handleUpdate)
@@ -235,12 +479,16 @@ export default function Home({ onOpenRegister }) {
 					<div className="left-column">
 						<SignupPanel
 							onOpenRegister={onOpenRegister}
-							eventImage={siteImages.eventoBanner}
+							bannerData={homeBanners?.signupBanner}
 						/>
-						<SocialPanel />
+						<SocialPanel
+							socialData={homeBanners?.socialBanner}
+						/>
 					</div>
 					<RankingSection players={rankingList} />
-					<InformationSection />
+					<InformationSection
+						faqData={homeBanners?.faqSection}
+					/>
 					<SponsorsSection
 						platinoLogo={siteImages.logoPlatino}
 						sponsors={sponsorsList}

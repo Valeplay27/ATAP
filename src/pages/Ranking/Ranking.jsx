@@ -184,7 +184,7 @@ export default function Ranking() {
             <span className="podium-cat">{top3[1]?.categoria}</span>
             <strong className="podium-points">{top3[1]?.points}</strong>
             <span className="podium-stat">
-              🏆 {top3[1]?.titulos || 0} {top3[1]?.titulos === 1 ? 'título' : 'títulos'} • {top3[1]?.efectividad || '75%'}
+              🏆 {top3[1]?.titulosGanados !== undefined ? top3[1]?.titulosGanados : (top3[1]?.titulos || 0)} {(top3[1]?.titulosGanados !== undefined ? top3[1]?.titulosGanados : (top3[1]?.titulos || 0)) === 1 ? 'título' : 'títulos'} • {top3[1]?.efectividad || '75%'}
             </span>
           </div>
 
@@ -212,7 +212,7 @@ export default function Ranking() {
             <span className="podium-cat">{top3[0]?.categoria}</span>
             <strong className="podium-points champ-pts">{top3[0]?.points}</strong>
             <span className="podium-stat champ-stat">
-              🏆 {top3[0]?.titulos || 0} {top3[0]?.titulos === 1 ? 'título' : 'títulos'} • {top3[0]?.efectividad || '85%'}
+              🏆 {top3[0]?.titulosGanados !== undefined ? top3[0]?.titulosGanados : (top3[0]?.titulos || 0)} {(top3[0]?.titulosGanados !== undefined ? top3[0]?.titulosGanados : (top3[0]?.titulos || 0)) === 1 ? 'título' : 'títulos'} • {top3[0]?.efectividad || '85%'}
             </span>
           </div>
 
@@ -237,7 +237,7 @@ export default function Ranking() {
             <span className="podium-cat">{top3[2]?.categoria}</span>
             <strong className="podium-points">{top3[2]?.points}</strong>
             <span className="podium-stat">
-              🏆 {top3[2]?.titulos || 0} {top3[2]?.titulos === 1 ? 'título' : 'títulos'} • {top3[2]?.efectividad || '70%'}
+              🏆 {top3[2]?.titulosGanados !== undefined ? top3[2]?.titulosGanados : (top3[2]?.titulos || 0)} {(top3[2]?.titulosGanados !== undefined ? top3[2]?.titulosGanados : (top3[2]?.titulos || 0)) === 1 ? 'título' : 'títulos'} • {top3[2]?.efectividad || '70%'}
             </span>
           </div>
         </section>
@@ -420,6 +420,7 @@ export default function Ranking() {
         <PlayerHeroModal
           player={selectedPlayer}
           initialModality={modality}
+          showDobles={true}
           onClose={() => setSelectedPlayer(null)}
         />
       )}

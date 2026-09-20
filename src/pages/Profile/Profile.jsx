@@ -101,9 +101,12 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
     const cleanDoc = (editData.documentoIdentidad || usuario.documentoIdentidad || usuario.dni || '').toString().trim().replace(/\s+/g, '')
     const maskedDoc = cleanDoc ? maskDni(cleanDoc) : ''
 
+    const cleanTitulos = Math.max(0, parseInt(editData.titulosGanados, 10) || 0)
     const updated = {
       ...usuario,
       ...editData,
+      titulosGanados: cleanTitulos,
+      titulos: cleanTitulos,
       documentoIdentidad: maskedDoc,
       dni: maskedDoc,
       iniciales
@@ -333,8 +336,8 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
                 ) : (
                   <>
                     <span className="profile-tag">🎾 {manoDominante || 'Diestro'}</span>
-                    {titulosGanados && titulosGanados !== '0' && (
-                      <span className="profile-tag trophy-tag">🏆 {titulosGanados} {titulosGanados === '1' ? 'Título' : 'Títulos'}</span>
+                    {Number(titulosGanados) > 0 && (
+                      <span className="profile-tag trophy-tag">🏆 {titulosGanados} {Number(titulosGanados) === 1 ? 'Título' : 'Títulos'}</span>
                     )}
                     {altura && <span className="profile-tag">📏 {altura} cm</span>}
                     {peso && <span className="profile-tag">⚖️ {peso} kg</span>}
@@ -629,20 +632,21 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
               <div className="detail-item">
                 <span className="detail-label">Títulos Ganados</span>
                 {isEditing ? (
-                  <select
-                    className="profile-inline-select"
-                    value={editData.titulosGanados}
-                    onChange={(e) => updateField('titulosGanados', e.target.value)}
-                  >
-                    <option value="0">0 títulos</option>
-                    <option value="1">1 título</option>
-                    <option value="2">2 títulos</option>
-                    <option value="2+">🏆 2+ títulos</option>
-                  </select>
+                  <div className="inline-measure-input">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="0"
+                      value={editData.titulosGanados}
+                      onChange={(e) => updateField('titulosGanados', e.target.value.replace(/\D/g, ''))}
+                    />
+                    <span className="measure-unit">títulos</span>
+                  </div>
                 ) : (
                   <strong className="detail-value">
-                    {titulosGanados && titulosGanados !== '0' ? (
-                      <span className="profile-trophy-badge">🏆 {titulosGanados} {titulosGanados === '1' ? 'título' : 'títulos'}</span>
+                    {Number(titulosGanados) > 0 ? (
+                      <span className="profile-trophy-badge">🏆 {titulosGanados} {Number(titulosGanados) === 1 ? 'título' : 'títulos'}</span>
                     ) : (
                       '0 títulos'
                     )}

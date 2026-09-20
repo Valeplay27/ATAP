@@ -270,6 +270,8 @@ export default function Players({ usuario }) {
           onClose={() => setSelectedPlayer(null)}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
+          showDobles={false}
+          initialModality="singles"
         />
       )}
     </SimplePage>

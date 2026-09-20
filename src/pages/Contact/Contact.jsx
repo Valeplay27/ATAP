@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Mail,
   Phone,
@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Sparkles
 } from 'lucide-react'
+import { getContactInfo } from '../../services/atapStorage'
 import './Contact.css'
 
 const FAQ_ITEMS = [
@@ -40,6 +41,7 @@ const FAQ_ITEMS = [
 ]
 
 export default function Contact() {
+  const [contactInfo, setContactInfo] = useState(() => getContactInfo())
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -51,6 +53,16 @@ export default function Contact() {
   const [enviado, setEnviado] = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [openFaq, setOpenFaq] = useState(0) // First FAQ open by default
+
+  useEffect(() => {
+    function handleUpdate(e) {
+      if (!e.detail || e.detail.key === 'atap_contacto_soporte' || !e.detail.key) {
+        setContactInfo(getContactInfo())
+      }
+    }
+    window.addEventListener('atap_data_updated', handleUpdate)
+    return () => window.removeEventListener('atap_data_updated', handleUpdate)
+  }, [])
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -80,7 +92,8 @@ export default function Contact() {
     ].filter(Boolean)
 
     const text = encodeURIComponent(lines.join('\n'))
-    const whatsappUrl = `https://wa.me/51977884423?text=${text}`
+    const waNum = (contactInfo.whatsapp?.number || '51977884423').replace(/\D/g, '')
+    const whatsappUrl = `https://wa.me/${waNum}?text=${text}`
 
     setEnviado(true)
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
@@ -88,43 +101,46 @@ export default function Contact() {
   }
 
   function handleCopyEmail() {
-    navigator.clipboard.writeText('contacto@atap.pe')
+    navigator.clipboard.writeText(contactInfo.email?.email || 'contacto@atap.pe')
     setCopiedEmail(true)
     setTimeout(() => setCopiedEmail(false), 2500)
   }
+
+  const waNumber = (contactInfo.whatsapp?.number || '51977884423').replace(/\D/g, '')
+  const contactEmail = contactInfo.email?.email || 'contacto@atap.pe'
 
   return (
     <main className="contact-page">
       {/* HEADER BANNER */}
       <section className="contact-heading-card">
         <span className="contact-eyebrow">
-          <span className="eyebrow-slash">//</span> ATENCIÓN AL JUGADOR Y AFILIADOS
+          <span className="eyebrow-slash">//</span> {contactInfo.header?.eyebrow || 'ATENCIÓN AL JUGADOR Y AFILIADOS'}
         </span>
-        <h1>Contacto y Soporte Oficial ATAP</h1>
+        <h1>{contactInfo.header?.title || 'Contacto y Soporte Oficial ATAP'}</h1>
         <p className="contact-desc">
-          ¿Tienes dudas sobre los torneos, validación de pagos, emparejamientos o el ranking oficial? Nuestro equipo de coordinación técnica y administrativa está listo para ayudarte.
+          {contactInfo.header?.description || '¿Tienes dudas sobre los torneos, validación de pagos, emparejamientos o el ranking oficial? Nuestro equipo de coordinación técnica y administrativa está listo para ayudarte.'}
         </p>
       </section>
 
-      {/* 4 TOP QUICK CHANNEL CARDS */}
+      {/* QUICK CHANNELS GRID (WHATSAPP, EMAIL, SEDES Y HORARIOS CONDICIONAL) */}
       <section className="contact-channels-grid">
         {/* WHATSAPP */}
         <article className="channel-card whatsapp">
           <div className="channel-icon-wrap">
             <MessageSquare size={22} />
           </div>
-          <h3>WhatsApp Oficial</h3>
-          <p className="channel-primary-val">+51 977 884 423</p>
+          <h3>{contactInfo.whatsapp?.title || 'WhatsApp Oficial'}</h3>
+          <p className="channel-primary-val">{contactInfo.whatsapp?.phone || '+51 977 884 423'}</p>
           <p className="channel-sub">
-            Atención ágil para envío de comprobantes de pago y consultas en tiempo real.
+            {contactInfo.whatsapp?.subtext || 'Atención ágil para envío de comprobantes de pago y consultas en tiempo real.'}
           </p>
           <a
-            href="https://wa.me/51977884423"
+            href={`https://wa.me/${waNumber}`}
             target="_blank"
             rel="noopener noreferrer"
             className="channel-btn-action"
           >
-            <span>Iniciar Chat WhatsApp</span>
+            <span>{contactInfo.whatsapp?.btnText || 'Iniciar Chat WhatsApp'}</span>
             <ExternalLink size={13} />
           </a>
         </article>
@@ -134,28 +150,28 @@ export default function Contact() {
           <div className="channel-icon-wrap">
             <Mail size={22} />
           </div>
-          <h3>Correo Electrónico</h3>
+          <h3>{contactInfo.email?.title || 'Correo Electrónico'}</h3>
           <a
-            href="mailto:contacto@atap.pe"
+            href={`mailto:${contactEmail}`}
             target="_blank"
             rel="noopener noreferrer"
             className="channel-primary-val"
             style={{ textDecoration: 'none', color: '#00CFA0' }}
           >
-            contacto@atap.pe
+            {contactEmail}
           </a>
           <p className="channel-sub">
-            Para consultas formales, solicitudes de auspicios y asuntos administrativos.
+            {contactInfo.email?.subtext || 'Para consultas formales, solicitudes de auspicios y asuntos administrativos.'}
           </p>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <a
-              href="mailto:contacto@atap.pe"
+              href={`mailto:${contactEmail}`}
               target="_blank"
               rel="noopener noreferrer"
               className="channel-btn-action"
               style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}
             >
-              <span>Escribir Correo</span>
+              <span>{contactInfo.email?.writeBtnText || 'Escribir Correo'}</span>
               <ExternalLink size={13} />
             </a>
             <button
@@ -165,40 +181,42 @@ export default function Contact() {
               style={{ flex: 1 }}
             >
               {copiedEmail ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedEmail ? '¡Copiado!' : 'Copiar'}</span>
+              <span>{copiedEmail ? '¡Copiado!' : (contactInfo.email?.copyBtnText || 'Copiar')}</span>
             </button>
           </div>
         </article>
 
-        {/* SEDE PRINCIPAL */}
+        {/* SEDE PRINCIPAL / DEL CIRCUITO */}
         <article className="channel-card location">
           <div className="channel-icon-wrap">
             <MapPin size={22} />
           </div>
-          <h3>Sedes del Circuito</h3>
-          <p className="channel-primary-val">Lima Metropolitana, Perú</p>
+          <h3>{contactInfo.sede?.title || 'Sedes del Circuito'}</h3>
+          <p className="channel-primary-val">{contactInfo.sede?.location || 'Lima Metropolitana, Perú'}</p>
           <p className="channel-sub">
-            Club Lawn Tennis de la Exposición y clubes asociados del circuito amateur.
+            {contactInfo.sede?.subtext || 'Club Lawn Tennis de la Exposición y clubes asociados del circuito amateur.'}
           </p>
           <div className="channel-btn-action">
-            <span>Canchas Oficiales</span>
+            <span>{contactInfo.sede?.tagText || 'Canchas Oficiales'}</span>
           </div>
         </article>
 
-        {/* HORARIO */}
-        <article className="channel-card hours">
-          <div className="channel-icon-wrap">
-            <Clock size={22} />
-          </div>
-          <h3>Horarios de Atención</h3>
-          <p className="channel-primary-val">Lun a Sáb: 8:00 AM - 9:00 PM</p>
-          <p className="channel-sub">
-            Domingos y días de torneo: 8:00 AM - 2:00 PM con soporte en cancha.
-          </p>
-          <div className="channel-btn-action">
-            <span>Soporte Activo</span>
-          </div>
-        </article>
+        {/* HORARIOS DE ATENCIÓN (CONDICIONAL: Oculto si no tienen horario de servicio fijo) */}
+        {contactInfo.horario?.visible && (
+          <article className="channel-card hours">
+            <div className="channel-icon-wrap">
+              <Clock size={22} />
+            </div>
+            <h3>{contactInfo.horario?.title || 'Horarios de Atención'}</h3>
+            <p className="channel-primary-val">{contactInfo.horario?.primary || 'Lun a Sáb: 8:00 AM - 9:00 PM'}</p>
+            <p className="channel-sub">
+              {contactInfo.horario?.subtext || 'Domingos y días de torneo: 8:00 AM - 2:00 PM con soporte en cancha.'}
+            </p>
+            <div className="channel-btn-action">
+              <span>{contactInfo.horario?.tagText || 'Soporte Activo'}</span>
+            </div>
+          </article>
+        )}
       </section>
 
       {/* MAIN TWO-COLUMN SECTION: FORM & FAQ */}
@@ -346,7 +364,7 @@ export default function Contact() {
           </p>
         </div>
         <a
-          href="https://wa.me/51977884423?text=Hola%20ATAP,%20tengo%20una%20consulta%20urgente%20sobre%20mi%20partido"
+          href={`https://wa.me/${waNumber}?text=Hola%20ATAP,%20tengo%20una%20consulta%20urgente%20sobre%20mi%20partido`}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-direct-chat"
