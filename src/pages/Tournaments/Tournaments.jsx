@@ -625,9 +625,15 @@ export default function Tournaments({ usuario }) {
                               ? champMatch.jugador2
                               : champMatch.jugador1}
                           </strong>
+                          {' '}
+                          <small style={{ color: '#00CFA0', fontWeight: 'bold' }}>
+                            (+{champMatch.ganador === champMatch.jugador1
+                              ? (champMatch.puntosJugador2 !== undefined ? champMatch.puntosJugador2 : 150)
+                              : (champMatch.puntosJugador1 !== undefined ? champMatch.puntosJugador1 : 150)} pts)
+                          </small>
                         </span>
                         <span>
-                          Puntos Sumados: <strong>+{champMatch.puntos || 250} pts</strong>
+                          Puntos Campeón: <strong>+{champMatch.puntos || 250} pts</strong>
                         </span>
                       </div>
                     </div>
@@ -657,17 +663,31 @@ export default function Tournaments({ usuario }) {
                               <span className={`match-round-tag ${isFinal ? 'gold' : ''}`}>
                                 {res.ronda}
                               </span>
-                              <span className="match-points-tag">+{res.puntos} pts</span>
+                              <span className="match-points-tag">
+                                {res.puntosJugador1 !== undefined && res.puntosJugador2 !== undefined
+                                  ? `+${res.puntosJugador1} / +${res.puntosJugador2} pts`
+                                  : `+${res.puntos} pts`}
+                              </span>
                             </div>
                             <div className="modal-match-players">
                               <div className={`player-row ${isP1 ? 'winner' : ''}`}>
                                 <strong>{res.jugador1}</strong>
-                                {isP1 && <span className="winner-tag">👑 Ganador</span>}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {isP1 && <span className="winner-tag">👑 Ganador</span>}
+                                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#00875A', background: '#E3FCEF', padding: '1px 6px', borderRadius: '4px' }}>
+                                    +{res.puntosJugador1 !== undefined ? res.puntosJugador1 : (isP1 ? res.puntos : 0)} pts
+                                  </span>
+                                </div>
                               </div>
                               <div className="modal-vs-line">vs</div>
                               <div className={`player-row ${!isP1 ? 'winner' : ''}`}>
                                 <strong>{res.jugador2}</strong>
-                                {!isP1 && <span className="winner-tag">👑 Ganador</span>}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {!isP1 && <span className="winner-tag">👑 Ganador</span>}
+                                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#00875A', background: '#E3FCEF', padding: '1px 6px', borderRadius: '4px' }}>
+                                    +{res.puntosJugador2 !== undefined ? res.puntosJugador2 : (!isP1 ? res.puntos : 0)} pts
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <div className="modal-match-score">

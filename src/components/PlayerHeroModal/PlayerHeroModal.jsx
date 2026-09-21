@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Star, X, Trophy, Calendar, Award, Flame, User, Users } from 'lucide-react'
-import { getPlayerMatchHistory, getPlayerBothProfiles, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
+import { Star, X, Trophy, Calendar, Award, Flame, User, Users, ChevronDown, ChevronUp } from 'lucide-react'
+import { getPlayerMatchHistory, getPlayerTournamentBreakdown, getPlayerBothProfiles, getAssetUrl, handleImageFallback, getZonaDistritos, isPlayerFollowed } from '../../services/atapStorage'
 import './PlayerHeroModal.css'
 
 function InstagramIcon({ size = 14, className = '' }) {
@@ -89,12 +89,15 @@ export default function PlayerHeroModal({
   favorites = [],
   onToggleFavorite = () => {},
   initialModality = 'singles',
-  showDobles = true
+  showDobles = true,
+  usuario = null,
+  onOpenLogin = null
 }) {
   const [activeTab, setActiveTab] = useState(initialTab)
   const [selectedModality, setSelectedModality] = useState(showDobles ? (initialModality || 'singles') : 'singles')
   const [matches, setMatches] = useState([])
   const [profiles, setProfiles] = useState(() => getPlayerBothProfiles(player?.name || player?.id))
+  const [authNotice, setAuthNotice] = useState('')
 
   const playerInstagram = getPlayerInstagramHandle(player)
 
@@ -129,7 +132,27 @@ export default function PlayerHeroModal({
     ? (profiles.dobles || player)
     : (profiles.singles || player)
 
-  const isFav = favorites.includes(player.position) || favorites.includes(player.id)
+  const isFav = isPlayerFollowed(favorites, player) || favorites.includes(player.position) || favorites.includes(player.id)
+
+  useEffect(() => {
+    if (authNotice) {
+      const t = setTimeout(() => setAuthNotice(''), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [authNotice])
+
+  const [matchFilter, setMatchFilter] = useState('todos') // 'todos' | 'victorias' | 'derrotas'
+  const [selectedSeason, setSelectedSeason] = useState('2026')
+  const [expandedTourneyId, setExpandedTourneyId] = useState(null)
+
+  const tournamentBreakdown = player
+    ? getPlayerTournamentBreakdown(player.name || player.id, selectedModality, selectedSeason)
+    : { season: selectedSeason, totalPuntos: 0, totalTorneos: 0, titulos: 0, finales: 0, victorias: 0, derrotas: 0, torneos: [] }
+
+  // Reset matchFilter when modality or player changes
+  useEffect(() => {
+    setMatchFilter('todos')
+  }, [selectedModality, player])
 
   // Filter matches specifically by the chosen modality (Singles shows singles matches, Dobles shows dobles matches)
   const currentMatches = matches.filter((m) => {
@@ -137,10 +160,20 @@ export default function PlayerHeroModal({
     return m.modalidad === 'singles'
   })
 
-  const totalMatches = currentMatches.length
-  const wonMatches = currentMatches.filter((m) => m.resultado === 'victoria').length
-  const lostMatches = currentMatches.filter((m) => m.resultado === 'derrota').length
-  const totalPointsGained = currentMatches.reduce((acc, m) => acc + (m.puntosGanados || 0), 0)
+  // Dejar estrictamente los últimos 5 partidos del jugador
+  const recentMatches = currentMatches.slice(0, 5)
+
+  const totalMatches = recentMatches.length
+  const wonMatches = recentMatches.filter((m) => m.resultado === 'victoria').length
+  const lostMatches = recentMatches.filter((m) => m.resultado === 'derrota').length
+  const totalPointsGained = recentMatches.reduce((acc, m) => acc + (m.puntosGanados || 0), 0)
+
+  // Filter by result (Todos / Victorias / Derrotas) within the 5 matches
+  const displayedMatches = recentMatches.filter((m) => {
+    if (matchFilter === 'victorias') return m.resultado === 'victoria'
+    if (matchFilter === 'derrotas') return m.resultado === 'derrota'
+    return true
+  })
 
   return (
     <div className="player-hero-modal-backdrop" onClick={onClose}>
@@ -155,14 +188,22 @@ export default function PlayerHeroModal({
             <button
               type="button"
               className={`p-hero-fav-btn ${isFav ? 'is-fav' : ''}`}
-              onClick={() => onToggleFavorite(player.position || player.id)}
+              onClick={() => {
+                if (!usuario) {
+                  setAuthNotice('Solo puedes agregar jugadores a favoritos si inicias sesión.')
+                  onToggleFavorite(player)
+                  return
+                }
+                onToggleFavorite(player)
+              }}
+              title={!usuario ? 'Inicia sesión para guardar en favoritos' : (isFav ? 'Quitar de favoritos' : 'Guardar en favoritos')}
             >
               <Star
                 size={14}
                 fill={isFav ? '#FFD700' : 'none'}
                 color={isFav ? '#E6A100' : '#25005C'}
               />
-              <span>FAVORITE</span>
+              <span>{isFav ? 'SEGUIDO' : 'FAVORITE'}</span>
             </button>
             <button
               type="button"
@@ -174,6 +215,27 @@ export default function PlayerHeroModal({
             </button>
           </div>
         </div>
+
+        {/* Alerta si intenta dar favorito sin iniciar sesión */}
+        {authNotice && (
+          <div className="p-hero-auth-alert-banner" role="alert">
+            <div className="p-hero-auth-alert-text">
+              <span>⚠️ {authNotice}</span>
+            </div>
+            {onOpenLogin && (
+              <button
+                type="button"
+                className="p-hero-auth-login-btn"
+                onClick={() => {
+                  onClose()
+                  onOpenLogin()
+                }}
+              >
+                Iniciar sesión
+              </button>
+            )}
+          </div>
+        )}
 
         {/* SECCIÓN HERO (Banner morado #25005C, nombre gigante verde, datos, foto recortada) */}
         <div className="p-hero-main-banner">
@@ -241,6 +303,13 @@ export default function PlayerHeroModal({
                 onClick={() => setActiveTab('partidos')}
               >
                 🎾 ÚLTIMOS PARTIDOS
+              </button>
+              <button
+                type="button"
+                className={`p-hero-tab-pill ${activeTab === 'torneos' ? 'active' : ''}`}
+                onClick={() => setActiveTab('torneos')}
+              >
+                🏆 PUNTOS POR TORNEO
               </button>
               <button
                 type="button"
@@ -328,13 +397,13 @@ export default function PlayerHeroModal({
                 <div>
                   <h3 className="p-tab-heading" style={{ marginBottom: '4px' }}>
                     {selectedModality === 'dobles'
-                      ? 'Historial de Partidos en Dobles'
-                      : 'Historial de Partidos en Singles'}
+                      ? 'Últimos 5 Partidos en Dobles'
+                      : 'Últimos 5 Partidos en Singles'}
                   </h3>
                   <p className="p-tab-subtitle">
                     {selectedModality === 'dobles'
-                      ? 'Partidos oficiales disputados en dobles y los puntos individuales sumados al ranking de dobles.'
-                      : 'Partidos individuales disputados y los puntos oficiales otorgados al ranking de singles.'}
+                      ? 'Los 5 partidos oficiales más recientes disputados en dobles y los puntos individuales otorgados.'
+                      : 'Los 5 partidos individuales más recientes disputados y los puntos oficiales otorgados al ranking.'}
                   </p>
                 </div>
                 <div className="p-matches-summary-badges">
@@ -350,14 +419,51 @@ export default function PlayerHeroModal({
                 </div>
               </div>
 
-              {currentMatches.length === 0 ? (
+              {/* FILTROS RÁPIDOS (TODOS / VICTORIAS / DERROTAS) */}
+              {totalMatches > 0 && (
+                <div className="p-matches-filter-row">
+                  <div className="p-filter-pills-group">
+                    <button
+                      type="button"
+                      className={`p-filter-pill ${matchFilter === 'todos' ? 'active' : ''}`}
+                      onClick={() => setMatchFilter('todos')}
+                    >
+                      Todos ({totalMatches})
+                    </button>
+                    <button
+                      type="button"
+                      className={`p-filter-pill win-pill ${matchFilter === 'victorias' ? 'active' : ''}`}
+                      onClick={() => setMatchFilter('victorias')}
+                    >
+                      ✓ Victorias ({wonMatches})
+                    </button>
+                    <button
+                      type="button"
+                      className={`p-filter-pill loss-pill ${matchFilter === 'derrotas' ? 'active' : ''}`}
+                      onClick={() => setMatchFilter('derrotas')}
+                    >
+                      ✗ Derrotas ({lostMatches})
+                    </button>
+                  </div>
+
+                  <span className="p-pagination-header-badge">
+                    Mostrando últimos {displayedMatches.length} {displayedMatches.length === 1 ? 'partido' : 'partidos'}
+                  </span>
+                </div>
+              )}
+
+              {displayedMatches.length === 0 ? (
                 <div className="p-empty-matches">
                   <Calendar size={32} />
-                  <p>Aún no registra partidos finalizados en la modalidad de {selectedModality === 'dobles' ? 'Dobles' : 'Singles'}.</p>
+                  <p>
+                    {totalMatches === 0
+                      ? `Aún no registra partidos finalizados en la modalidad de ${selectedModality === 'dobles' ? 'Dobles' : 'Singles'}.`
+                      : `No se encontraron partidos para el filtro "${matchFilter}".`}
+                  </p>
                 </div>
               ) : (
                 <div className="p-matches-grid-list">
-                  {currentMatches.map((m) => {
+                  {displayedMatches.map((m) => {
                     const isWin = m.resultado === 'victoria'
                     const isDoubles = m.modalidad === 'dobles'
 
@@ -425,6 +531,166 @@ export default function PlayerHeroModal({
                             </div>
                           )}
                         </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PESTAÑA: PUNTOS POR TORNEO Y ETAPA ALCANZADA */}
+          {activeTab === 'torneos' && (
+            <div className="p-tab-panel">
+              <div className="p-matches-header-strip">
+                <div>
+                  <h3 className="p-tab-heading" style={{ marginBottom: '4px' }}>
+                    {selectedModality === 'dobles'
+                      ? 'Puntos por Torneo en Dobles'
+                      : 'Puntos por Torneo en Singles'}
+                  </h3>
+                  <p className="p-tab-subtitle">
+                    {`Historial oficial de torneos disputados en ${selectedModality === 'dobles' ? 'Dobles' : 'Singles'}, etapa alcanzada y desglose de puntos sumados al ranking oficial.`}
+                  </p>
+                </div>
+
+                <div className="p-tourney-controls-strip">
+                  <div className="p-season-selector-wrap">
+                    <span className="p-season-label">Temporada:</span>
+                    <select
+                      className="p-season-select"
+                      value={selectedSeason}
+                      onChange={(e) => setSelectedSeason(e.target.value)}
+                    >
+                      <option value="2026">Temporada 2026</option>
+                      <option value="2025">Temporada 2025</option>
+                    </select>
+                  </div>
+
+                  <div className="p-matches-summary-badges">
+                    <span className="p-summary-pill">
+                      <Trophy size={14} /> <strong>{tournamentBreakdown.totalTorneos}</strong> {tournamentBreakdown.totalTorneos === 1 ? 'torneo' : 'torneos'}
+                    </span>
+                    {tournamentBreakdown.titulos > 0 && (
+                      <span className="p-summary-pill win">
+                        <strong>{tournamentBreakdown.titulos}</strong> {tournamentBreakdown.titulos === 1 ? 'título 🏆' : 'títulos 🏆'}
+                      </span>
+                    )}
+                    <span className="p-summary-pill pts">
+                      <Flame size={14} /> <strong>+{tournamentBreakdown.totalPuntos}</strong> pts
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* RESUMEN DE RENDIMIENTO DE LA TEMPORADA */}
+              <div className="p-season-kpi-banner">
+                <div className="p-season-kpi-item">
+                  <span className="kpi-label">Puntos Acumulados</span>
+                  <strong className="kpi-value text-green">+{tournamentBreakdown.totalPuntos} pts</strong>
+                </div>
+                <div className="p-season-kpi-item">
+                  <span className="kpi-label">Torneos Disputados</span>
+                  <strong className="kpi-value text-white">{tournamentBreakdown.totalTorneos}</strong>
+                </div>
+                <div className="p-season-kpi-item">
+                  <span className="kpi-label">Títulos / Finales</span>
+                  <strong className="kpi-value text-gold">
+                    {tournamentBreakdown.titulos} 🏆 {tournamentBreakdown.finales > 0 ? `/ ${tournamentBreakdown.finales} 🥈` : ''}
+                  </strong>
+                </div>
+                <div className="p-season-kpi-item">
+                  <span className="kpi-label">Récord en Torneos</span>
+                  <strong className="kpi-value text-white">{tournamentBreakdown.victorias}V - {tournamentBreakdown.derrotas}D</strong>
+                </div>
+              </div>
+
+              {/* LISTA DE TORNEOS DESGLOSADOS */}
+              {tournamentBreakdown.torneos.length === 0 ? (
+                <div className="p-empty-matches">
+                  <Trophy size={34} />
+                  <p>
+                    {`Aún no registra torneos finalizados en la Temporada ${selectedSeason} en la modalidad de ${selectedModality === 'dobles' ? 'Dobles' : 'Singles'}.`}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-tourney-breakdown-list">
+                  {tournamentBreakdown.torneos.map((tb) => {
+                    const isExpanded = expandedTourneyId === tb.id
+                    const isChampion = tb.tipoEtapa === 'campeon'
+                    const isFinalist = tb.tipoEtapa === 'finalista'
+
+                    return (
+                      <div
+                        key={tb.id}
+                        className={`p-tourney-item-card ${isChampion ? 'card-champion' : isFinalist ? 'card-finalist' : ''}`}
+                      >
+                        <div className="p-tourney-card-header">
+                          <div className="p-tourney-header-main">
+                            <div className="p-tourney-title-row">
+                              <h4 className="p-tourney-title">{tb.nombre}</h4>
+                              <span className="p-tourney-cat-tag">Cat. {tb.categoria}</span>
+                              {tb.modalidad === 'dobles' && tb.pareja && (
+                                <span className="p-tourney-partner-tag">👥 Dupla: {tb.pareja}</span>
+                              )}
+                            </div>
+                            <div className="p-tourney-date-sub">
+                              <Calendar size={13} />
+                              <span>{tb.fecha}</span>
+                              <span className="p-hero-sep">•</span>
+                              <span>Récord: <strong>{tb.record}</strong></span>
+                            </div>
+                          </div>
+
+                          <div className="p-tourney-header-points">
+                            <div className={`p-stage-badge stage-${tb.tipoEtapa}`}>
+                              {tb.etapa}
+                            </div>
+                            <div className="p-tourney-pts-badge">
+                              <Flame size={15} />
+                              <strong>+{tb.puntosGanados} PTS</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botón para ver/ocultar los partidos jugados en este torneo */}
+                        {tb.partidos && tb.partidos.length > 0 && (
+                          <div className="p-tourney-card-footer">
+                            <button
+                              type="button"
+                              className="p-tourney-toggle-matches-btn"
+                              onClick={() => setExpandedTourneyId(isExpanded ? null : tb.id)}
+                            >
+                              <span>{isExpanded ? 'Ocultar partidos del torneo' : `Ver ${tb.partidos.length} ${tb.partidos.length === 1 ? 'partido' : 'partidos'} del torneo`}</span>
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+
+                            {isExpanded && (
+                              <div className="p-tourney-nested-matches">
+                                {tb.partidos.map((pm) => {
+                                  const win = pm.resultado === 'victoria'
+                                  return (
+                                    <div key={pm.id} className={`p-nested-match-row ${win ? 'is-win' : 'is-loss'}`}>
+                                      <div className="p-nested-round">
+                                        <span className="round-pill">{pm.ronda}</span>
+                                      </div>
+                                      <div className="p-nested-versus">
+                                        <span className="nested-vs-names">vs <strong>{pm.rivales}</strong></span>
+                                        <span className="nested-score">{pm.marcador}</span>
+                                      </div>
+                                      <div className="p-nested-outcome">
+                                        <span className={`outcome-pill ${win ? 'win' : 'loss'}`}>
+                                          {win ? 'Victoria' : 'Derrota'}
+                                        </span>
+                                        <strong className="nested-pts">+{pm.puntosGanados || 0} pts</strong>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -542,11 +808,34 @@ export default function PlayerHeroModal({
                     {(Array.isArray(player.zonas) && player.zonas.length > 0
                       ? player.zonas
                       : ['Lima Centro', 'Lima Sur']
-                    ).map((z) => (
-                      <span key={z} className="p-chip-item">
-                        📍 {z}
-                      </span>
-                    ))}
+                    ).map((z) => {
+                      const zonaObj = getZonaDistritos(z) || { nombre: z, distritos: 'Sedes y canchas ATAP', color: '#00CFA0', dot: '📍' }
+                      return (
+                        <div key={z} className="p-chip-item-box" title={`${zonaObj.nombre}: ${zonaObj.distritos}`}>
+                          <span
+                            className="p-chip-item"
+                            style={{
+                              borderColor: `${zonaObj.color}77`,
+                              background: `${zonaObj.color}1c`
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                backgroundColor: zonaObj.color,
+                                marginRight: 4,
+                                flexShrink: 0
+                              }}
+                            />
+                            {z}
+                          </span>
+                          <span className="p-chip-districts-sub">{zonaObj.distritos}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 

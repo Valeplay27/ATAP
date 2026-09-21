@@ -32,19 +32,29 @@ export default function LoginModal({
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
 
+  // Helper para extraer el DNI real y limpio (sin asteriscos)
+  function getUnmaskedDni(data) {
+    if (!data) return ''
+    const candidate = data.dniReal || data.dni || data.documentoIdentidad || ''
+    const str = candidate.toString().trim()
+    return (!str.includes('*') && !str.includes('•')) ? str.replace(/\D/g, '').slice(0, 8) : ''
+  }
+
   // Estados del formulario de registro
-  const [regDni, setRegDni] = useState(prefillData?.dni || '')
+  const [regDni, setRegDni] = useState(() => getUnmaskedDni(prefillData))
   const [regNombre, setRegNombre] = useState(prefillData?.nombre || '')
   const [regTelefono, setRegTelefono] = useState(prefillData?.telefono || prefillData?.whatsapp || '')
   const [regEmail, setRegEmail] = useState(prefillData?.email || '')
   const [regPassword, setRegPassword] = useState('')
   const [regDniMatch, setRegDniMatch] = useState(() => {
-    if (prefillData?.dni) {
+    const cleanP = getUnmaskedDni(prefillData) || prefillData?.dni
+    if (cleanP) {
       const users = getRegisteredUsers()
-      const pDni = prefillData.dni.toString().trim()
+      const pDni = cleanP.toString().trim()
       return users.find((u) => {
         const uDni = (u.dni || '').toString().trim()
-        return uDni === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3)))
+        const uReal = (u.dniReal || '').toString().trim()
+        return uDni === pDni || uReal === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3)))
       }) || null
     }
     return null
@@ -56,18 +66,20 @@ export default function LoginModal({
       setMostrarRegistro(true)
     }
     if (prefillData) {
-      if (prefillData.dni) setRegDni(prefillData.dni.toString().trim())
+      const cleanDniVal = getUnmaskedDni(prefillData)
+      if (cleanDniVal) setRegDni(cleanDniVal)
       if (prefillData.nombre) setRegNombre(prefillData.nombre.toString().trim())
       if (prefillData.email) setRegEmail(prefillData.email.toString().trim())
       if (prefillData.telefono || prefillData.whatsapp) {
         setRegTelefono((prefillData.telefono || prefillData.whatsapp || '').toString().trim())
       }
-      if (prefillData.dni) {
+      if (cleanDniVal || prefillData.dni) {
         const users = getRegisteredUsers()
-        const pDni = prefillData.dni.toString().trim()
+        const pDni = (cleanDniVal || prefillData.dni || '').toString().trim()
         const found = users.find((u) => {
           const uDni = (u.dni || '').toString().trim()
-          return uDni === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3)))
+          const uReal = (u.dniReal || '').toString().trim()
+          return pDni && (uDni === pDni || uReal === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3))))
         })
         if (found) setRegDniMatch(found)
       }
@@ -170,7 +182,7 @@ export default function LoginModal({
         password: password,
         telefono: cleanPhone,
         whatsapp: cleanPhone,
-        categoria: prefillData?.categoria || regDniMatch?.categoria || '4ta',
+        categoria: prefillData?.categoria || regDniMatch?.categoria || '',
         avatar: regDniMatch?.avatar || '/assets/logo.png',
         image: regDniMatch?.image || '/assets/logo.png',
         perfilIncompleto: true,
@@ -201,7 +213,12 @@ export default function LoginModal({
 
       setCargando(false)
       if (onStartOnboarding) {
-        onStartOnboarding(usuarioGuardado)
+        onStartOnboarding({
+          ...usuarioGuardado,
+          dniReal: cleanDni,
+          documentoIdentidad: cleanDni || usuarioGuardado?.dniReal || usuarioGuardado?.documentoIdentidad || '',
+          dni: cleanDni || usuarioGuardado?.dniReal || usuarioGuardado?.dni || ''
+        })
       } else if (onLogin) {
         onLogin(usuarioGuardado)
       }

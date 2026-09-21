@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Edit3, Plus, X } from 'lucide-react'
-import { saveRegisteredUser, maskDni } from '../../services/atapStorage'
+import { saveRegisteredUser, maskDni, ATAP_ZONAS_DISTRITOS, getZonaDistritos } from '../../services/atapStorage'
 import { api, authApi } from '../../services/api'
 import { getAssetUrl } from '../../utils/assetHelper'
 import './PlayerOnboardingModal.css'
@@ -12,6 +12,16 @@ export default function PlayerOnboardingModal({
 }) {
   const [step, setStep] = useState(1)
   const [stepError, setStepError] = useState('')
+  const [hoveredZona, setHoveredZona] = useState(null)
+  const [activeTooltipZona, setActiveTooltipZona] = useState(null)
+
+  // Helper para extraer únicamente el DNI real y limpio (nunca máscaras con asteriscos como *****666)
+  function getCleanDni(data) {
+    if (!data) return ''
+    const candidate = data.dniReal || data.dni || data.documentoIdentidad || ''
+    const str = candidate.toString().trim()
+    return (!str.includes('*') && !str.includes('•')) ? str.replace(/\D/g, '').slice(0, 8) : ''
+  }
 
   const [formData, setFormData] = useState({
     nombre: initialUserData.nombre || '',
@@ -23,8 +33,8 @@ export default function PlayerOnboardingModal({
     diaNacimiento: initialUserData.diaNacimiento || '',
     mesNacimiento: initialUserData.mesNacimiento || '',
     anioNacimiento: initialUserData.anioNacimiento || '',
-    categoria: initialUserData.categoria || '4ta', 
-    documentoIdentidad: initialUserData.dni || initialUserData.documentoIdentidad || '',
+    categoria: initialUserData.categoria || '', 
+    documentoIdentidad: getCleanDni(initialUserData),
     avatar: initialUserData.avatar || '',
     
     // Paso 4: Tu Trayectoria
@@ -73,8 +83,8 @@ export default function PlayerOnboardingModal({
         nombre: initialUserData.nombre || prev.nombre || '',
         email: initialUserData.email || prev.email || '',
         whatsapp: initialUserData.whatsapp || initialUserData.telefono || prev.whatsapp || '',
-        documentoIdentidad: initialUserData.dni || initialUserData.documentoIdentidad || prev.documentoIdentidad || '',
-        categoria: initialUserData.categoria || prev.categoria || '4ta'
+        documentoIdentidad: getCleanDni(initialUserData) || prev.documentoIdentidad || '',
+        categoria: initialUserData.categoria || prev.categoria || ''
       }))
     }
   }, [initialUserData])
@@ -147,47 +157,78 @@ export default function PlayerOnboardingModal({
   function nextStep() {
     setStepError('')
 
-    // Validación Paso 1: Contacto
+    // Validación Paso 1: Contacto (Ambos obligatorios)
     if (step === 1) {
-      if (formData.whatsapp) {
-        const cleanPhone = formData.whatsapp.replace(/\D/g, '')
-        if (cleanPhone.length > 0 && cleanPhone.length < 6) {
-          setStepError('Por favor ingresa un número de WhatsApp válido (mínimo 6 dígitos).')
-          return
-        }
+      const cleanPhone = (formData.whatsapp || '').toString().trim().replace(/\D/g, '')
+      if (!cleanPhone) {
+        setStepError('Por favor ingresa tu número de WhatsApp / Celular (obligatorio).')
+        return
       }
+      if (cleanPhone.length < 9) {
+        setStepError('Por favor ingresa un número de WhatsApp válido de 9 dígitos.')
+        return
+      }
+
+      const cleanInstagram = (formData.instagram || '').toString().trim()
+      if (!cleanInstagram) {
+        setStepError('Por favor ingresa tu cuenta de Instagram (obligatorio).')
+        return
+      }
+      if (cleanInstagram.length < 2) {
+        setStepError('Por favor ingresa un usuario de Instagram válido.')
+        return
+      }
+
       setStep(2)
       return
     }
 
     // Validación Paso 2: Un poco sobre ti
     if (step === 2) {
-      const cleanDni = (formData.documentoIdentidad || '').toString().trim().replace(/\D/g, '')
-      if (!cleanDni || cleanDni.length < 5) {
-        setStepError('Por favor ingresa tu número de documento de identidad (DNI).')
+      const cleanDigits = (formData.documentoIdentidad || '').toString().trim().replace(/\D/g, '')
+
+      if (!cleanDigits || cleanDigits.length < 8) {
+        setStepError('Por favor ingresa tu número de documento de identidad oficial (DNI de 8 dígitos).')
         return
       }
 
-      if (formData.diaNacimiento || formData.mesNacimiento || formData.anioNacimiento) {
-        const d = parseInt(formData.diaNacimiento, 10)
-        const m = parseInt(formData.mesNacimiento, 10)
-        const y = parseInt(formData.anioNacimiento, 10)
-        if (isNaN(d) || d < 1 || d > 31) {
-          setStepError('Por favor ingresa un día de nacimiento válido (1-31).')
-          return
-        }
-        if (isNaN(m) || m < 1 || m > 12) {
-          setStepError('Por favor ingresa un mes de nacimiento válido (1-12).')
-          return
-        }
-        if (isNaN(y) || y < 1920 || y > 2020) {
-          setStepError('Por favor ingresa un año de nacimiento válido (ej. 1995).')
-          return
-        }
+      // Validación obligatoria de Fecha de Nacimiento
+      const diaStr = (formData.diaNacimiento || '').toString().trim()
+      const mesStr = (formData.mesNacimiento || '').toString().trim()
+      const anioStr = (formData.anioNacimiento || '').toString().trim()
+
+      if (!diaStr || !mesStr || !anioStr) {
+        setStepError('Por favor completa tu fecha de nacimiento: día, mes y año (obligatorio).')
+        return
       }
 
+      const d = parseInt(diaStr, 10)
+      const m = parseInt(mesStr, 10)
+      const y = parseInt(anioStr, 10)
+      const currentYear = new Date().getFullYear()
+
+      if (isNaN(d) || d < 1 || d > 31) {
+        setStepError('Por favor ingresa un día de nacimiento válido (entre 1 y 31).')
+        return
+      }
+      if (isNaN(m) || m < 1 || m > 12) {
+        setStepError('Por favor ingresa un mes de nacimiento válido (entre 1 y 12).')
+        return
+      }
+      if (isNaN(y) || y < 1920 || y > currentYear - 4) {
+        setStepError(`Por favor ingresa un año de nacimiento válido (entre 1920 y ${currentYear - 4}).`)
+        return
+      }
+
+      const daysInMonth = new Date(y, m, 0).getDate()
+      if (d > daysInMonth) {
+        setStepError(`El mes seleccionado solo tiene ${daysInMonth} días. Corrige el día de nacimiento.`)
+        return
+      }
+
+      // Validación obligatoria de Categoría (sin selección por defecto)
       if (!formData.categoria) {
-        setStepError('Por favor selecciona tu categoría deportiva.')
+        setStepError('Por favor elige tu categoría (nivel) de juego (obligatorio).')
         return
       }
 
@@ -224,7 +265,7 @@ export default function PlayerOnboardingModal({
       ? `${formData.diaNacimiento.padStart(2, '0')}/${formData.mesNacimiento.padStart(2, '0')}/${formData.anioNacimiento}`
       : (initialUserData.fechaNacimiento || '')
 
-    const cleanDni = (formData.documentoIdentidad || initialUserData.dni || '').toString().trim().replace(/\s+/g, '')
+    const cleanDni = (formData.documentoIdentidad || initialUserData.dniReal || '').toString().trim().replace(/\D/g, '')
     const maskedDni = maskDni(cleanDni)
 
     const fullProfile = {
@@ -232,6 +273,7 @@ export default function PlayerOnboardingModal({
       ...formData,
       dni: maskedDni,
       documentoIdentidad: maskedDni,
+      dniReal: cleanDni,
       fechaNacimiento,
       telefono: formData.whatsapp || initialUserData.telefono || '',
       whatsapp: formData.whatsapp || initialUserData.whatsapp || '',
@@ -448,7 +490,9 @@ export default function PlayerOnboardingModal({
               ¡Bienvenido <span className="highlight-name">“{primerNombre}”</span>!
             </h2>
 
-            <p className="onboarding-section-label">Información de Contacto</p>
+            <p className="onboarding-section-label">
+              Información de Contacto <span className="onboarding-required-tag">* (Ambos obligatorios)</span>
+            </p>
 
             {stepError && (
               <div className="onboarding-error-message" role="alert">
@@ -461,9 +505,10 @@ export default function PlayerOnboardingModal({
                 <input
                   type="tel"
                   className="onboarding-pill-input"
-                  placeholder="Whatsapp"
+                  placeholder="WhatsApp / Celular (9 dígitos) *"
                   value={formData.whatsapp}
                   onChange={(e) => updateField('whatsapp', e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  required
                 />
               </div>
 
@@ -471,9 +516,10 @@ export default function PlayerOnboardingModal({
                 <input
                   type="text"
                   className="onboarding-pill-input"
-                  placeholder="Instagram"
+                  placeholder="Instagram (ej: @tu_usuario) *"
                   value={formData.instagram}
                   onChange={(e) => updateField('instagram', e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -527,7 +573,7 @@ export default function PlayerOnboardingModal({
 
           
             <div className="onboarding-block">
-              <span className="onboarding-field-tag">FECHA DE NACIMIENTO</span>
+              <span className="onboarding-field-tag">FECHA DE NACIMIENTO *</span>
               <div className="onboarding-date-row">
                 <div className="onboarding-date-field">
                   <input
@@ -566,7 +612,7 @@ export default function PlayerOnboardingModal({
 
             
             <div className="onboarding-block">
-              <span className="onboarding-field-tag">ELIGE TU CATEGORÍA (NIVEL)</span>
+              <span className="onboarding-field-tag">ELIGE TU CATEGORÍA (NIVEL) *</span>
               <div className="onboarding-chips-grid">
                 {categorias.map((cat) => (
                   <button
@@ -583,13 +629,16 @@ export default function PlayerOnboardingModal({
 
             
             <div className="onboarding-block">
+              <span className="onboarding-field-tag">DOCUMENTO DE IDENTIDAD (DNI) *</span>
               <div className="onboarding-pill-input-wrap">
                 <input
                   type="text"
                   className="onboarding-pill-input"
-                  placeholder="Documento de Identidad"
+                  placeholder="Número de DNI (8 dígitos) *"
                   value={formData.documentoIdentidad}
                   onChange={(e) => updateField('documentoIdentidad', e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  maxLength={8}
+                  required
                 />
               </div>
             </div>
@@ -876,20 +925,89 @@ export default function PlayerOnboardingModal({
             <h2 className="onboarding-title">TUS PREFERENCIAS</h2>
             <p className="onboarding-subtitle">Zona, mano dominante y disponibilidad.</p>
 
-            <div className="onboarding-block">
-              <span className="onboarding-field-tag">ZONA DE JUEGO</span>
-              <div className="onboarding-zones-row">
-                {zonasLima.map((zona) => (
-                  <button
-                    key={zona}
-                    type="button"
-                    className={`onboarding-zone-chip ${formData.zonas.includes(zona) ? 'selected' : ''}`}
-                    onClick={() => toggleZona(zona)}
-                  >
-                    {zona}
-                  </button>
-                ))}
+            <div className="onboarding-block onboarding-zones-block">
+              <div className="onboarding-block-header-flex">
+                <span className="onboarding-field-tag">ZONA DE JUEGO</span>
+                <span className="onboarding-tag-hint">Pasa el cursor o presiona una zona</span>
               </div>
+
+              <div className="onboarding-zones-row">
+                {ATAP_ZONAS_DISTRITOS.map((zonaObj) => {
+                  const isSelected = formData.zonas.includes(zonaObj.id)
+                  const isHovered = hoveredZona === zonaObj.id
+                  const isTooltipOpen = isHovered || activeTooltipZona === zonaObj.id
+
+                  return (
+                    <div
+                      key={zonaObj.id}
+                      className="onboarding-zone-chip-wrapper"
+                      onMouseEnter={() => setHoveredZona(zonaObj.id)}
+                      onMouseLeave={() => setHoveredZona(null)}
+                    >
+                      <button
+                        type="button"
+                        className={`onboarding-zone-chip ${isSelected ? 'selected' : ''}`}
+                        style={{
+                          '--zone-color': zonaObj.color
+                        }}
+                        onClick={() => {
+                          toggleZona(zonaObj.id)
+                          setActiveTooltipZona(activeTooltipZona === zonaObj.id ? null : zonaObj.id)
+                        }}
+                        aria-label={`${zonaObj.nombre}: ${zonaObj.distritos}`}
+                      >
+                        <span className="zone-chip-dot" style={{ backgroundColor: zonaObj.color }} />
+                        <span className="zone-chip-name">{zonaObj.nombre}</span>
+                        {isSelected && <span className="zone-chip-check">✓</span>}
+                      </button>
+
+                      {/* Tooltip superpuesto sobre la zona con canchas y distritos */}
+                      <div className={`zone-districts-popover ${isTooltipOpen ? 'visible' : ''}`} role="tooltip">
+                        <div className="zone-popover-header">
+                          <span className="zone-popover-badge" style={{ backgroundColor: zonaObj.color }}>
+                            {zonaObj.dot} {zonaObj.alias}
+                          </span>
+                          <span className="zone-popover-title">{zonaObj.nombre}</span>
+                        </div>
+                        <div className="zone-popover-body">
+                          <span className="zone-popover-icon">🎾</span>
+                          <div className="zone-popover-details">
+                            <span className="zone-popover-subtitle">Canchas y distritos habilitados:</span>
+                            <span className="zone-popover-text">{zonaObj.distritos}</span>
+                          </div>
+                        </div>
+                        <div className="zone-popover-arrow" />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Tarjeta informativa dinámica con distritos y canchas de la zona */}
+              {(() => {
+                const previewId = hoveredZona || activeTooltipZona || (formData.zonas && formData.zonas.length > 0 ? formData.zonas[formData.zonas.length - 1] : null) || 'Lima Sur'
+                const activeZonaObj = getZonaDistritos(previewId) || ATAP_ZONAS_DISTRITOS[2]
+                return (
+                  <div className="onboarding-zones-active-preview" style={{ borderLeftColor: activeZonaObj.color }}>
+                    <div className="zones-active-preview-top">
+                      <span
+                        className="zones-active-badge"
+                        style={{
+                          backgroundColor: `${activeZonaObj.color}1c`,
+                          color: activeZonaObj.color,
+                          borderColor: `${activeZonaObj.color}44`
+                        }}
+                      >
+                        {activeZonaObj.dot} {activeZonaObj.nombre}
+                      </span>
+                      <span className="zones-active-label">🎾 Canchas y distritos asignados</span>
+                    </div>
+                    <p className="zones-active-districts">
+                      {activeZonaObj.distritos}
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
 
             <div className="onboarding-block">

@@ -26,6 +26,70 @@ export const STORAGE_KEYS = {
 export const OFFICIAL_CATEGORIES = ['4ta', '5ta A', '5ta B', '6ta'];
 export const ALL_OFFICIAL_CATEGORIES = ['1ra', '2da', '3ra', '4ta', '5ta A', '5ta B', '5ta P', '6ta'];
 
+// Zonas y distritos oficiales ATAP (Canchas de juego y sedes de torneos)
+export const ATAP_ZONAS_DISTRITOS = [
+  {
+    id: 'Lima Norte',
+    nombre: 'Lima Norte',
+    alias: 'Norte',
+    color: '#F97316',
+    dot: '🟠',
+    distritos: 'Los Olivos, SMP, Independencia, Comas, Carabayllo, Puente Piedra',
+    distritosCompleto: 'Los Olivos, San Martín de Porres (SMP), Independencia, Comas, Carabayllo, Puente Piedra'
+  },
+  {
+    id: 'Lima Centro',
+    nombre: 'Lima Centro',
+    alias: 'Centro',
+    color: '#A855F7',
+    dot: '🟣',
+    distritos: 'Cercado, Breña, Lince, Jesús María, La Victoria, Rímac',
+    distritosCompleto: 'Cercado de Lima, Breña, Lince, Jesús María, La Victoria, Rímac'
+  },
+  {
+    id: 'Lima Sur',
+    nombre: 'Lima Sur',
+    alias: 'Sur',
+    color: '#22C55E',
+    dot: '🟢',
+    distritos: 'Surco, Barranco, Chorrillos, SJM, VES, VMT, Lurín',
+    distritosCompleto: 'Surco, Barranco, Chorrillos, San Juan de Miraflores (SJM), Villa El Salvador (VES), Villa María del Triunfo (VMT), Lurín'
+  },
+  {
+    id: 'Lima Este',
+    nombre: 'Lima Este',
+    alias: 'Este',
+    color: '#3B82F6',
+    dot: '🔵',
+    distritos: 'La Molina, Ate, Santa Anita, San Luis, SJL, Cieneguilla',
+    distritosCompleto: 'La Molina, Ate, Santa Anita, San Luis, San Juan de Lurigancho (SJL), Cieneguilla'
+  },
+  {
+    id: 'Lima Oeste',
+    nombre: 'Lima Oeste',
+    alias: 'Oeste',
+    color: '#EF4444',
+    dot: '🔴',
+    distritos: 'Miraflores, San Isidro, Magdalena, San Miguel, Pueblo Libre, San Borja',
+    distritosCompleto: 'Miraflores, San Isidro, Magdalena, San Miguel, Pueblo Libre, San Borja'
+  }
+];
+
+export function getZonaDistritos(zonaName) {
+  if (!zonaName) return null;
+  const clean = String(zonaName).trim().toLowerCase();
+  return (
+    ATAP_ZONAS_DISTRITOS.find(
+      (z) =>
+        z.id.toLowerCase() === clean ||
+        z.nombre.toLowerCase() === clean ||
+        z.alias.toLowerCase() === clean ||
+        z.alias.toLowerCase() === clean.replace('lima ', '') ||
+        clean.includes(z.alias.toLowerCase())
+    ) || null
+  );
+}
+
 // Helper de normalización robusta de categorías (soporta variantes con/sin "Categoría" o "Dobles")
 export function normalizeCategory(cat) {
   if (!cat) return '';
@@ -62,6 +126,74 @@ export function maskDni(dni) {
   const last3 = clean.slice(-3);
   const hiddenCount = Math.max(clean.length - 3, 3);
   return '*'.repeat(hiddenCount) + last3;
+}
+
+// Gestión de Jugadores Favoritos / Seguidos (Personalizado por Usuario Autenticado)
+export function getUserFollowedPlayers(userKey) {
+  if (!userKey) return [];
+  const cleanKey = String(userKey).trim().toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
+  try {
+    const raw = localStorage.getItem(`atap_seguidos_${cleanKey}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {}
+  return [];
+}
+
+export function setUserFollowedPlayers(userKey, list) {
+  if (!userKey) return;
+  const cleanKey = String(userKey).trim().toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
+  try {
+    localStorage.setItem(`atap_seguidos_${cleanKey}`, JSON.stringify(list || []));
+    window.dispatchEvent(new Event('atap_favorites_updated'));
+  } catch (e) {}
+}
+
+export function isPlayerFollowed(favoritesList, player) {
+  if (!Array.isArray(favoritesList) || !player) return false;
+  const pId = player.id ? String(player.id).trim() : null;
+  const pPos = player.position ? String(player.position).trim() : null;
+  const pName = player.name ? String(player.name).trim().toLowerCase() : null;
+
+  return favoritesList.some((fav) => {
+    const favStr = String(fav).trim();
+    if (pId && favStr === pId) return true;
+    if (pPos && favStr === pPos) return true;
+    if (pName && favStr.toLowerCase() === pName) return true;
+    return false;
+  });
+}
+
+export function toggleUserFollowedPlayer(userKey, player) {
+  if (!userKey || !player) return [];
+  const keyIdentifier = player.id
+    ? String(player.id).trim()
+    : (player.position ? String(player.position).trim() : String(player.name || '').trim());
+  if (!keyIdentifier) return [];
+
+  const current = getUserFollowedPlayers(userKey);
+  const alreadyFav = isPlayerFollowed(current, player);
+
+  let updated;
+  if (alreadyFav) {
+    const pId = player.id ? String(player.id).trim() : null;
+    const pPos = player.position ? String(player.position).trim() : null;
+    const pName = player.name ? String(player.name).trim().toLowerCase() : null;
+    updated = current.filter((fav) => {
+      const favStr = String(fav).trim();
+      if (pId && favStr === pId) return false;
+      if (pPos && favStr === pPos) return false;
+      if (pName && favStr.toLowerCase() === pName) return false;
+      return true;
+    });
+  } else {
+    updated = [...current, keyIdentifier];
+  }
+
+  setUserFollowedPlayers(userKey, updated);
+  return updated;
 }
 
 export const INITIAL_REGISTERED_USERS = [
@@ -1975,6 +2107,11 @@ export function createTournament(data) {
     { id: 'cat-d5a', nombre: '5ta A Dobles', cupos: 16 },
     { id: 'cat-d5b', nombre: '5ta B Dobles', cupos: 16 },
     { id: 'cat-d6', nombre: '6ta Dobles', cupos: 16 }
+  ] : modalidad === 'grupal' ? [
+    { id: 'cat-g4', nombre: '4ta Equipos', cupos: 8 },
+    { id: 'cat-g5a', nombre: '5ta A Equipos', cupos: 8 },
+    { id: 'cat-g5b', nombre: '5ta B Equipos', cupos: 16 },
+    { id: 'cat-g6', nombre: '6ta Equipos', cupos: 16 }
   ] : [
     { id: 'cat-4', nombre: '4ta', cupos: 16 },
     { id: 'cat-5a', nombre: '5ta A', cupos: 16 },
@@ -2065,26 +2202,43 @@ export function addTournamentResult(tournamentId, resultData) {
 
   const scoreStr = resultData.score?.trim() || [resultData.set1, resultData.set2, resultData.set3].filter(Boolean).join(', ');
 
+  const p1 = (resultData.jugador1 || '').trim();
+  const p2 = (resultData.jugador2 || '').trim();
+  const ganador = (resultData.ganador || '').trim();
+
+  const ptsP1 = resultData.puntosJugador1 !== undefined ? Number(resultData.puntosJugador1) : (ganador === p1 ? Number(resultData.puntos) || 0 : 0);
+  const ptsP2 = resultData.puntosJugador2 !== undefined ? Number(resultData.puntosJugador2) : (ganador === p2 ? Number(resultData.puntos) || 0 : 0);
+  const ptsWinner = ganador === p1 ? ptsP1 : (ganador === p2 ? ptsP2 : (Number(resultData.puntos) || ptsP1 || ptsP2 || 0));
+
   const newResult = {
     id: 'res-' + Date.now(),
     categoria: resultData.categoria || '4ta',
     ronda: resultData.ronda || 'Gran Final',
-    jugador1: (resultData.jugador1 || '').trim(),
-    jugador2: (resultData.jugador2 || '').trim(),
+    jugador1: p1,
+    jugador2: p2,
     set1: (resultData.set1 || '').trim(),
     set2: (resultData.set2 || '').trim(),
     set3: (resultData.set3 || '').trim(),
     score: scoreStr,
-    ganador: (resultData.ganador || '').trim(),
-    puntos: Number(resultData.puntos) || 0,
+    ganador: ganador,
+    puntos: ptsWinner,
+    puntosJugador1: ptsP1,
+    puntosJugador2: ptsP2,
     observaciones: (resultData.observaciones || '').trim(),
     fechaCarga: new Date().toISOString().split('T')[0]
   };
 
   tournaments[index].resultados.unshift(newResult);
 
-  if (resultData.sumarRanking && newResult.ganador && newResult.puntos > 0) {
-    awardPointsToPlayer(newResult.ganador, newResult.puntos);
+  const mod = tournaments[index].modalidad || 'singles';
+  const shouldSumP1 = resultData.sumarRankingP1 !== undefined ? Boolean(resultData.sumarRankingP1) : Boolean(resultData.sumarRanking);
+  const shouldSumP2 = resultData.sumarRankingP2 !== undefined ? Boolean(resultData.sumarRankingP2) : (Boolean(resultData.sumarRanking) && ganador === p2);
+
+  if (shouldSumP1 && p1 && ptsP1 > 0) {
+    awardPointsToPlayer(p1, ptsP1, mod);
+  }
+  if (shouldSumP2 && p2 && ptsP2 > 0) {
+    awardPointsToPlayer(p2, ptsP2, mod);
   }
 
   saveTournaments(tournaments);
@@ -2107,9 +2261,20 @@ export function updateTournamentResult(tournamentId, resultId, updatedData) {
     updatedData.set3 !== undefined ? updatedData.set3 : current.set3
   ].filter(Boolean).join(', ');
 
+  const p1 = updatedData.jugador1 !== undefined ? (updatedData.jugador1 || '').trim() : current.jugador1;
+  const p2 = updatedData.jugador2 !== undefined ? (updatedData.jugador2 || '').trim() : current.jugador2;
+  const ganador = updatedData.ganador !== undefined ? (updatedData.ganador || '').trim() : current.ganador;
+
+  const ptsP1 = updatedData.puntosJugador1 !== undefined ? Number(updatedData.puntosJugador1) : (current.puntosJugador1 !== undefined ? current.puntosJugador1 : (ganador === p1 ? current.puntos : 0));
+  const ptsP2 = updatedData.puntosJugador2 !== undefined ? Number(updatedData.puntosJugador2) : (current.puntosJugador2 !== undefined ? current.puntosJugador2 : (ganador === p2 ? current.puntos : 0));
+  const ptsWinner = ganador === p1 ? ptsP1 : (ganador === p2 ? ptsP2 : (updatedData.puntos !== undefined ? Number(updatedData.puntos) : current.puntos));
+
   tournaments[index].resultados[rIdx] = {
     ...current,
     ...updatedData,
+    puntos: ptsWinner,
+    puntosJugador1: ptsP1,
+    puntosJugador2: ptsP2,
     score: scoreStr
   };
 
@@ -2162,29 +2327,67 @@ export function registerPlayerToTournament(tournamentId, playerData) {
 
   const currentTourney = tournaments[index];
   const isDobles = currentTourney.modalidad === 'dobles' || playerData.modalidad === 'dobles';
+  const isGrupal = currentTourney.modalidad === 'grupal' || currentTourney.modalidad === 'equipos' || playerData.modalidad === 'grupal' || playerData.modalidad === 'equipos';
 
   const newRegistration = {
     id: 'insc-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-    nombre: isDobles && playerData.nombreJugador2
-      ? `${playerData.nombre} / ${playerData.nombreJugador2}`
-      : playerData.nombre,
+    nombre: isGrupal
+      ? `${playerData.nombreEquipo || 'Equipo'} (${playerData.nombre})`
+      : (isDobles && playerData.nombreJugador2
+        ? `${playerData.nombre} / ${playerData.nombreJugador2}`
+        : playerData.nombre),
     email: playerData.email,
     dni: maskDni(playerData.dni),
     telefono: playerData.telefono || '',
     categoria: playerData.categoria || '4ta',
+    modalidad: isGrupal ? 'grupal' : (isDobles ? 'dobles' : 'singles'),
     esDobles: isDobles,
+    esGrupal: isGrupal,
+    nombreEquipo: isGrupal ? (playerData.nombreEquipo || '').trim() : undefined,
+    fotoEquipo: isGrupal ? (playerData.fotoEquipo || '').trim() : undefined,
     jugador1: {
       nombre: playerData.nombre,
       dni: maskDni(playerData.dni),
       email: playerData.email || '',
-      telefono: playerData.telefono || ''
+      telefono: playerData.telefono || '',
+      rol: 'Capitán / Titular 1'
     },
-    jugador2: isDobles ? {
+    jugador2: (isDobles || isGrupal) ? {
       nombre: playerData.nombreJugador2 || '',
       dni: maskDni(playerData.dniJugador2),
       email: playerData.emailJugador2 || '',
-      telefono: playerData.telefonoJugador2 || ''
+      telefono: playerData.telefonoJugador2 || '',
+      rol: isGrupal ? 'Titular 2' : 'Compañero'
     } : null,
+    jugador3: isGrupal ? {
+      nombre: playerData.nombreJugador3 || '',
+      dni: maskDni(playerData.dniJugador3),
+      email: playerData.emailJugador3 || '',
+      telefono: playerData.telefonoJugador3 || '',
+      rol: 'Titular 3'
+    } : null,
+    jugador4: isGrupal ? {
+      nombre: playerData.nombreJugador4 || '',
+      dni: maskDni(playerData.dniJugador4),
+      email: playerData.emailJugador4 || '',
+      telefono: playerData.telefonoJugador4 || '',
+      rol: 'Titular 4'
+    } : null,
+    jugador5: (isGrupal && (playerData.nombreJugador5 || playerData.dniJugador5)) ? {
+      nombre: playerData.nombreJugador5 || '',
+      dni: maskDni(playerData.dniJugador5),
+      email: playerData.emailJugador5 || '',
+      telefono: playerData.telefonoJugador5 || '',
+      rol: 'Suplente (Opcional)',
+      esSuplente: true
+    } : null,
+    integrantes: isGrupal ? [
+      { rol: 'Capitán / Titular 1', nombre: playerData.nombre, dni: maskDni(playerData.dni), email: playerData.email || '', telefono: playerData.telefono || '' },
+      { rol: 'Titular 2', nombre: playerData.nombreJugador2 || '', dni: maskDni(playerData.dniJugador2), email: playerData.emailJugador2 || '', telefono: playerData.telefonoJugador2 || '' },
+      { rol: 'Titular 3', nombre: playerData.nombreJugador3 || '', dni: maskDni(playerData.dniJugador3), email: playerData.emailJugador3 || '', telefono: playerData.telefonoJugador3 || '' },
+      { rol: 'Titular 4', nombre: playerData.nombreJugador4 || '', dni: maskDni(playerData.dniJugador4), email: playerData.emailJugador4 || '', telefono: playerData.telefonoJugador4 || '' },
+      ...(playerData.nombreJugador5 ? [{ rol: 'Suplente (Opcional)', nombre: playerData.nombreJugador5, dni: maskDni(playerData.dniJugador5), email: playerData.emailJugador5 || '', telefono: playerData.telefonoJugador5 || '' }] : [])
+    ] : undefined,
     estadoPago: 'pendiente',
     fechaRegistro: new Date().toISOString().split('T')[0],
     metodoPago: playerData.metodoPago || 'Yape',
@@ -2430,6 +2633,9 @@ export function saveRegisteredUser(userData) {
     ...userData,
     dni: maskedDni,
     documentoIdentidad: maskedDni,
+    dniReal: (!cleanDni.includes('*') && !cleanDni.includes('•') && cleanDni.length >= 5)
+      ? cleanDni
+      : (index !== -1 && users[index].dniReal ? users[index].dniReal : (userData.dniReal || cleanDni)),
     nombre: (userData.nombre || (index !== -1 ? users[index].nombre : '') || '').trim() || 'Jugador ATAP',
     email: (userData.email || (index !== -1 ? users[index].email : '') || '').trim(),
     telefono: (userData.telefono || userData.whatsapp || (index !== -1 ? (users[index].telefono || users[index].whatsapp) : '') || '').trim(),
@@ -3417,23 +3623,49 @@ export function getRanking() {
 
     const OFFICIAL_LIMA_ZONES = ['Lima Norte', 'Lima Centro', 'Lima Sur', 'Lima Este', 'Lima Oeste'];
     const ZONE_MAP = {
-      'Miraflores': 'Lima Centro',
-      'San Isidro': 'Lima Centro',
-      'San Borja': 'Lima Centro',
+      // Lima Oeste
+      'Miraflores': 'Lima Oeste',
+      'San Isidro': 'Lima Oeste',
+      'Magdalena': 'Lima Oeste',
+      'San Miguel': 'Lima Oeste',
+      'Pueblo Libre': 'Lima Oeste',
+      'San Borja': 'Lima Oeste',
+      'Lima Oeste': 'Lima Oeste',
+      // Lima Centro
+      'Cercado': 'Lima Centro',
+      'Breña': 'Lima Centro',
+      'Lince': 'Lima Centro',
+      'Jesús María': 'Lima Centro',
+      'Jesus Maria': 'Lima Centro',
+      'La Victoria': 'Lima Centro',
+      'Rímac': 'Lima Centro',
+      'Rimac': 'Lima Centro',
       'Lima Centro': 'Lima Centro',
+      // Lima Sur
       'Surco': 'Lima Sur',
       'Barranco': 'Lima Sur',
       'Chorrillos': 'Lima Sur',
+      'SJM': 'Lima Sur',
+      'VES': 'Lima Sur',
+      'VMT': 'Lima Sur',
+      'Lurín': 'Lima Sur',
+      'Lurin': 'Lima Sur',
       'Lima Sur': 'Lima Sur',
+      // Lima Este
       'La Molina': 'Lima Este',
       'Ate': 'Lima Este',
+      'Santa Anita': 'Lima Este',
+      'San Luis': 'Lima Este',
+      'SJL': 'Lima Este',
+      'Cieneguilla': 'Lima Este',
       'Lima Este': 'Lima Este',
-      'Pueblo Libre': 'Lima Oeste',
-      'Magdalena': 'Lima Oeste',
-      'San Miguel': 'Lima Oeste',
-      'Lima Oeste': 'Lima Oeste',
+      // Lima Norte
       'Los Olivos': 'Lima Norte',
+      'SMP': 'Lima Norte',
       'Independencia': 'Lima Norte',
+      'Comas': 'Lima Norte',
+      'Carabayllo': 'Lima Norte',
+      'Puente Piedra': 'Lima Norte',
       'Lima Norte': 'Lima Norte'
     };
 
@@ -3912,6 +4144,46 @@ export function getPlayerMatchHistory(playerNameOrId) {
         resultado: 'victoria',
         puntosGanados: 140,
         detalle: 'Victoria en Semifinal Singles'
+      },
+      {
+        id: 'm-ds-6',
+        torneo: 'Copa Verano ATAP',
+        fecha: '08 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'singles',
+        ronda: 'Cuartos de final',
+        rivales: 'Fernando Gálvez',
+        marcador: '6-3, 6-2',
+        resultado: 'victoria',
+        puntosGanados: 90,
+        detalle: 'Clasificación a Semifinales Singles'
+      },
+      {
+        id: 'm-ds-7',
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '11 Mar 2026',
+        categoria: '4ta',
+        modalidad: 'singles',
+        ronda: 'Octavos de final',
+        rivales: 'Rodrigo Alva',
+        marcador: '6-4, 6-1',
+        resultado: 'victoria',
+        puntosGanados: 60,
+        detalle: 'Victoria en Ronda de Octavos Singles'
+      },
+      {
+        id: 'm-ds-8',
+        torneo: 'Copa Verano ATAP',
+        fecha: '06 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'dobles',
+        ronda: 'Cuartos de final',
+        pareja: 'Mateo Rojas',
+        rivales: 'Javier Prado & Gonzalo Ugarte',
+        marcador: '6-3, 6-4',
+        resultado: 'victoria',
+        puntosGanados: 100,
+        detalle: 'Pase a Semifinales Dobles'
       }
     ],
     'luciana pérez': [
@@ -3995,6 +4267,46 @@ export function getPlayerMatchHistory(playerNameOrId) {
         resultado: 'victoria',
         puntosGanados: 250,
         detalle: 'Campeona Oficial Singles 4ta'
+      },
+      {
+        id: 'm-lp-7',
+        torneo: 'Copa Primavera Lawn Tennis',
+        fecha: '25 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'singles',
+        ronda: 'Cuartos de final',
+        rivales: 'Andrea Flores',
+        marcador: '6-2, 6-3',
+        resultado: 'victoria',
+        puntosGanados: 100,
+        detalle: 'Pase a Semifinales Singles'
+      },
+      {
+        id: 'm-lp-8',
+        torneo: 'Copa Verano ATAP',
+        fecha: '11 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'dobles',
+        ronda: 'Gran Final 🏆',
+        pareja: 'Valeria Torres',
+        rivales: 'Daniela Vega & Sofía Paredes',
+        marcador: '6-4, 6-2',
+        resultado: 'victoria',
+        puntosGanados: 250,
+        detalle: 'Campeona Oficial Dobles con Valeria Torres'
+      },
+      {
+        id: 'm-lp-9',
+        torneo: 'Copa Verano ATAP',
+        fecha: '09 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'singles',
+        ronda: 'Semifinal',
+        rivales: 'Daniela Vega',
+        marcador: '6-3, 6-1',
+        resultado: 'victoria',
+        puntosGanados: 140,
+        detalle: 'Victoria en Semifinales Singles'
       }
     ],
     'mateo rojas': [
@@ -4078,6 +4390,33 @@ export function getPlayerMatchHistory(playerNameOrId) {
         resultado: 'victoria',
         puntosGanados: 250,
         detalle: 'Campeón Oficial Singles 5ta A'
+      },
+      {
+        id: 'm-mr-7',
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '11 Mar 2026',
+        categoria: '5ta A',
+        modalidad: 'singles',
+        ronda: 'Octavos de final',
+        rivales: 'Carlos Benavides',
+        marcador: '6-4, 5-7, 10-8',
+        resultado: 'victoria',
+        puntosGanados: 70,
+        detalle: 'Victoria en Ronda de Octavos Singles'
+      },
+      {
+        id: 'm-mr-8',
+        torneo: 'Copa Primavera Lawn Tennis',
+        fecha: '26 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'dobles',
+        ronda: 'Semifinal',
+        pareja: 'Carlos Benavides',
+        rivales: 'Rodrigo Alva & Joaquín Vargas',
+        marcador: '6-3, 6-4',
+        resultado: 'victoria',
+        puntosGanados: 140,
+        detalle: 'Victoria en Semifinal Dobles'
       }
     ],
     'valeria torres': [
@@ -4148,6 +4487,33 @@ export function getPlayerMatchHistory(playerNameOrId) {
         resultado: 'derrota',
         puntosGanados: 120,
         detalle: 'Semifinalista Singles'
+      },
+      {
+        id: 'm-vt-6',
+        torneo: 'Copa Verano ATAP',
+        fecha: '14 Feb 2026',
+        categoria: '5ta A',
+        modalidad: 'singles',
+        ronda: 'Gran Final 🥈',
+        rivales: 'Luciana Pérez',
+        marcador: '4-6, 3-6',
+        resultado: 'derrota',
+        puntosGanados: 180,
+        detalle: 'Finalista Oficial Singles 5ta A'
+      },
+      {
+        id: 'm-vt-7',
+        torneo: 'Copa Verano ATAP',
+        fecha: '10 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'dobles',
+        ronda: 'Semifinal',
+        pareja: 'Luciana Pérez',
+        rivales: 'Andrea Flores & Daniela Vega',
+        marcador: '6-3, 6-4',
+        resultado: 'victoria',
+        puntosGanados: 150,
+        detalle: 'Pase a la Gran Final Dobles con Luciana Pérez'
       }
     ],
     'carlos benavides': [
@@ -4218,97 +4584,423 @@ export function getPlayerMatchHistory(playerNameOrId) {
         resultado: 'victoria',
         puntosGanados: 250,
         detalle: 'Campeón Oficial Singles 4ta'
+      },
+      {
+        id: 'm-cb-6',
+        torneo: 'Copa Primavera Lawn Tennis',
+        fecha: '25 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'singles',
+        ronda: 'Semifinal',
+        rivales: 'Diego Sánchez',
+        marcador: '4-6, 5-7',
+        resultado: 'derrota',
+        puntosGanados: 90,
+        detalle: 'Semifinalista Singles'
+      },
+      {
+        id: 'm-cb-7',
+        torneo: 'Copa Primavera Lawn Tennis',
+        fecha: '24 Feb 2026',
+        categoria: '4ta',
+        modalidad: 'dobles',
+        ronda: 'Semifinal',
+        pareja: 'Fernando Gálvez',
+        rivales: 'Javier Prado & Gonzalo Ugarte',
+        marcador: '7-5, 6-3',
+        resultado: 'victoria',
+        puntosGanados: 140,
+        detalle: 'Victoria en Semifinales Dobles'
+      },
+      {
+        id: 'm-cb-8',
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '12 Mar 2026',
+        categoria: '4ta',
+        modalidad: 'singles',
+        ronda: 'Cuartos de final',
+        rivales: 'Mateo Rojas',
+        marcador: '6-3, 6-4',
+        resultado: 'victoria',
+        puntosGanados: 110,
+        detalle: 'Pase a Semifinales Singles'
       }
     ]
   };
 
+  let baseMatches = [];
   for (const [key, matches] of Object.entries(curatedHistory)) {
     if (cleanName.includes(key) || key.includes(cleanName)) {
-      return matches;
+      baseMatches = [...matches];
+      break;
     }
   }
 
-  // Generate realistic matches for any other player
-  const rivalsList = [
-    'Carlos Benavides', 'Fernando Gálvez', 'Gonzalo Ugarte',
-    'Javier Prado', 'Rodrigo Alva', 'Joaquín Vargas', 'Mateo Rojas'
-  ].filter(r => r.toLowerCase() !== cleanName);
+  // Si no tiene historial curado, generar partidos realistas en ambas modalidades
+  if (baseMatches.length === 0) {
+    const rivalsList = [
+      'Carlos Benavides', 'Fernando Gálvez', 'Gonzalo Ugarte',
+      'Javier Prado', 'Rodrigo Alva', 'Joaquín Vargas', 'Mateo Rojas'
+    ].filter(r => r.toLowerCase() !== cleanName);
 
-  const rival1 = rivalsList[0] || 'Carlos Benavides';
-  const rival2 = rivalsList[1] || 'Fernando Gálvez';
-  const rival3 = rivalsList[2] || 'Gonzalo Ugarte';
+    const rival1 = rivalsList[0] || 'Carlos Benavides';
+    const rival2 = rivalsList[1] || 'Fernando Gálvez';
+    const rival3 = rivalsList[2] || 'Gonzalo Ugarte';
+    const rival4 = rivalsList[3] || 'Javier Prado';
 
-  return [
-    {
-      id: `m-${cleanName.slice(0, 4)}-1`,
-      torneo: 'Torneo Apertura ATAP 2026',
-      fecha: '15 Mar 2026',
-      categoria: cat,
-      modalidad: 'dobles',
-      ronda: 'Gran Final 🏆',
-      pareja: partner,
-      rivales: `${rival1} & ${rival2}`,
-      marcador: '6-4, 6-3',
-      resultado: 'victoria',
-      puntosGanados: 220,
-      detalle: `Podio Oficial Dobles ${cat}`
-    },
-    {
-      id: `m-${cleanName.slice(0, 4)}-2`,
-      torneo: 'Torneo Apertura ATAP 2026',
-      fecha: '14 Mar 2026',
-      categoria: cat,
-      modalidad: 'dobles',
-      ronda: 'Semifinal',
-      pareja: partner,
-      rivales: `${rival2} & ${rival3}`,
-      marcador: '7-5, 6-4',
-      resultado: 'victoria',
-      puntosGanados: 140,
-      detalle: 'Victoria en Semifinal Dobles'
-    },
-    {
-      id: `m-${cleanName.slice(0, 4)}-3`,
-      torneo: 'Copa Verano ATAP',
-      fecha: '26 Feb 2026',
-      categoria: cat,
-      modalidad: 'singles',
-      ronda: 'Fase Clasificatoria',
-      rivales: rival1,
-      marcador: '6-3, 4-6, 10-6',
-      resultado: 'victoria',
-      puntosGanados: 100,
-      detalle: 'Victoria en Round Robin Singles'
-    },
-    {
-      id: `m-${cleanName.slice(0, 4)}-4`,
-      torneo: 'Torneo Apertura ATAP 2026',
-      fecha: '12 Mar 2026',
-      categoria: cat,
-      modalidad: 'singles',
-      ronda: 'Cuartos de final',
-      rivales: rival2,
-      marcador: '6-4, 7-5',
-      resultado: 'victoria',
-      puntosGanados: 120,
-      detalle: 'Victoria en Cuartos Singles'
-    },
-    {
-      id: `m-${cleanName.slice(0, 4)}-5`,
-      torneo: 'Copa Primavera Lawn Tennis',
-      fecha: '10 Feb 2026',
-      categoria: cat,
-      modalidad: 'dobles',
-      ronda: 'Cuartos de final',
-      pareja: rival3,
-      rivales: `${rival1} & ${rival2}`,
-      marcador: '4-6, 5-7',
-      resultado: 'derrota',
-      puntosGanados: 60,
-      detalle: `Cuartos de final Dobles (Dupla con ${rival3})`
+    baseMatches = [
+      {
+        id: `m-${cleanName.slice(0, 4)}-1`,
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '15 Mar 2026',
+        categoria: cat,
+        modalidad: 'dobles',
+        ronda: 'Gran Final 🏆',
+        pareja: partner,
+        rivales: `${rival1} & ${rival2}`,
+        marcador: '6-4, 6-3',
+        resultado: 'victoria',
+        puntosGanados: 220,
+        detalle: `Podio Oficial Dobles ${cat}`
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-2`,
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '14 Mar 2026',
+        categoria: cat,
+        modalidad: 'dobles',
+        ronda: 'Semifinal',
+        pareja: partner,
+        rivales: `${rival2} & ${rival3}`,
+        marcador: '7-5, 6-4',
+        resultado: 'victoria',
+        puntosGanados: 140,
+        detalle: 'Victoria en Semifinal Dobles'
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-3`,
+        torneo: 'Copa Primavera Lawn Tennis',
+        fecha: '28 Feb 2026',
+        categoria: cat,
+        modalidad: 'dobles',
+        ronda: 'Gran Final 🥈',
+        pareja: partner,
+        rivales: `${rival3} & ${rival4}`,
+        marcador: '4-6, 6-7',
+        resultado: 'derrota',
+        puntosGanados: 160,
+        detalle: 'Finalista Oficial Dobles'
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-4`,
+        torneo: 'Copa Primavera Lawn Tennis',
+        fecha: '27 Feb 2026',
+        categoria: cat,
+        modalidad: 'dobles',
+        ronda: 'Cuartos de final',
+        pareja: partner,
+        rivales: `${rival1} & ${rival4}`,
+        marcador: '6-3, 6-4',
+        resultado: 'victoria',
+        puntosGanados: 90,
+        detalle: 'Pase a Semifinales Dobles'
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-5`,
+        torneo: 'Copa Verano ATAP',
+        fecha: '10 Feb 2026',
+        categoria: cat,
+        modalidad: 'dobles',
+        ronda: 'Cuartos de final',
+        pareja: rival3,
+        rivales: `${rival1} & ${rival2}`,
+        marcador: '4-6, 5-7',
+        resultado: 'derrota',
+        puntosGanados: 60,
+        detalle: `Cuartos de final Dobles`
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-6`,
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '15 Mar 2026',
+        categoria: cat,
+        modalidad: 'singles',
+        ronda: 'Gran Final 🏆',
+        rivales: rival1,
+        marcador: '6-3, 6-4',
+        resultado: 'victoria',
+        puntosGanados: 250,
+        detalle: `Campeón Oficial Singles ${cat}`
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-7`,
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '13 Mar 2026',
+        categoria: cat,
+        modalidad: 'singles',
+        ronda: 'Semifinal',
+        rivales: rival2,
+        marcador: '6-4, 7-5',
+        resultado: 'victoria',
+        puntosGanados: 140,
+        detalle: 'Victoria en Semifinal Singles'
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-8`,
+        torneo: 'Copa Verano ATAP',
+        fecha: '26 Feb 2026',
+        categoria: cat,
+        modalidad: 'singles',
+        ronda: 'Fase Clasificatoria',
+        rivales: rival3,
+        marcador: '6-3, 4-6, 10-6',
+        resultado: 'victoria',
+        puntosGanados: 100,
+        detalle: 'Victoria en Round Robin Singles'
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-9`,
+        torneo: 'Torneo Apertura ATAP 2026',
+        fecha: '12 Mar 2026',
+        categoria: cat,
+        modalidad: 'singles',
+        ronda: 'Cuartos de final',
+        rivales: rival4,
+        marcador: '6-4, 7-5',
+        resultado: 'victoria',
+        puntosGanados: 120,
+        detalle: 'Victoria en Cuartos Singles'
+      },
+      {
+        id: `m-${cleanName.slice(0, 4)}-10`,
+        torneo: 'Copa Primavera Lawn Tennis',
+        fecha: '25 Feb 2026',
+        categoria: cat,
+        modalidad: 'singles',
+        ronda: 'Semifinal',
+        rivales: rival1,
+        marcador: '4-6, 3-6',
+        resultado: 'derrota',
+        puntosGanados: 90,
+        detalle: 'Semifinalista Singles'
+      }
+    ];
+  }
+
+  // Conexión dinámica en tiempo real con los resultados cargados en torneos
+  try {
+    const tournaments = getTournaments();
+    const liveMatches = [];
+    if (Array.isArray(tournaments)) {
+      tournaments.forEach((t) => {
+        if (Array.isArray(t.resultados)) {
+          t.resultados.forEach((res, idx) => {
+            const p1 = (res.jugador1 || '').toLowerCase().trim();
+            const p2 = (res.jugador2 || '').toLowerCase().trim();
+            const isP1 = p1.includes(cleanName) || cleanName.includes(p1);
+            const isP2 = p2.includes(cleanName) || cleanName.includes(p2);
+
+            if (isP1 || isP2) {
+              const ganador = (res.ganador || '').toLowerCase().trim();
+              const isWinner = (isP1 && (ganador.includes(p1) || ganador === 'jugador 1')) ||
+                               (isP2 && (ganador.includes(p2) || ganador === 'jugador 2')) ||
+                               (ganador.includes(cleanName));
+              const pts = isP1
+                ? (res.puntosJugador1 !== undefined ? res.puntosJugador1 : (isWinner ? (res.puntos || 0) : 0))
+                : (res.puntosJugador2 !== undefined ? res.puntosJugador2 : (isWinner ? (res.puntos || 0) : 0));
+
+              const rival = isP1 ? (res.jugador2 || 'Rival oficial') : (res.jugador1 || 'Rival oficial');
+              const tMod = t.modalidad || (res.modalidad || 'singles');
+
+              liveMatches.push({
+                id: res.id || `live-m-${t.id}-${idx}`,
+                torneo: t.title || 'Torneo Oficial ATAP',
+                fecha: res.fechaCarga || 'Reciente',
+                categoria: res.categoria || t.categoria || cat,
+                modalidad: tMod === 'dobles' ? 'dobles' : 'singles',
+                ronda: res.ronda || 'Fase Eliminatoria',
+                pareja: tMod === 'dobles' ? partner : undefined,
+                rivales: rival,
+                marcador: res.score || [res.set1, res.set2, res.set3].filter(Boolean).join(', ') || 'Finalizado',
+                resultado: isWinner ? 'victoria' : 'derrota',
+                puntosGanados: Number(pts) || 0,
+                detalle: res.observaciones || `${res.ronda || 'Partido'} en ${t.title || 'Torneo ATAP'}`
+              });
+            }
+          });
+        }
+      });
     }
-  ];
+
+    if (liveMatches.length > 0) {
+      const liveIds = new Set(liveMatches.map(m => m.id));
+      const filteredBase = baseMatches.filter(m => !liveIds.has(m.id));
+      return [...liveMatches, ...filteredBase];
+    }
+  } catch (err) {
+    console.warn('Error sincronizando partidos dinámicos:', err);
+  }
+
+  return baseMatches;
 }
+
+export function getPlayerTournamentBreakdown(playerNameOrId, modality = 'singles', season = '2026') {
+  if (!playerNameOrId) {
+    return {
+      season: season || '2026',
+      totalPuntos: 0,
+      totalTorneos: 0,
+      titulos: 0,
+      finales: 0,
+      victorias: 0,
+      derrotas: 0,
+      torneos: []
+    };
+  }
+
+  const cleanName = String(playerNameOrId).trim().toLowerCase();
+  const allMatches = getPlayerMatchHistory(playerNameOrId);
+
+  // Filtrar partidos por modalidad ('singles' o 'dobles')
+  const modalityMatches = allMatches.filter((m) => {
+    if (modality === 'dobles') return m.modalidad === 'dobles';
+    return m.modalidad === 'singles';
+  });
+
+  // Filtrar por temporada (por defecto 2026)
+  const targetSeason = String(season || '2026').trim();
+  let seasonMatches = modalityMatches.filter((m) => {
+    const fecha = String(m.fecha || '');
+    const torneo = String(m.torneo || '');
+    return fecha.includes(targetSeason) || torneo.includes(targetSeason);
+  });
+
+  // Si no se encontraron con la temporada exacta pero hay partidos de la modalidad, incluirlos
+  if (seasonMatches.length === 0 && modalityMatches.length > 0) {
+    seasonMatches = modalityMatches;
+  }
+
+  // Agrupar por torneo
+  const tourneyMap = new Map();
+
+  seasonMatches.forEach((m) => {
+    const tName = (m.torneo || 'Torneo Oficial ATAP').trim();
+    if (!tourneyMap.has(tName)) {
+      tourneyMap.set(tName, []);
+    }
+    tourneyMap.get(tName).push(m);
+  });
+
+  const torneosBreakdown = [];
+  let totalPuntosAcumulados = 0;
+  let totalTitulos = 0;
+  let totalFinales = 0;
+  let victoriasAcumuladas = 0;
+  let derrotasAcumuladas = 0;
+
+  for (const [tName, matches] of tourneyMap.entries()) {
+    // Calcular puntos sumados en este torneo
+    const puntosTorneo = matches.reduce((acc, match) => acc + (Number(match.puntosGanados) || 0), 0);
+    totalPuntosAcumulados += puntosTorneo;
+
+    // Victorias y derrotas en este torneo
+    const wins = matches.filter((match) => match.resultado === 'victoria').length;
+    const losses = matches.filter((match) => match.resultado === 'derrota').length;
+    victoriasAcumuladas += wins;
+    derrotasAcumuladas += losses;
+
+    // Determinar la etapa o ronda más avanzada
+    let etapa = 'Fase Clasificatoria';
+    let tipoEtapa = 'ronda';
+    let badgeColor = '#64727A';
+
+    const hasFinalMatch = matches.find((m) => {
+      const r = (m.ronda || '').toLowerCase();
+      return r.includes('final') && !r.includes('semi') && !r.includes('cuartos') && !r.includes('octavos');
+    });
+
+    if (hasFinalMatch) {
+      const isWinner = hasFinalMatch.resultado === 'victoria' ||
+                       hasFinalMatch.ronda?.includes('🏆') ||
+                       hasFinalMatch.detalle?.toLowerCase().includes('campeón') ||
+                       hasFinalMatch.detalle?.toLowerCase().includes('campeona');
+      if (isWinner) {
+        etapa = 'Campeón 🏆';
+        tipoEtapa = 'campeon';
+        badgeColor = '#FFD700';
+        totalTitulos += 1;
+      } else {
+        etapa = 'Finalista 🥈';
+        tipoEtapa = 'finalista';
+        badgeColor = '#E0E0E0';
+        totalFinales += 1;
+      }
+    } else if (matches.some((m) => (m.ronda || '').toLowerCase().includes('semi'))) {
+      etapa = 'Semifinalista 🥉';
+      tipoEtapa = 'semifinal';
+      badgeColor = '#00CFA0';
+    } else if (matches.some((m) => (m.ronda || '').toLowerCase().includes('cuarto'))) {
+      etapa = 'Cuartos de final';
+      tipoEtapa = 'cuartos';
+      badgeColor = '#4DA8DA';
+    } else if (matches.some((m) => (m.ronda || '').toLowerCase().includes('octavo'))) {
+      etapa = 'Octavos de final';
+      tipoEtapa = 'octavos';
+      badgeColor = '#808B96';
+    } else if (matches.some((m) => (m.ronda || '').toLowerCase().includes('dieciseis'))) {
+      etapa = 'Dieciseisavos de final';
+      tipoEtapa = 'dieciseisavos';
+      badgeColor = '#808B96';
+    } else if (matches.some((m) => (m.ronda || '').toLowerCase().includes('grupo') || (m.ronda || '').toLowerCase().includes('robin'))) {
+      etapa = 'Fase de Grupos';
+      tipoEtapa = 'grupos';
+      badgeColor = '#808B96';
+    } else {
+      etapa = matches[0].ronda || 'Fase Eliminatoria';
+      tipoEtapa = 'ronda';
+    }
+
+    const fecha = matches[0].fecha || `${targetSeason}`;
+    const categoria = matches[0].categoria || '4ta';
+    const pareja = matches.find((m) => m.pareja)?.pareja;
+
+    torneosBreakdown.push({
+      id: `tb-${tName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      nombre: tName,
+      fecha: fecha,
+      categoria: categoria,
+      modalidad: modality,
+      etapa: etapa,
+      tipoEtapa: tipoEtapa,
+      badgeColor: badgeColor,
+      puntosGanados: puntosTorneo,
+      victorias: wins,
+      derrotas: losses,
+      record: `${wins}V - ${losses}D`,
+      pareja: pareja,
+      partidos: matches
+    });
+  }
+
+  // Ordenar torneos: campeonatos primero, luego por puntos ganados descendente
+  torneosBreakdown.sort((a, b) => {
+    if (a.tipoEtapa === 'campeon' && b.tipoEtapa !== 'campeon') return -1;
+    if (b.tipoEtapa === 'campeon' && a.tipoEtapa !== 'campeon') return 1;
+    return b.puntosGanados - a.puntosGanados;
+  });
+
+  return {
+    season: targetSeason,
+    totalPuntos: totalPuntosAcumulados,
+    totalTorneos: torneosBreakdown.length,
+    titulos: totalTitulos,
+    finales: totalFinales,
+    victorias: victoriasAcumuladas,
+    derrotas: derrotasAcumuladas,
+    torneos: torneosBreakdown
+  };
+}
+
 
 export function updatePlayerAvatar(playerNameOrId, newAvatarUrl) {
   const ranking = getRanking();

@@ -188,6 +188,13 @@
   text-align: left;
 }
 
+.onboarding-required-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #EF4444;
+  margin-left: 5px;
+}
+
 .onboarding-field-tag {
   display: block;
   width: 100%;
@@ -594,30 +601,255 @@
 }
 
 /* Preferencias (Paso 5) */
-.onboarding-zones-row {
+/* Preferencias (Paso 7: Zonas de Juego y Distritos Oficiales) */
+.onboarding-zones-block {
   display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-block-header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
 }
 
+.onboarding-tag-hint {
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.onboarding-zones-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+}
+
+.onboarding-zone-item-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
 .onboarding-zone-chip {
-  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
   border-radius: 12px;
-  border: 1.5px solid #E8EEEE;
+  border: 1.5px solid #E2E8F0;
   background: #FFFFFF;
   color: #00304A;
   font-family: 'General Sans', Arial, sans-serif;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.onboarding-zone-chip:hover {
+  border-color: var(--zone-color, #00CFA0);
+  background: #F8FAFC;
+  transform: translateY(-1px);
 }
 
 .onboarding-zone-chip.selected {
-  border-color: #00CFA0;
-  background: #DDF8EF;
-  color: #00304A;
+  border-color: var(--zone-color, #00CFA0);
+  background: #E8FAF3;
+  color: #002238;
+  box-shadow: 0 2px 8px rgba(0, 207, 160, 0.15);
+}
+
+.zone-chip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.zone-chip-check {
+  font-size: 11px;
+  font-weight: 800;
+  color: #008761;
+  margin-left: 2px;
+}
+
+/* Tooltip superpuesto sobre la zona al pasar el cursor o hacer focus */
+.zone-districts-popover {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: 250px;
+  background: #002238;
+  color: #FFFFFF;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 28px rgba(0, 15, 25, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  z-index: 99;
+}
+
+.zone-districts-popover.visible,
+.onboarding-zone-item-wrapper:hover .zone-districts-popover,
+.onboarding-zone-item-wrapper:focus-within .zone-districts-popover {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.zone-popover-arrow {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: #002238;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Ajustes de alineación en esquinas para que no desborde el modal */
+.onboarding-zone-item-wrapper:first-child .zone-districts-popover {
+  left: 0;
+  transform: translateX(0) translateY(4px);
+}
+.onboarding-zone-item-wrapper:first-child .zone-districts-popover.visible,
+.onboarding-zone-item-wrapper:first-child:hover .zone-districts-popover {
+  transform: translateX(0) translateY(0);
+}
+.onboarding-zone-item-wrapper:first-child .zone-popover-arrow {
+  left: 24px;
+  transform: rotate(45deg);
+}
+
+.onboarding-zone-item-wrapper:nth-child(4) .zone-districts-popover,
+.onboarding-zone-item-wrapper:last-child .zone-districts-popover {
+  left: auto;
+  right: 0;
+  transform: translateX(0) translateY(4px);
+}
+.onboarding-zone-item-wrapper:nth-child(4) .zone-districts-popover.visible,
+.onboarding-zone-item-wrapper:nth-child(4):hover .zone-districts-popover,
+.onboarding-zone-item-wrapper:last-child .zone-districts-popover.visible,
+.onboarding-zone-item-wrapper:last-child:hover .zone-districts-popover {
+  transform: translateX(0) translateY(0);
+}
+.onboarding-zone-item-wrapper:nth-child(4) .zone-popover-arrow,
+.onboarding-zone-item-wrapper:last-child .zone-popover-arrow {
+  left: auto;
+  right: 24px;
+  transform: rotate(45deg);
+}
+
+.zone-popover-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 5px;
+}
+
+.zone-popover-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #FFFFFF;
+  text-transform: uppercase;
+}
+
+.zone-popover-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.zone-popover-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.zone-popover-icon {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.zone-popover-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zone-popover-subtitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.zone-popover-text {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #E2E8F0;
+}
+
+/* Tarjeta informativa dinámica debajo de los botones */
+.onboarding-zones-active-preview {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-left-width: 4px;
+  transition: all 0.2s ease;
+}
+
+.zones-active-preview-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.zones-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.zones-active-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.zones-active-districts {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0F172A;
+  line-height: 1.4;
 }
 
 .onboarding-dominant-row {

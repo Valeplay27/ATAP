@@ -1201,6 +1201,94 @@
   color: #00304A;
 }
 
+.modality-segments-control {
+  display: flex;
+  align-items: center;
+  background: #F4EFFC;
+  border: 1.5px solid #E8EEEE;
+  border-radius: 12px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.modality-segment-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8A7D9D;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modality-segment-btn:hover {
+  color: #25005C;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.modality-segment-btn.active {
+  color: #25005C;
+  background: #FFFFFF;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(37, 0, 92, 0.12);
+  border: 1px solid rgba(37, 0, 92, 0.08);
+}
+
+.team-cell-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.team-cell-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-grupal-mini {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  color: #25005C;
+  background: #C6FF00;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.team-members-chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.team-member-micro-chip {
+  font-size: 11px;
+  color: #00304A;
+  background: #F4FDF9;
+  border: 1px solid #DDF8EF;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.team-member-micro-chip.is-sub {
+  color: #D97706;
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
 .modality-toggle-control {
   display: inline-flex;
   align-items: center;
@@ -4256,6 +4344,12 @@
   padding: 10px 12px;
 }
 
+.results-checkboxes-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .form-ranking-checkbox-row .checkbox-label {
   display: flex;
   align-items: center;
@@ -4263,6 +4357,16 @@
   font-size: 12.5px;
   color: #00304A;
   cursor: pointer;
+}
+
+.player-points-tag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #00875A;
+  background: #E3FCEF;
+  padding: 1px 7px;
+  border-radius: 4px;
 }
 
 .btn-save-result {

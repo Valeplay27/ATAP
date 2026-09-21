@@ -121,6 +121,13 @@
   gap: 10px;
 }
 
+.toolbar-left-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .players-filter-btn {
   display: inline-flex;
   align-items: center;
@@ -150,6 +157,38 @@
   border-color: #00CFA0;
   background: #00CFA0;
   color: #001827;
+}
+
+.players-followed-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 20px;
+  border: 1.5px solid #E8EEEE;
+  background: #FFFFFF;
+  color: #00304A;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.players-followed-btn:hover {
+  border-color: #F59E0B;
+  color: #B45309;
+  background: #FFFBEB;
+}
+
+.players-followed-btn.active {
+  border-color: #F59E0B;
+  background: #FEF3C7;
+  color: #92400E;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
 }
 
 .players-category-chips {
@@ -546,6 +585,145 @@
   .players-search-box input {
     width: 100%;
   }
+
+  .toolbar-left-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .players-filter-btn,
+  .players-followed-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Toast flotante informativo sobre favoritos y autenticación */
+.players-auth-notice-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  animation: noticeSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  z-index: 20;
+}
+
+@keyframes noticeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.players-auth-notice-toast.is-warning {
+  background: #FFFBEB;
+  border: 1.5px solid #FDE68A;
+  color: #92400E;
+}
+
+.players-auth-notice-toast.is-success {
+  background: #E8FAF3;
+  border: 1.5px solid #00CFA0;
+  color: #004D3C;
+}
+
+.notice-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.notice-body {
+  flex: 1;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.notice-login-action-btn {
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: #00304A;
+  color: #FFFFFF;
+  border: none;
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.notice-login-action-btn:hover {
+  background: #002133;
+  transform: translateY(-1px);
+}
+
+.notice-close-action-btn {
+  background: none;
+  border: none;
+  color: currentColor;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  transition: opacity 0.15s;
+}
+
+.notice-close-action-btn:hover {
+  opacity: 1;
+}
+
+/* Panel de estado vacío cuando no hay seguidos */
+.players-empty-seguidos-panel {
+  background: #FFFFFF;
+  border: 2px dashed #E2E8F0;
+  border-radius: 20px;
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.empty-seguidos-icon {
+  font-size: 46px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.players-empty-seguidos-panel h3 {
+  font-family: 'General Sans', Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #00304A;
+  margin: 0 0 8px;
+}
+
+.players-empty-seguidos-panel p {
+  font-size: 14px;
+  color: #64748B;
+  max-width: 440px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.empty-seguidos-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 
 

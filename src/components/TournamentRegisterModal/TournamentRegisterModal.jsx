@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Copy, Send, X, AlertTriangle, Users, UserCheck, ShieldAlert, ArrowRight } from 'lucide-react'
+import { CheckCircle2, Copy, Send, X, AlertTriangle, Users, UserCheck, ShieldAlert, ArrowRight, Shield, Trophy, Image } from 'lucide-react'
 import { registerPlayerToTournament, findUserByDni, getCategoryOccupancy, isUserProfileIncomplete, saveRegisteredUser, maskDni } from '../../services/atapStorage'
 import RulesModal from '../RulesModal/RulesModal'
 import './TournamentRegisterModal.css'
@@ -10,10 +10,16 @@ export default function TournamentRegisterModal({
   onClose,
   onSuccess
 }) {
-  const isDobles = tournament?.modalidad === 'dobles'
+  const isGrupal = tournament?.modalidad === 'grupal' || tournament?.modalidad === 'equipos'
+  const isDobles = tournament?.modalidad === 'dobles' && !isGrupal
   const categoriesList = tournament?.categorias && tournament.categorias.length > 0
     ? tournament.categorias
-    : (isDobles ? [
+    : (isGrupal ? [
+        { id: 'cat-g4', nombre: '4ta Equipos', cupos: 8 },
+        { id: 'cat-g5a', nombre: '5ta A Equipos', cupos: 8 },
+        { id: 'cat-g5b', nombre: '5ta B Equipos', cupos: 16 },
+        { id: 'cat-g6', nombre: '6ta Equipos', cupos: 16 }
+      ] : isDobles ? [
         { id: 'cat-d4', nombre: '4ta Dobles', cupos: 16 },
         { id: 'cat-d5a', nombre: '5ta A Dobles', cupos: 16 },
         { id: 'cat-d5b', nombre: '5ta B Dobles', cupos: 16 },
@@ -25,22 +31,44 @@ export default function TournamentRegisterModal({
         { id: 'cat-6', nombre: '6ta', cupos: 32 }
       ])
 
+  // Team state (for grupal / 5 personas)
+  const [nombreEquipo, setNombreEquipo] = useState('')
+  const [fotoEquipo, setFotoEquipo] = useState('')
+
   // Player 1 state
   const [nombre, setNombre] = useState(usuario?.nombre || '')
   const [email, setEmail] = useState(usuario?.email || '')
   const [dni, setDni] = useState(usuario?.dni || usuario?.documentoIdentidad || '')
   const [telefono, setTelefono] = useState(usuario?.telefono || usuario?.whatsapp || '')
 
-  // Player 2 state (for doubles / dúos)
+  // Player 2 state (for doubles / dúos / grupal)
   const [nombre2, setNombre2] = useState('')
   const [email2, setEmail2] = useState('')
   const [dni2, setDni2] = useState('')
   const [telefono2, setTelefono2] = useState('')
 
+  // Player 3 state (for grupal)
+  const [nombre3, setNombre3] = useState('')
+  const [email3, setEmail3] = useState('')
+  const [dni3, setDni3] = useState('')
+  const [telefono3, setTelefono3] = useState('')
+
+  // Player 4 state (for grupal)
+  const [nombre4, setNombre4] = useState('')
+  const [email4, setEmail4] = useState('')
+  const [dni4, setDni4] = useState('')
+  const [telefono4, setTelefono4] = useState('')
+
+  // Player 5 state (for grupal - Suplente Opcional)
+  const [nombre5, setNombre5] = useState('')
+  const [email5, setEmail5] = useState('')
+  const [dni5, setDni5] = useState('')
+  const [telefono5, setTelefono5] = useState('')
+
   // Mandatory Category selection
   const [categoria, setCategoria] = useState(() => {
     if (categoriesList.length > 0) return categoriesList[0].nombre
-    return isDobles ? '4ta Dobles' : '4ta'
+    return isGrupal ? '4ta Equipos' : isDobles ? '4ta Dobles' : '4ta'
   })
 
   const [metodoPago, setMetodoPago] = useState('Yape')
@@ -89,7 +117,7 @@ export default function TournamentRegisterModal({
     if (onClose) onClose()
     const target = playerData || (unregisteredPlayerInfo?.user) || unregisteredPlayerInfo || null
 
-    const targetDni = (target?.dni || target?.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
+    const targetDni = (target?.dniReal || target?.dni || target?.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
     const isPlayer2 = isDobles && targetDni && targetDni === (dni2 || '').toString().trim().replace(/\s+/g, '')
 
     const selectedDni = isPlayer2 ? dni2 : dni
@@ -97,14 +125,30 @@ export default function TournamentRegisterModal({
     const selectedEmail = isPlayer2 ? email2 : email
     const selectedPhone = isPlayer2 ? telefono2 : telefono
 
-    const finalDni = (target?.dni || target?.documentoIdentidad || selectedDni || '').toString().trim().replace(/\s+/g, '')
-    const finalNombre = (target?.nombre || selectedNombre || '').toString().trim()
-    const finalEmail = (target?.email || selectedEmail || '').toString().trim()
-    const finalPhone = (target?.telefono || target?.whatsapp || selectedPhone || '').toString().trim()
+    // Priorizar exactamente el DNI real y sin máscara que el usuario está escribiendo en la inscripción del torneo
+    const rawTypedDni = (selectedDni || '').toString().trim().replace(/\s+/g, '')
+    const targetReal = (target?.dniReal || '').toString().trim().replace(/\s+/g, '')
+    const targetDoc = (target?.dni || target?.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
+
+    let finalDni = ''
+    if (rawTypedDni && !rawTypedDni.includes('*') && !rawTypedDni.includes('•')) {
+      finalDni = rawTypedDni
+    } else if (targetReal && !targetReal.includes('*') && !targetReal.includes('•')) {
+      finalDni = targetReal
+    } else if (targetDoc && !targetDoc.includes('*') && !targetDoc.includes('•')) {
+      finalDni = targetDoc
+    } else {
+      finalDni = rawTypedDni || ''
+    }
+
+    const finalNombre = (selectedNombre || target?.nombre || '').toString().trim()
+    const finalEmail = (selectedEmail || target?.email || '').toString().trim()
+    const finalPhone = (selectedPhone || target?.telefono || target?.whatsapp || '').toString().trim()
     const finalCat = target?.categoria || categoria || '4ta'
 
     const payload = {
       dni: finalDni,
+      dniReal: finalDni,
       nombre: finalNombre,
       email: finalEmail,
       telefono: finalPhone,
@@ -228,6 +272,66 @@ export default function TournamentRegisterModal({
       }
     }
 
+    if (isGrupal) {
+      if (!nombreEquipo || !nombreEquipo.trim()) {
+        setValidationError('Por favor ingresa el nombre de tu grupo o equipo (obligatorio).')
+        return
+      }
+
+      // Check member 1
+      if (!cleanNombre || !cleanDni || cleanDni.length !== 8) {
+        setValidationError('Por favor completa el nombre y DNI válido (8 dígitos) del Jugador 1 (Capitán).')
+        return
+      }
+
+      // Check member 2
+      const cleanNombre2 = (nombre2 || '').trim()
+      const cleanDni2 = (dni2 || '').replace(/\D/g, '')
+      if (!cleanNombre2 || cleanDni2.length !== 8) {
+        setValidationError('Por favor completa el nombre y DNI válido (8 dígitos) del Jugador 2 (Titular).')
+        return
+      }
+
+      // Check member 3
+      const cleanNombre3 = (nombre3 || '').trim()
+      const cleanDni3 = (dni3 || '').replace(/\D/g, '')
+      if (!cleanNombre3 || cleanDni3.length !== 8) {
+        setValidationError('Por favor completa el nombre y DNI válido (8 dígitos) del Jugador 3 (Titular).')
+        return
+      }
+
+      // Check member 4
+      const cleanNombre4 = (nombre4 || '').trim()
+      const cleanDni4 = (dni4 || '').replace(/\D/g, '')
+      if (!cleanNombre4 || cleanDni4.length !== 8) {
+        setValidationError('Por favor completa el nombre y DNI válido (8 dígitos) del Jugador 4 (Titular).')
+        return
+      }
+
+      // Check member 5 (Optional)
+      const cleanNombre5 = (nombre5 || '').trim()
+      const cleanDni5 = (dni5 || '').replace(/\D/g, '')
+      if (cleanNombre5 || cleanDni5) {
+        if (!cleanNombre5) {
+          setValidationError('Por favor ingresa el nombre completo del Jugador 5 (Suplente) o deja ambos campos vacíos.')
+          return
+        }
+        if (cleanDni5.length !== 8) {
+          setValidationError('El DNI del Jugador 5 (Suplente) debe tener exactamente 8 dígitos o dejarse vacío.')
+          return
+        }
+      }
+
+      // Check duplicate DNIs
+      const teamDnis = [cleanDni, cleanDni2, cleanDni3, cleanDni4]
+      if (cleanDni5) teamDnis.push(cleanDni5)
+      const uniqueDnis = new Set(teamDnis)
+      if (uniqueDnis.size !== teamDnis.length) {
+        setValidationError('No puedes ingresar el mismo DNI para más de un integrante del equipo.')
+        return
+      }
+    }
+
     // 4. Aceptación obligatoria de Políticas & Reglas
     if (!aceptaPoliticas) {
       setValidationError('Debes aceptar las Políticas & Reglas Oficiales de ATAP para formalizar tu inscripción al torneo.')
@@ -241,11 +345,25 @@ export default function TournamentRegisterModal({
       dni: cleanDni,
       telefono: cleanPhone,
       categoria,
-      modalidad: isDobles ? 'dobles' : 'singles',
-      nombreJugador2: isDobles ? nombre2.trim() : undefined,
-      emailJugador2: isDobles ? email2.trim() : undefined,
-      dniJugador2: isDobles ? dni2.trim() : undefined,
-      telefonoJugador2: isDobles ? telefono2.trim() : undefined,
+      modalidad: isGrupal ? 'grupal' : isDobles ? 'dobles' : 'singles',
+      nombreEquipo: isGrupal ? nombreEquipo.trim() : undefined,
+      fotoEquipo: isGrupal ? fotoEquipo.trim() : undefined,
+      nombreJugador2: (isDobles || isGrupal) ? nombre2.trim() : undefined,
+      emailJugador2: (isDobles || isGrupal) ? email2.trim() : undefined,
+      dniJugador2: (isDobles || isGrupal) ? dni2.trim() : undefined,
+      telefonoJugador2: (isDobles || isGrupal) ? telefono2.trim() : undefined,
+      nombreJugador3: isGrupal ? nombre3.trim() : undefined,
+      emailJugador3: isGrupal ? email3.trim() : undefined,
+      dniJugador3: isGrupal ? dni3.trim() : undefined,
+      telefonoJugador3: isGrupal ? telefono3.trim() : undefined,
+      nombreJugador4: isGrupal ? nombre4.trim() : undefined,
+      emailJugador4: isGrupal ? email4.trim() : undefined,
+      dniJugador4: isGrupal ? dni4.trim() : undefined,
+      telefonoJugador4: isGrupal ? telefono4.trim() : undefined,
+      nombreJugador5: isGrupal && nombre5.trim() ? nombre5.trim() : undefined,
+      emailJugador5: isGrupal && email5.trim() ? email5.trim() : undefined,
+      dniJugador5: isGrupal && dni5.trim() ? dni5.trim() : undefined,
+      telefonoJugador5: isGrupal && telefono5.trim() ? telefono5.trim() : undefined,
       metodoPago,
       comprobanteInfo: comprobanteRef,
       aceptoPoliticas: true,
@@ -265,8 +383,17 @@ export default function TournamentRegisterModal({
   }
 
   const whatsappMessage = encodeURIComponent(
-    '¡Hola ATAP! 👋 Acabo de inscribirme al torneo *' + tournament.title + '*.\n\n' +
-    (isDobles
+    '¡Hola ATAP! 👋 Acabo de inscribir a mi equipo al torneo *' + tournament.title + '*.\n\n' +
+    (isGrupal
+      ? '🏆 *Equipo:* ' + (nombreEquipo || 'Equipo') + '\n' +
+        '🎾 *Categoría:* ' + categoria + '\n' +
+        '👥 *Modalidad:* Grupal (5 Personas)\n' +
+        '👤 *Jugador 1 (Capitán):* ' + nombre + ' (DNI: ' + maskDni(dni) + ')\n' +
+        '👤 *Jugador 2:* ' + nombre2 + ' (DNI: ' + maskDni(dni2) + ')\n' +
+        '👤 *Jugador 3:* ' + nombre3 + ' (DNI: ' + maskDni(dni3) + ')\n' +
+        '👤 *Jugador 4:* ' + nombre4 + ' (DNI: ' + maskDni(dni4) + ')\n' +
+        (nombre5 ? '👤 *Jugador 5 (Suplente):* ' + nombre5 + ' (DNI: ' + maskDni(dni5) + ')\n' : '')
+      : isDobles
       ? '👥 *Modalidad:* Dúos / Dobles\n' +
         '🎾 *Categoría:* ' + categoria + '\n' +
         '👤 *Jugador 1:* ' + nombre + ' (DNI: ' + maskDni(dni) + ')\n' +
@@ -283,14 +410,20 @@ export default function TournamentRegisterModal({
   // Active verified status hints
   const user1Verified = dni && findUserByDni(dni)
   const user2Verified = dni2 && findUserByDni(dni2)
+  const user3Verified = dni3 && findUserByDni(dni3)
+  const user4Verified = dni4 && findUserByDni(dni4)
+  const user5Verified = dni5 && findUserByDni(dni5)
 
   const isUser1Ready = user1Verified && (!isUserProfileIncomplete(user1Verified) || (email.trim().includes('@') && telefono.trim().length >= 6))
   const isUser2Ready = user2Verified && (!isUserProfileIncomplete(user2Verified) || (email2.trim().includes('@') && telefono2.trim().length >= 6))
+  const isUser3Ready = user3Verified && (!isUserProfileIncomplete(user3Verified) || (email3.trim().includes('@') && telefono3.trim().length >= 6))
+  const isUser4Ready = user4Verified && (!isUserProfileIncomplete(user4Verified) || (email4.trim().includes('@') && telefono4.trim().length >= 6))
+  const isUser5Ready = user5Verified && (!isUserProfileIncomplete(user5Verified) || (email5.trim().includes('@') && telefono5.trim().length >= 6))
 
   return (
     <div className='tourney-modal-backdrop' onClick={onClose}>
       <div
-        className={'tourney-modal-card' + (isDobles ? ' tourney-modal-card-wide' : '')}
+        className={'tourney-modal-card' + (isDobles || isGrupal ? ' tourney-modal-card-wide' : '')}
         onClick={(e) => e.stopPropagation()}
         role='dialog'
         aria-modal='true'
@@ -310,7 +443,7 @@ export default function TournamentRegisterModal({
               <div className='tourney-badge-row'>
                 <span className='tourney-badge-kicker'>Inscripción Oficial ATAP</span>
                 <span className='tourney-modality-badge'>
-                  {isDobles ? '👥 Modalidad Dúos (Dobles)' : '🎾 Modalidad Singles'}
+                  {isGrupal ? '🏆 Modalidad Grupal (5 Personas)' : isDobles ? '👥 Modalidad Dúos (Dobles)' : '🎾 Modalidad Singles'}
                 </span>
               </div>
               <h2>{tournament.title}</h2>
@@ -318,7 +451,7 @@ export default function TournamentRegisterModal({
                 <div>
                   <span className='price-label'>Precio de inscripción:</span>
                   <div className='price-subtext-note'>
-                    {isDobles ? 'Incluye la pareja de juego oficial' : 'Participación individual'}
+                    {isGrupal ? 'Inscripción de equipo completo (5 personas)' : isDobles ? 'Incluye la pareja de juego oficial' : 'Participación individual'}
                   </div>
                 </div>
                 <strong className='price-value'>{precioDisplay}</strong>
@@ -370,12 +503,104 @@ export default function TournamentRegisterModal({
             )}
 
             <form className='tourney-register-form' onSubmit={handleSubmit}>
+              {/* SECTION: DATOS DE EQUIPO (GRUPAL) */}
+              {isGrupal && (
+                <div className='team-registration-card'>
+                  <div className='team-section-header'>
+                    <Trophy size={18} color="#00CFA0" />
+                    <div className='team-header-titles'>
+                      <h4>Datos del Equipo / Grupo (5 Integrantes)</h4>
+                      <span className='team-header-subtitle'>Asigna un nombre oficial y foto a tu grupo de competencia</span>
+                    </div>
+                  </div>
+
+                  <div className='form-row-2' style={{ marginTop: '12px' }}>
+                    <div className='form-group'>
+                      <label htmlFor='t-team-name'>
+                        Nombre del Grupo / Equipo * <span className='field-required-tag'>Obligatorio</span>
+                      </label>
+                      <input
+                        id='t-team-name'
+                        type='text'
+                        value={nombreEquipo}
+                        onChange={(e) => {
+                          setNombreEquipo(e.target.value)
+                          if (validationError) setValidationError('')
+                        }}
+                        placeholder='Ej. Los Ases de Lima'
+                        required={isGrupal}
+                      />
+                    </div>
+
+                    <div className='form-group'>
+                      <div className='label-with-hint'>
+                        <label htmlFor='t-team-photo'>
+                          Foto / Escudo del Grupo <span className='field-optional-tag'>Opcional</span>
+                        </label>
+                        {fotoEquipo && (
+                          <button
+                            type='button'
+                            className='btn-clear-photo'
+                            onClick={() => setFotoEquipo('')}
+                            title='Quitar foto'
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                      <div className='team-photo-input-group'>
+                        <input
+                          id='t-team-photo'
+                          type='text'
+                          value={fotoEquipo}
+                          onChange={(e) => setFotoEquipo(e.target.value)}
+                          placeholder='URL de imagen o logo'
+                        />
+                        <label className='btn-upload-team-photo' title='Subir imagen desde tu equipo'>
+                          <Image size={15} />
+                          <span>Subir</span>
+                          <input
+                            type='file'
+                            accept='image/*'
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              const file = e.target.files && e.target.files[0]
+                              if (file) {
+                                if (file.size > 2 * 1024 * 1024) {
+                                  alert('La imagen debe ser menor a 2MB')
+                                  return
+                                }
+                                const reader = new FileReader()
+                                reader.onloadend = () => {
+                                  setFotoEquipo(reader.result)
+                                }
+                                reader.readAsDataURL(file)
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {fotoEquipo && (
+                    <div className='team-photo-preview-bar'>
+                      <img src={fotoEquipo} alt="Escudo del equipo" className='team-logo-preview-thumb' />
+                      <div className='team-preview-info'>
+                        <span className='team-preview-name'>{nombreEquipo || 'Equipo'}</span>
+                        <span className='team-preview-hint'>Vista previa del escudo para los cuadros y tabla oficial</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* SECTION: JUGADOR 1 */}
-              <div className={isDobles ? 'player-form-section' : ''}>
-                {isDobles && (
+              <div className={(isDobles || isGrupal) ? 'player-form-section' : ''}>
+                {(isDobles || isGrupal) && (
                   <div className='player-section-title'>
                     <Users size={16} color="#00CFA0" />
-                    <h4>Jugador 1 (Capitán / Titular)</h4>
+                    <h4>{isGrupal ? 'Jugador 1 (Capitán / Titular 1) *' : 'Jugador 1 (Capitán / Titular)'}</h4>
                     {user1Verified && (
                       <span className={`verified-user-pill ${isUserProfileIncomplete(user1Verified) ? 'incomplete-pill' : ''}`}>
                         <UserCheck size={12} /> {isUserProfileIncomplete(user1Verified) ? `Precargado: ${user1Verified.nombre} (Faltan datos)` : `Usuario Registrado (${user1Verified.nombre})`}
@@ -387,7 +612,7 @@ export default function TournamentRegisterModal({
                 <div className='form-row-2'>
                   <div className='form-group'>
                     <label htmlFor='t-name'>
-                      {isDobles ? 'Nombre completo Jugador 1 *' : 'Nombre completo *'}
+                      {(isDobles || isGrupal) ? 'Nombre completo Jugador 1 *' : 'Nombre completo *'}
                     </label>
                     <input
                       id='t-name'
@@ -404,7 +629,7 @@ export default function TournamentRegisterModal({
                   <div className='form-group'>
                     <div className='label-with-hint'>
                       <label htmlFor='t-dni'>
-                        {isDobles ? 'DNI Jugador 1 *' : 'DNI / Documento *'}
+                        {(isDobles || isGrupal) ? 'DNI Jugador 1 *' : 'DNI / Documento *'}
                       </label>
                       {user1Verified && (
                         <span className={`verified-tag-micro ${!isUser1Ready ? 'incomplete-tag' : ''}`}>
@@ -440,7 +665,7 @@ export default function TournamentRegisterModal({
                 <div className='form-row-2'>
                   <div className='form-group'>
                     <label htmlFor='t-email'>
-                      {isDobles ? 'Correo Jugador 1 *' : 'Correo electrónico *'}
+                      {(isDobles || isGrupal) ? 'Correo Jugador 1 *' : 'Correo electrónico *'}
                     </label>
                     <input
                       id='t-email'
@@ -453,7 +678,7 @@ export default function TournamentRegisterModal({
                   </div>
                   <div className='form-group'>
                     <label htmlFor='t-phone'>
-                      {isDobles ? 'Teléfono Jugador 1 *' : 'Teléfono / WhatsApp *'}
+                      {(isDobles || isGrupal) ? 'Teléfono Jugador 1 *' : 'Teléfono / WhatsApp *'}
                     </label>
                     <input
                       id='t-phone'
@@ -479,7 +704,7 @@ export default function TournamentRegisterModal({
                       <button
                         type="button"
                         className="btn-complete-account-now"
-                        onClick={() => handleOpenRegisterInAtap(user1Verified)}
+                        onClick={() => handleOpenRegisterInAtap({ ...user1Verified, dni: dni.trim() || user1Verified.dniReal || user1Verified.dni, dniReal: dni.trim() || user1Verified.dniReal })}
                       >
                         Crear mi cuenta en ATAP ahora →
                       </button>
@@ -488,12 +713,12 @@ export default function TournamentRegisterModal({
                 )}
               </div>
 
-              {/* SECTION: JUGADOR 2 (IF DOBLES) */}
-              {isDobles && (
+              {/* SECTION: JUGADOR 2 (IF DOBLES OR GRUPAL) */}
+              {(isDobles || isGrupal) && (
                 <div className='player-form-section player-section-secondary'>
                   <div className='player-section-title'>
                     <Users size={16} color="#00304A" />
-                    <h4>Jugador 2 (Compañero de Dúo)</h4>
+                    <h4>{isGrupal ? 'Jugador 2 (Titular 2) *' : 'Jugador 2 (Compañero de Dúo) *'}</h4>
                     {user2Verified && (
                       <span className={`verified-user-pill ${isUserProfileIncomplete(user2Verified) ? 'incomplete-pill' : ''}`}>
                         <UserCheck size={12} /> {isUserProfileIncomplete(user2Verified) ? `Precargado: ${user2Verified.nombre} (Faltan datos)` : `Usuario Registrado (${user2Verified.nombre})`}
@@ -513,7 +738,7 @@ export default function TournamentRegisterModal({
                           if (validationError) setValidationError('')
                         }}
                         placeholder='Ej. Valeria Torres'
-                        required={isDobles}
+                        required
                       />
                     </div>
                     <div className='form-group'>
@@ -545,25 +770,25 @@ export default function TournamentRegisterModal({
                           }
                         }}
                         placeholder='Ej. 71234567'
-                        required={isDobles}
+                        required
                       />
                     </div>
                   </div>
 
                   <div className='form-row-2'>
                     <div className='form-group'>
-                      <label htmlFor='t-email-2'>Correo Jugador 2 *</label>
+                      <label htmlFor='t-email-2'>Correo Jugador 2 {isGrupal ? '(Opcional)' : '*'}</label>
                       <input
                         id='t-email-2'
                         type='email'
                         value={email2}
                         onChange={(e) => setEmail2(e.target.value)}
-                        placeholder='companero@ejemplo.com'
+                        placeholder='jugador2@ejemplo.com'
                         required={isDobles}
                       />
                     </div>
                     <div className='form-group'>
-                      <label htmlFor='t-phone-2'>Teléfono Jugador 2 *</label>
+                      <label htmlFor='t-phone-2'>Teléfono Jugador 2 {isGrupal ? '(Opcional)' : '*'}</label>
                       <input
                         id='t-phone-2'
                         type='tel'
@@ -588,13 +813,278 @@ export default function TournamentRegisterModal({
                         <button
                           type="button"
                           className="btn-complete-account-now"
-                          onClick={() => handleOpenRegisterInAtap(user2Verified)}
+                          onClick={() => handleOpenRegisterInAtap({ ...user2Verified, dni: dni2.trim() || user2Verified.dniReal || user2Verified.dni, dniReal: dni2.trim() || user2Verified.dniReal })}
                         >
                           Registrar Jugador 2 en ATAP →
                         </button>
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* SECTION: JUGADOR 3 (IF GRUPAL) */}
+              {isGrupal && (
+                <div className='player-form-section player-section-tertiary'>
+                  <div className='player-section-title'>
+                    <Users size={16} color="#00304A" />
+                    <h4>Jugador 3 (Titular 3) *</h4>
+                    {user3Verified && (
+                      <span className={`verified-user-pill ${isUserProfileIncomplete(user3Verified) ? 'incomplete-pill' : ''}`}>
+                        <UserCheck size={12} /> {isUserProfileIncomplete(user3Verified) ? `Precargado: ${user3Verified.nombre}` : `Usuario Registrado (${user3Verified.nombre})`}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className='form-row-2'>
+                    <div className='form-group'>
+                      <label htmlFor='t-name-3'>Nombre completo Jugador 3 *</label>
+                      <input
+                        id='t-name-3'
+                        type='text'
+                        value={nombre3}
+                        onChange={(e) => {
+                          setNombre3(e.target.value.replace(/[0-9]/g, ''))
+                          if (validationError) setValidationError('')
+                        }}
+                        placeholder='Ej. Rodrigo Morales'
+                        required={isGrupal}
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <div className='label-with-hint'>
+                        <label htmlFor='t-dni-3'>DNI Jugador 3 *</label>
+                        {user3Verified && (
+                          <span className={`verified-tag-micro ${!isUser3Ready ? 'incomplete-tag' : ''}`}>
+                            {isUser3Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        id='t-dni-3'
+                        type='text'
+                        value={dni3}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 8)
+                          setDni3(val)
+                          if (validationError) setValidationError('')
+                          const found = findUserByDni(val)
+                          if (found && (!nombre3 || nombre3 === '')) {
+                            setNombre3(found.nombre)
+                          }
+                          if (found && found.email && (!email3 || email3 === '')) {
+                            setEmail3(found.email)
+                          }
+                          if (found && found.telefono && (!telefono3 || telefono3 === '')) {
+                            setTelefono3(found.telefono)
+                          }
+                        }}
+                        placeholder='Ej. 73456789'
+                        required={isGrupal}
+                      />
+                    </div>
+                  </div>
+
+                  <div className='form-row-2'>
+                    <div className='form-group'>
+                      <label htmlFor='t-email-3'>Correo Jugador 3 (Opcional)</label>
+                      <input
+                        id='t-email-3'
+                        type='email'
+                        value={email3}
+                        onChange={(e) => setEmail3(e.target.value)}
+                        placeholder='jugador3@ejemplo.com'
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <label htmlFor='t-phone-3'>Teléfono Jugador 3 (Opcional)</label>
+                      <input
+                        id='t-phone-3'
+                        type='tel'
+                        value={telefono3}
+                        onChange={(e) => setTelefono3(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                        placeholder='988 123 456'
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION: JUGADOR 4 (IF GRUPAL) */}
+              {isGrupal && (
+                <div className='player-form-section player-section-tertiary'>
+                  <div className='player-section-title'>
+                    <Users size={16} color="#00304A" />
+                    <h4>Jugador 4 (Titular 4) *</h4>
+                    {user4Verified && (
+                      <span className={`verified-user-pill ${isUserProfileIncomplete(user4Verified) ? 'incomplete-pill' : ''}`}>
+                        <UserCheck size={12} /> {isUserProfileIncomplete(user4Verified) ? `Precargado: ${user4Verified.nombre}` : `Usuario Registrado (${user4Verified.nombre})`}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className='form-row-2'>
+                    <div className='form-group'>
+                      <label htmlFor='t-name-4'>Nombre completo Jugador 4 *</label>
+                      <input
+                        id='t-name-4'
+                        type='text'
+                        value={nombre4}
+                        onChange={(e) => {
+                          setNombre4(e.target.value.replace(/[0-9]/g, ''))
+                          if (validationError) setValidationError('')
+                        }}
+                        placeholder='Ej. Andrea Salazar'
+                        required={isGrupal}
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <div className='label-with-hint'>
+                        <label htmlFor='t-dni-4'>DNI Jugador 4 *</label>
+                        {user4Verified && (
+                          <span className={`verified-tag-micro ${!isUser4Ready ? 'incomplete-tag' : ''}`}>
+                            {isUser4Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        id='t-dni-4'
+                        type='text'
+                        value={dni4}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 8)
+                          setDni4(val)
+                          if (validationError) setValidationError('')
+                          const found = findUserByDni(val)
+                          if (found && (!nombre4 || nombre4 === '')) {
+                            setNombre4(found.nombre)
+                          }
+                          if (found && found.email && (!email4 || email4 === '')) {
+                            setEmail4(found.email)
+                          }
+                          if (found && found.telefono && (!telefono4 || telefono4 === '')) {
+                            setTelefono4(found.telefono)
+                          }
+                        }}
+                        placeholder='Ej. 74567890'
+                        required={isGrupal}
+                      />
+                    </div>
+                  </div>
+
+                  <div className='form-row-2'>
+                    <div className='form-group'>
+                      <label htmlFor='t-email-4'>Correo Jugador 4 (Opcional)</label>
+                      <input
+                        id='t-email-4'
+                        type='email'
+                        value={email4}
+                        onChange={(e) => setEmail4(e.target.value)}
+                        placeholder='jugador4@ejemplo.com'
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <label htmlFor='t-phone-4'>Teléfono Jugador 4 (Opcional)</label>
+                      <input
+                        id='t-phone-4'
+                        type='tel'
+                        value={telefono4}
+                        onChange={(e) => setTelefono4(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                        placeholder='999 456 789'
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION: JUGADOR 5 (SUPLENTE - OPCIONAL) */}
+              {isGrupal && (
+                <div className='player-form-section player-section-optional'>
+                  <div className='player-section-title'>
+                    <Users size={16} color="#64748B" />
+                    <div className='player-optional-header-wrap'>
+                      <h4>Jugador 5 (Suplente)</h4>
+                      <span className='badge-suplente-opcional'>OPCIONAL</span>
+                    </div>
+                    {user5Verified && (
+                      <span className={`verified-user-pill ${isUserProfileIncomplete(user5Verified) ? 'incomplete-pill' : ''}`}>
+                        <UserCheck size={12} /> {isUserProfileIncomplete(user5Verified) ? `Precargado: ${user5Verified.nombre}` : `Usuario Registrado (${user5Verified.nombre})`}
+                      </span>
+                    )}
+                  </div>
+                  <p className='section-subtext-hint'>
+                    Puedes registrar hasta 1 jugador suplente para el equipo en caso de recambio durante el torneo.
+                  </p>
+
+                  <div className='form-row-2'>
+                    <div className='form-group'>
+                      <label htmlFor='t-name-5'>Nombre completo Jugador 5 (Suplente)</label>
+                      <input
+                        id='t-name-5'
+                        type='text'
+                        value={nombre5}
+                        onChange={(e) => {
+                          setNombre5(e.target.value.replace(/[0-9]/g, ''))
+                          if (validationError) setValidationError('')
+                        }}
+                        placeholder='Ej. Mateo Gómez (Opcional)'
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <div className='label-with-hint'>
+                        <label htmlFor='t-dni-5'>DNI Jugador 5 (Suplente)</label>
+                        {user5Verified && (
+                          <span className={`verified-tag-micro ${!isUser5Ready ? 'incomplete-tag' : ''}`}>
+                            {isUser5Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        id='t-dni-5'
+                        type='text'
+                        value={dni5}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 8)
+                          setDni5(val)
+                          if (validationError) setValidationError('')
+                          const found = findUserByDni(val)
+                          if (found && (!nombre5 || nombre5 === '')) {
+                            setNombre5(found.nombre)
+                          }
+                          if (found && found.email && (!email5 || email5 === '')) {
+                            setEmail5(found.email)
+                          }
+                          if (found && found.telefono && (!telefono5 || telefono5 === '')) {
+                            setTelefono5(found.telefono)
+                          }
+                        }}
+                        placeholder='Ej. 75678901 (Opcional)'
+                      />
+                    </div>
+                  </div>
+
+                  <div className='form-row-2'>
+                    <div className='form-group'>
+                      <label htmlFor='t-email-5'>Correo Jugador 5 (Opcional)</label>
+                      <input
+                        id='t-email-5'
+                        type='email'
+                        value={email5}
+                        onChange={(e) => setEmail5(e.target.value)}
+                        placeholder='suplente@ejemplo.com'
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <label htmlFor='t-phone-5'>Teléfono Jugador 5 (Opcional)</label>
+                      <input
+                        id='t-phone-5'
+                        type='tel'
+                        value={telefono5}
+                        onChange={(e) => setTelefono5(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                        placeholder='911 223 344'
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -704,7 +1194,7 @@ export default function TournamentRegisterModal({
             <span className='status-pill-warning'>ESTADO: PENDIENTE DE PAGO</span>
             <h2>¡Inscripción Registrada con Éxito!</h2>
             <p className='success-subtext'>
-              Tu solicitud para <strong>{tournament.title}</strong> ({isDobles ? 'Dúos' : 'Singles'} - {categoria}) ha sido creada. Para confirmar tu cupo definitivo y participar en la fase de grupos, realiza el abono de <strong>{precioDisplay}</strong> vía <strong>Yape</strong> y envía tu comprobante.
+              Tu solicitud para <strong>{tournament.title}</strong> ({isGrupal ? 'Grupal (Equipos de 5)' : isDobles ? 'Dúos' : 'Singles'} - {categoria}) ha sido creada. Para confirmar tu cupo definitivo y participar en la fase de grupos, realiza el abono de <strong>{precioDisplay}</strong> vía <strong>Yape</strong> y envía tu comprobante.
             </p>
 
             <div className='payment-accounts-card'>

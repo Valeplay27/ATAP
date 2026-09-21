@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { ArrowRight, Calendar, Camera, Check, Edit3, FileText, LogOut, Mail, MapPin, Phone, ShieldCheck, Trophy, User, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { maskDni } from '../../services/atapStorage'
+import { maskDni, ATAP_ZONAS_DISTRITOS, getZonaDistritos } from '../../services/atapStorage'
 import { api, authApi } from '../../services/api'
 import { getAssetUrl } from '../../utils/assetHelper'
 import './Profile.css'
@@ -32,6 +32,8 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
 
   const [isEditing, setIsEditing] = useState(false)
   const [mensajeExito, setMensajeExito] = useState(false)
+  const [hoveredZonaProfile, setHoveredZonaProfile] = useState(null)
+  const [activeTooltipZonaProfile, setActiveTooltipZonaProfile] = useState(null)
   const fileInputRef = useRef(null)
 
   // Estado del formulario de edición local
@@ -736,35 +738,141 @@ export default function Profile({ usuario, onUpdateUser, onOpenLogin, onLogout }
             </div>
 
             <div className="preferences-grid">
-              <div className="preference-group">
-                <span className="detail-label">Zonas de Juego Habituales</span>
-                <div className="chips-container">
+              <div className="preference-group profile-zones-preference-group">
+                <div className="preference-group-header-row">
+                  <span className="detail-label">Zonas de Juego Habituales</span>
+                  <span className="preference-group-hint">Pasa el cursor o pulsa para ver distritos</span>
+                </div>
+
+                <div className="chips-container profile-zones-chips-container">
                   {isEditing ? (
-                    zonasLima.map((z) => {
-                      const isSelected = editData.zonas.includes(z)
+                    ATAP_ZONAS_DISTRITOS.map((zonaObj) => {
+                      const isSelected = editData.zonas.includes(zonaObj.id)
+                      const isHovered = hoveredZonaProfile === zonaObj.id
+                      const isTooltipOpen = isHovered || activeTooltipZonaProfile === zonaObj.id
+
                       return (
-                        <button
-                          key={z}
-                          type="button"
-                          className={`preference-chip editable ${isSelected ? 'active' : ''}`}
-                          onClick={() => toggleZona(z)}
+                        <div
+                          key={zonaObj.id}
+                          className="preference-chip-wrapper"
+                          onMouseEnter={() => setHoveredZonaProfile(zonaObj.id)}
+                          onMouseLeave={() => setHoveredZonaProfile(null)}
                         >
-                          📍 {z} {isSelected ? '✓' : '+'}
-                        </button>
+                          <button
+                            type="button"
+                            className={`preference-chip editable ${isSelected ? 'active' : ''}`}
+                            style={{
+                              '--profile-zone-color': zonaObj.color
+                            }}
+                            onClick={() => {
+                              toggleZona(zonaObj.id)
+                              setActiveTooltipZonaProfile(activeTooltipZonaProfile === zonaObj.id ? null : zonaObj.id)
+                            }}
+                            aria-label={`${zonaObj.nombre}: ${zonaObj.distritos}`}
+                          >
+                            <span className="profile-zone-dot" style={{ backgroundColor: zonaObj.color }} />
+                            <span>{zonaObj.nombre}</span> {isSelected ? '✓' : '+'}
+                          </button>
+
+                          {/* Tooltip superpuesto con canchas y distritos */}
+                          <div className={`zone-districts-popover ${isTooltipOpen ? 'visible' : ''}`} role="tooltip">
+                            <div className="zone-popover-header">
+                              <span className="zone-popover-badge" style={{ backgroundColor: zonaObj.color }}>
+                                {zonaObj.dot} {zonaObj.alias}
+                              </span>
+                              <span className="zone-popover-title">{zonaObj.nombre}</span>
+                            </div>
+                            <div className="zone-popover-body">
+                              <span className="zone-popover-icon">🎾</span>
+                              <div className="zone-popover-details">
+                                <span className="zone-popover-subtitle">Canchas y distritos habilitados:</span>
+                                <span className="zone-popover-text">{zonaObj.distritos}</span>
+                              </div>
+                            </div>
+                            <div className="zone-popover-arrow" />
+                          </div>
+                        </div>
                       )
                     })
                   ) : (
                     zonas && zonas.length > 0 ? (
-                      zonas.map((z) => (
-                        <span key={z} className="preference-chip active">
-                          📍 {z}
-                        </span>
-                      ))
+                      zonas.map((z) => {
+                        const zonaObj = getZonaDistritos(z) || { nombre: z, distritos: 'Sedes oficiales ATAP', color: '#00CFA0', dot: '📍' }
+                        const isHovered = hoveredZonaProfile === z
+                        const isTooltipOpen = isHovered || activeTooltipZonaProfile === z
+
+                        return (
+                          <div
+                            key={z}
+                            className="preference-chip-wrapper"
+                            onMouseEnter={() => setHoveredZonaProfile(z)}
+                            onMouseLeave={() => setHoveredZonaProfile(null)}
+                          >
+                            <span
+                              className="preference-chip active"
+                              style={{
+                                '--profile-zone-color': zonaObj.color
+                              }}
+                              onClick={() => setActiveTooltipZonaProfile(activeTooltipZonaProfile === z ? null : z)}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <span className="profile-zone-dot" style={{ backgroundColor: zonaObj.color }} />
+                              <span>{z}</span>
+                            </span>
+
+                            {/* Tooltip superpuesto con canchas y distritos */}
+                            <div className={`zone-districts-popover ${isTooltipOpen ? 'visible' : ''}`} role="tooltip">
+                              <div className="zone-popover-header">
+                                <span className="zone-popover-badge" style={{ backgroundColor: zonaObj.color }}>
+                                  {zonaObj.dot} {zonaObj.alias || z}
+                                </span>
+                                <span className="zone-popover-title">{zonaObj.nombre || z}</span>
+                              </div>
+                              <div className="zone-popover-body">
+                                <span className="zone-popover-icon">🎾</span>
+                                <div className="zone-popover-details">
+                                  <span className="zone-popover-subtitle">Canchas y distritos habilitados:</span>
+                                  <span className="zone-popover-text">{zonaObj.distritos}</span>
+                                </div>
+                              </div>
+                              <div className="zone-popover-arrow" />
+                            </div>
+                          </div>
+                        )
+                      })
                     ) : (
                       <span className="text-muted">Sin zonas seleccionadas</span>
                     )
                   )}
                 </div>
+
+                {/* Tarjeta de previsualización de canchas/distritos para perfil */}
+                {(() => {
+                  const targetZonas = isEditing ? editData.zonas : zonas
+                  const previewId = hoveredZonaProfile || activeTooltipZonaProfile || (targetZonas && targetZonas.length > 0 ? targetZonas[targetZonas.length - 1] : null) || 'Lima Sur'
+                  const currentZonaObj = getZonaDistritos(previewId) || ATAP_ZONAS_DISTRITOS[2]
+                  return (
+                    <div className="profile-zone-preview-card" style={{ borderLeftColor: currentZonaObj.color }}>
+                      <div className="profile-zone-preview-top">
+                        <span
+                          className="profile-zone-badge-indicator"
+                          style={{
+                            backgroundColor: `${currentZonaObj.color}1c`,
+                            color: currentZonaObj.color,
+                            borderColor: `${currentZonaObj.color}44`
+                          }}
+                        >
+                          {currentZonaObj.dot} {currentZonaObj.nombre}
+                        </span>
+                        <span className="profile-zone-preview-sub">🎾 Distritos y canchas de juego</span>
+                      </div>
+                      <p className="profile-zone-districts-text">
+                        {currentZonaObj.distritos}
+                      </p>
+                    </div>
+                  )
+                })()}
               </div>
 
               <div className="preference-group">

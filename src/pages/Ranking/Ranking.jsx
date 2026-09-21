@@ -9,13 +9,15 @@ import {
   OFFICIAL_CATEGORIES,
   normalizeCategory,
   getAssetUrl,
-  handleImageFallback
+  handleImageFallback,
+  getUserFollowedPlayers,
+  toggleUserFollowedPlayer
 } from '../../services/atapStorage'
 import SimplePage from '../Shared/SimplePage'
 import PlayerHeroModal from '../../components/PlayerHeroModal/PlayerHeroModal'
 import './Ranking.css'
 
-export default function Ranking() {
+export default function Ranking({ usuario, onOpenLogin }) {
   const [activeSeasonYear, setActiveSeasonYearState] = useState(() => getActiveSeasonYear())
   const [availableSeasons, setAvailableSeasons] = useState(() => getAvailableSeasons())
   const [selectedSeason, setSelectedSeason] = useState(() => getActiveSeasonYear())
@@ -25,6 +27,36 @@ export default function Ranking() {
   const [singlesList, setSinglesList] = useState(() => getSeasonRanking(selectedSeason, 'singles'))
   const [doublesList, setDoublesList] = useState(() => getSeasonRanking(selectedSeason, 'dobles'))
   const [selectedPlayer, setSelectedPlayer] = useState(null)
+
+  const userKey = usuario ? (usuario.email || usuario.id || usuario.documentoIdentidad || usuario.nombre) : null
+  const [favorites, setFavorites] = useState(() => userKey ? getUserFollowedPlayers(userKey) : [])
+
+  useEffect(() => {
+    if (userKey) {
+      setFavorites(getUserFollowedPlayers(userKey))
+    } else {
+      setFavorites([])
+    }
+  }, [userKey])
+
+  useEffect(() => {
+    function handleFavUpdate() {
+      if (userKey) {
+        setFavorites(getUserFollowedPlayers(userKey))
+      }
+    }
+    window.addEventListener('atap_favorites_updated', handleFavUpdate)
+    return () => window.removeEventListener('atap_favorites_updated', handleFavUpdate)
+  }, [userKey])
+
+  function toggleFavorite(player) {
+    if (!usuario) {
+      onOpenLogin?.()
+      return
+    }
+    const updated = toggleUserFollowedPlayer(userKey, player)
+    setFavorites(updated)
+  }
 
   useEffect(() => {
     function handleUpdate() {
@@ -422,6 +454,10 @@ export default function Ranking() {
           initialModality={modality}
           showDobles={true}
           onClose={() => setSelectedPlayer(null)}
+          favorites={favorites}
+          onToggleFavorite={(p) => toggleFavorite(selectedPlayer)}
+          usuario={usuario}
+          onOpenLogin={onOpenLogin}
         />
       )}
     </SimplePage>

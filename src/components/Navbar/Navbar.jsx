@@ -1,4 +1,4 @@
-import { CircleUserRound, LogOut, Menu, ShieldCheck, Trophy, User, X } from 'lucide-react'
+import { CircleUserRound, LogOut, Menu, ShieldCheck, Star, Trophy, User, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import LoginModal from '../LoginModal/LoginModal'
@@ -207,6 +207,15 @@ export default function Navbar({
                     >
                       <Trophy size={15} />
                       <span>Mis Torneos</span>
+                    </NavLink>
+                    <NavLink
+                      to="/jugadores?filtro=seguidos"
+                      className="user-dropdown-item"
+                      role="menuitem"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Star size={15} color="#FFD700" fill="#FFD700" />
+                      <span>Seguidos</span>
                     </NavLink>
                     <hr className="user-dropdown-divider" />
                     <button

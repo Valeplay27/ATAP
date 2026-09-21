@@ -70,12 +70,15 @@ function SiteLayout() {
 
   function handleLogin(datosUsuario) {
     let cleanUserData = datosUsuario
-    if (datosUsuario && (datosUsuario.dni || datosUsuario.documentoIdentidad)) {
-      const masked = maskDni(datosUsuario.dni || datosUsuario.documentoIdentidad)
+    if (datosUsuario && (datosUsuario.dni || datosUsuario.documentoIdentidad || datosUsuario.dniReal)) {
+      const rawDni = (datosUsuario.dniReal || datosUsuario.dni || datosUsuario.documentoIdentidad || '').toString().trim()
+      const cleanReal = (!rawDni.includes('*') && !rawDni.includes('•')) ? rawDni.replace(/\D/g, '').slice(0, 8) : (datosUsuario.dniReal || '')
+      const masked = maskDni(datosUsuario.dni || datosUsuario.documentoIdentidad || cleanReal)
       cleanUserData = {
         ...datosUsuario,
         dni: masked,
-        documentoIdentidad: masked
+        documentoIdentidad: masked,
+        dniReal: cleanReal || datosUsuario.dniReal || ''
       }
     }
     setUsuarioAutenticado(cleanUserData)
@@ -137,7 +140,15 @@ function SiteLayout() {
           }
         />
         <Route path="/torneos" element={<Tournaments usuario={usuarioAutenticado} />} />
-        <Route path="/jugadores" element={<Players usuario={usuarioAutenticado} />} />
+        <Route
+          path="/jugadores"
+          element={
+            <Players
+              usuario={usuarioAutenticado}
+              onOpenLogin={() => setModalAuth({ open: true, isRegister: false })}
+            />
+          }
+        />
         <Route
           path="/perfil"
           element={
@@ -149,7 +160,15 @@ function SiteLayout() {
             />
           }
         />
-        <Route path="/ranking" element={<Ranking />} />
+        <Route
+          path="/ranking"
+          element={
+            <Ranking
+              usuario={usuarioAutenticado}
+              onOpenLogin={() => setModalAuth({ open: true, isRegister: false })}
+            />
+          }
+        />
         <Route path="/comunidad" element={<Community />} />
         <Route path="/contacto" element={<Contact />} />
         <Route path="/reglas" element={<Rules />} />

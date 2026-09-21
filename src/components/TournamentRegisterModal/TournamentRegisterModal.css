@@ -639,3 +639,180 @@
   padding-left: 27px;
 }
 
+/* ============================================================
+   GRUPAL / TEAM REGISTRATION CARD & SECTIONS
+============================================================ */
+.team-registration-card {
+  background: linear-gradient(135deg, #F0FBF7 0%, #E6F7F2 100%);
+  border: 1.5px solid #00CFA0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 6px;
+  box-shadow: 0 4px 15px rgba(0, 207, 160, 0.08);
+}
+
+.team-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-header-titles h4 {
+  margin: 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #00304A;
+  letter-spacing: 0.5px;
+}
+
+.team-header-subtitle {
+  font-size: 12px;
+  color: #4A6070;
+}
+
+.field-required-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #E11D48;
+  background: #FFE4E6;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.field-optional-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.btn-clear-photo {
+  background: none;
+  border: none;
+  color: #DC2626;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.btn-clear-photo:hover {
+  color: #991B1B;
+}
+
+.team-photo-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.team-photo-input-group input {
+  flex: 1;
+}
+
+.btn-upload-team-photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #00304A;
+  color: #FFFFFF;
+  padding: 0 14px;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-upload-team-photo:hover {
+  background: #00CFA0;
+  color: #001827;
+  transform: translateY(-1px);
+}
+
+.team-photo-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #FFFFFF;
+  border: 1px solid #D1FAE5;
+  border-radius: 10px;
+}
+
+.team-logo-preview-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1.5px solid #00CFA0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.team-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-preview-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #00304A;
+}
+
+.team-preview-hint {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.player-section-tertiary {
+  border-color: #E2E8F0;
+  background: #FAFBFB;
+}
+
+.player-section-optional {
+  border: 1.5px dashed #CBD5E1;
+  background: #F8FAFC;
+}
+
+.player-optional-header-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-suplente-opcional {
+  font-size: 10px;
+  font-weight: 800;
+  color: #475569;
+  background: #E2E8F0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.section-subtext-hint {
+  margin: -4px 0 10px 0;
+  font-size: 11.5px;
+  color: #64748B;
+}
+
+

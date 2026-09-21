@@ -211,7 +211,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [resultSet3, setResultSet3] = useState('')
   const [resultWinner, setResultWinner] = useState('')
   const [resultPoints, setResultPoints] = useState(250)
+  const [resultPointsPlayer1, setResultPointsPlayer1] = useState(250)
+  const [resultPointsPlayer2, setResultPointsPlayer2] = useState(150)
   const [resultSumarRanking, setResultSumarRanking] = useState(true)
+  const [resultSumarRankingP1, setResultSumarRankingP1] = useState(true)
+  const [resultSumarRankingP2, setResultSumarRankingP2] = useState(true)
   const [resultObservations, setResultObservations] = useState('')
   const [editingResultId, setEditingResultId] = useState(null)
 
@@ -1778,7 +1782,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       date: formattedDate,
       place: editTourneyPlace.trim(),
       precio: priceNum,
-      level: editTourneyLevel || 'Nacional',
+      level: editTourneyLevel?.trim() || 'Nacional',
       modalidad: editTourneyModality || 'singles',
       estado: editTourneyStatus,
       categorias: editTourneyCategories,
@@ -1793,16 +1797,22 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   }
 
   // Handler: Toggle Tournament Modality (Singles <-> Dúo) directly on card
-  function handleToggleTournamentModality(tourney) {
-    const nextModality = tourney.modalidad === 'dobles' ? 'singles' : 'dobles'
-    updateTournamentModality(tourney.id, nextModality)
+  function handleChangeTournamentModality(tourney, newModality) {
+    updateTournamentModality(tourney.id, newModality)
     const tourneys = getTournaments()
     setTournaments(tourneys)
     showToast(
-      nextModality === 'dobles'
+      newModality === 'grupal'
+        ? `¡"${tourney.title}" configurado como torneo GRUPAL (5 personas)!`
+        : newModality === 'dobles'
         ? `¡"${tourney.title}" configurado como torneo DÚO / DOBLES!`
         : `¡"${tourney.title}" configurado como torneo SINGLES!`
     )
+  }
+
+  function handleToggleTournamentModality(tourney) {
+    const nextModality = tourney.modalidad === 'dobles' ? 'grupal' : tourney.modalidad === 'grupal' ? 'singles' : 'dobles'
+    handleChangeTournamentModality(tourney, nextModality)
   }
 
   // Handler: Create Tournament
@@ -1825,7 +1835,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       date: formattedDate,
       place: newTourneyPlace.trim(),
       precio: priceNum,
-      level: newTourneyLevel || 'Nacional',
+      level: newTourneyLevel?.trim() || 'Nacional',
       modalidad: newTourneyModality || 'singles',
       estado: newTourneyStatus,
       categorias: newTourneyCategories,
@@ -1886,6 +1896,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     const winner = resultWinner || p1
     const scoreStr = [resultSet1, resultSet2, resultSet3].filter(Boolean).join(', ')
+    const pts1Num = Number(resultPointsPlayer1) >= 0 ? Number(resultPointsPlayer1) : 0
+    const pts2Num = Number(resultPointsPlayer2) >= 0 ? Number(resultPointsPlayer2) : 0
+    const winnerPts = winner === p1 ? pts1Num : pts2Num
 
     if (editingResultId) {
       const res = updateTournamentResult(currentTourney.id, editingResultId, {
@@ -1898,7 +1911,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
         set3: resultSet3,
         score: scoreStr,
         ganador: winner,
-        puntos: Number(resultPoints) || 0,
+        puntos: winnerPts,
+        puntosJugador1: pts1Num,
+        puntosJugador2: pts2Num,
         observaciones: resultObservations
       })
       if (res.error) {
@@ -1919,8 +1934,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
         set3: resultSet3,
         score: scoreStr,
         ganador: winner,
-        puntos: Number(resultPoints) || 0,
+        puntos: winnerPts,
+        puntosJugador1: pts1Num,
+        puntosJugador2: pts2Num,
         sumarRanking: resultSumarRanking,
+        sumarRankingP1: resultSumarRankingP1,
+        sumarRankingP2: resultSumarRankingP2,
         observaciones: resultObservations
       })
       if (res.error) {
@@ -1934,6 +1953,14 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
   }
 
+  function getDefaultPointsByRound(round) {
+    if (round === 'Gran Final') return { winner: 250, runnerUp: 150 }
+    if (round === 'Semifinales') return { winner: 150, runnerUp: 90 }
+    if (round === 'Cuartos de Final') return { winner: 90, runnerUp: 50 }
+    if (round === 'Octavos de Final') return { winner: 50, runnerUp: 25 }
+    return { winner: 30, runnerUp: 10 }
+  }
+
   function resetResultForm() {
     setResultPlayer1('')
     setResultPlayer2('')
@@ -1942,6 +1969,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setResultSet3('')
     setResultWinner('')
     setResultPoints(250)
+    setResultPointsPlayer1(250)
+    setResultPointsPlayer2(150)
+    setResultSumarRanking(true)
+    setResultSumarRankingP1(true)
+    setResultSumarRankingP2(true)
     setResultObservations('')
     setEditingResultId(null)
   }
@@ -1955,9 +1987,17 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setResultSet1(res.set1 || '')
     setResultSet2(res.set2 || '')
     setResultSet3(res.set3 || '')
-    setResultWinner(res.ganador || res.jugador1 || '')
+    const winner = res.ganador || res.jugador1 || ''
+    setResultWinner(winner)
+    const isP1 = winner === (res.jugador1 || '')
+    const p1Pts = res.puntosJugador1 !== undefined ? res.puntosJugador1 : (isP1 ? (res.puntos || 250) : 150)
+    const p2Pts = res.puntosJugador2 !== undefined ? res.puntosJugador2 : (!isP1 ? (res.puntos || 250) : 150)
+    setResultPointsPlayer1(p1Pts)
+    setResultPointsPlayer2(p2Pts)
     setResultPoints(res.puntos || 250)
     setResultObservations(res.observaciones || '')
+    setResultSumarRankingP1(true)
+    setResultSumarRankingP2(true)
   }
 
   function handleDeleteResult(resId) {
@@ -3258,11 +3298,26 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                         {/* Modality mini switch */}
                         <div
                           className="modality-toggle-control-mini"
-                          onClick={() => handleToggleTournamentModality(t)}
-                          title="Clic para cambiar formato: Singles ↔ Dúo"
+                          title="Formato de competencia: Clic en cualquiera para alternar"
                         >
-                          <span className={`modality-chip ${t.modalidad !== 'dobles' ? 'active' : ''}`}>Singles</span>
-                          <span className={`modality-chip ${t.modalidad === 'dobles' ? 'active' : ''}`}>Dúo</span>
+                          <span
+                            className={`modality-chip ${t.modalidad === 'singles' || (!t.modalidad) ? 'active' : ''}`}
+                            onClick={() => handleChangeTournamentModality(t, 'singles')}
+                          >
+                            Singles
+                          </span>
+                          <span
+                            className={`modality-chip ${t.modalidad === 'dobles' ? 'active' : ''}`}
+                            onClick={() => handleChangeTournamentModality(t, 'dobles')}
+                          >
+                            Dúo
+                          </span>
+                          <span
+                            className={`modality-chip ${t.modalidad === 'grupal' || t.modalidad === 'equipos' ? 'active' : ''}`}
+                            onClick={() => handleChangeTournamentModality(t, 'grupal')}
+                          >
+                            Grupal
+                          </span>
                         </div>
 
                         {/* Status chip & quick toggle */}
@@ -3426,8 +3481,31 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       return (
                         <tr key={insc.id} className={isPending ? 'row-pending' : ''}>
                           <td>
-                            <strong>{insc.nombre}</strong>
-                            <span className="player-sub-email">{insc.email}</span>
+                            {insc.esGrupal || insc.modalidad === 'grupal' ? (
+                              <div className="team-cell-display">
+                                <div className="team-cell-title-row">
+                                  <span className="badge-grupal-mini">🏆 GRUPAL</span>
+                                  <strong>{insc.nombreEquipo || insc.nombre}</strong>
+                                </div>
+                                <span className="player-sub-email">
+                                  Capitán: {insc.jugador1?.nombre || insc.nombre} • {insc.email}
+                                </span>
+                                {insc.integrantes && (
+                                  <div className="team-members-chips-list">
+                                    {insc.integrantes.map((m, idx) => (
+                                      <span key={idx} className={`team-member-micro-chip ${m.rol?.includes('Suplente') ? 'is-sub' : ''}`}>
+                                        {idx + 1}. {m.nombre} {m.dni ? `(${m.dni})` : ''} {m.rol?.includes('Suplente') ? '• Suplente' : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <>
+                                <strong>{insc.nombre}</strong>
+                                <span className="player-sub-email">{insc.email}</span>
+                              </>
+                            )}
                           </td>
                           <td>{maskDni(insc.dni) || '-'}</td>
                           <td>
@@ -4183,11 +4261,19 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                         <select
                           value={resultRound}
                           onChange={(e) => {
-                            setResultRound(e.target.value)
-                            if (e.target.value === 'Gran Final') setResultPoints(250)
-                            else if (e.target.value === 'Semifinales') setResultPoints(150)
-                            else if (e.target.value === 'Cuartos de Final') setResultPoints(90)
-                            else setResultPoints(50)
+                            const newRound = e.target.value
+                            setResultRound(newRound)
+                            const pts = getDefaultPointsByRound(newRound)
+                            const currentWinner = resultWinner || resultPlayer1
+                            if (resultPlayer2 && currentWinner === resultPlayer2) {
+                              setResultPointsPlayer1(pts.runnerUp)
+                              setResultPointsPlayer2(pts.winner)
+                              setResultPoints(pts.winner)
+                            } else {
+                              setResultPointsPlayer1(pts.winner)
+                              setResultPointsPlayer2(pts.runnerUp)
+                              setResultPoints(pts.winner)
+                            }
                           }}
                         >
                           <option value="Gran Final">🏆 Gran Final</option>
@@ -4360,29 +4446,70 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       </div>
                     </div>
 
+                    <div className="form-group">
+                      <label>Ganador del Partido *</label>
+                      <select
+                        value={resultWinner || resultPlayer1}
+                        onChange={(e) => {
+                          const newWinner = e.target.value
+                          setResultWinner(newWinner)
+                          const pts = getDefaultPointsByRound(resultRound)
+                          if (newWinner === resultPlayer2) {
+                            setResultPointsPlayer1(pts.runnerUp)
+                            setResultPointsPlayer2(pts.winner)
+                            setResultPoints(pts.winner)
+                          } else {
+                            setResultPointsPlayer1(pts.winner)
+                            setResultPointsPlayer2(pts.runnerUp)
+                            setResultPoints(pts.winner)
+                          }
+                        }}
+                      >
+                        <option value={resultPlayer1 || 'Jugador 1'}>
+                          {resultPlayer1 || 'Jugador 1'}{' '}
+                          {currentTourney.modalidad === 'dobles' ? '(Pareja 1)' : '(Jugador 1)'}
+                        </option>
+                        <option value={resultPlayer2 || 'Jugador 2'}>
+                          {resultPlayer2 || 'Jugador 2'}{' '}
+                          {currentTourney.modalidad === 'dobles' ? '(Pareja 2)' : '(Jugador 2)'}
+                        </option>
+                      </select>
+                    </div>
+
                     <div className="form-row-2">
                       <div className="form-group">
-                        <label>Ganador del Partido *</label>
-                        <select
-                          value={resultWinner || resultPlayer1}
-                          onChange={(e) => setResultWinner(e.target.value)}
-                        >
-                          <option value={resultPlayer1 || 'Jugador 1'}>
-                            {resultPlayer1 || 'Jugador 1'}
-                          </option>
-                          <option value={resultPlayer2 || 'Jugador 2'}>
-                            {resultPlayer2 || 'Jugador 2'}
-                          </option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Puntos a Otorgar *</label>
+                        <label htmlFor="result-pts-player-1">
+                          {currentTourney.modalidad === 'dobles' ? 'Pareja 1' : 'Jugador 1'}:{' '}
+                          <strong>{resultPlayer1 || 'Jugador 1'}</strong>
+                          {(resultWinner || resultPlayer1) === resultPlayer1 ? ' 👑 (Ganador)' : ''}
+                          {' '}— Puntos a Asignar *
+                        </label>
                         <input
+                          id="result-pts-player-1"
                           type="number"
                           min="0"
-                          step="10"
-                          value={resultPoints}
-                          onChange={(e) => setResultPoints(e.target.value)}
+                          step="5"
+                          placeholder="250"
+                          value={resultPointsPlayer1}
+                          onChange={(e) => setResultPointsPlayer1(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="result-pts-player-2">
+                          {currentTourney.modalidad === 'dobles' ? 'Pareja 2' : 'Jugador 2'}:{' '}
+                          <strong>{resultPlayer2 || 'Jugador 2'}</strong>
+                          {(resultWinner || resultPlayer1) === resultPlayer2 ? ' 👑 (Ganador)' : ''}
+                          {' '}— Puntos a Asignar *
+                        </label>
+                        <input
+                          id="result-pts-player-2"
+                          type="number"
+                          min="0"
+                          step="5"
+                          placeholder="150"
+                          value={resultPointsPlayer2}
+                          onChange={(e) => setResultPointsPlayer2(e.target.value)}
                           required
                         />
                       </div>
@@ -4398,16 +4525,29 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       />
                     </div>
 
-                    <div className="form-ranking-checkbox-row">
+                    <div className="form-ranking-checkbox-row results-checkboxes-stack">
                       <label className="checkbox-label">
                         <input
                           type="checkbox"
-                          checked={resultSumarRanking}
-                          onChange={(e) => setResultSumarRanking(e.target.checked)}
+                          checked={resultSumarRankingP1}
+                          onChange={(e) => setResultSumarRankingP1(e.target.checked)}
                         />
                         <span>
-                          Sumar automáticamente {resultPoints} pts al ranking oficial de{' '}
-                          <strong>{resultWinner || resultPlayer1 || 'el ganador'}</strong>
+                          Sumar automáticamente <strong>{resultPointsPlayer1 || 0} pts</strong> al ranking oficial de{' '}
+                          <strong>{resultPlayer1 || 'Jugador 1'}</strong>
+                          {(resultWinner || resultPlayer1) === resultPlayer1 ? ' 👑 (Ganador)' : ''}
+                        </span>
+                      </label>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={resultSumarRankingP2}
+                          onChange={(e) => setResultSumarRankingP2(e.target.checked)}
+                        />
+                        <span>
+                          Sumar automáticamente <strong>{resultPointsPlayer2 || 0} pts</strong> al ranking oficial de{' '}
+                          <strong>{resultPlayer2 || 'Jugador 2'}</strong>
+                          {(resultWinner || resultPlayer1) === resultPlayer2 ? ' 👑 (Ganador)' : ''}
                         </span>
                       </label>
                     </div>
@@ -4453,7 +4593,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                               >
                                 {res.ronda}
                               </span>
-                              <span className="points-pill">+{res.puntos} pts</span>
+                              <span className="points-pill">
+                                {res.puntosJugador1 !== undefined && res.puntosJugador2 !== undefined
+                                  ? `+${res.puntosJugador1} / +${res.puntosJugador2} pts`
+                                  : `+${res.puntos} pts`}
+                              </span>
                             </div>
                             <div className="result-players-scoreboard">
                               <div
@@ -4462,9 +4606,14 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                 }`}
                               >
                                 <strong>{res.jugador1}</strong>
-                                {isP1Winner && (
-                                  <span className="winner-crown">👑 Ganador</span>
-                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {isP1Winner && (
+                                    <span className="winner-crown">👑 Ganador</span>
+                                  )}
+                                  <span className="player-points-tag">
+                                    +{res.puntosJugador1 !== undefined ? res.puntosJugador1 : (isP1Winner ? res.puntos : 0)} pts
+                                  </span>
+                                </div>
                               </div>
                               <div className="vs-badge-tiny">vs</div>
                               <div
@@ -4473,9 +4622,14 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                 }`}
                               >
                                 <strong>{res.jugador2}</strong>
-                                {!isP1Winner && (
-                                  <span className="winner-crown">👑 Ganador</span>
-                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {!isP1Winner && (
+                                    <span className="winner-crown">👑 Ganador</span>
+                                  )}
+                                  <span className="player-points-tag">
+                                    +{res.puntosJugador2 !== undefined ? res.puntosJugador2 : (!isP1Winner ? res.puntos : 0)} pts
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <div className="result-card-score-box">
@@ -6861,39 +7015,73 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 </div>
                 <div className="form-group">
                   <label htmlFor="new-tourney-level">Nivel del Torneo</label>
-                  <select
+                  <input
+                    type="text"
                     id="new-tourney-level"
+                    list="new-tourney-level-options"
+                    placeholder="Ej. Nacional, Regional, Master..."
                     value={newTourneyLevel}
                     onChange={(e) => setNewTourneyLevel(e.target.value)}
-                  >
-                    <option value="Nacional">Nacional</option>
-                    <option value="Regional">Regional</option>
-                    <option value="Internacional">Internacional</option>
-                    <option value="Master">Master</option>
-                    <option value="Amateur">Amateur</option>
-                  </select>
+                  />
+                  <datalist id="new-tourney-level-options">
+                    <option value="Nacional" />
+                    <option value="Regional" />
+                    <option value="Internacional" />
+                    <option value="Master" />
+                    <option value="Amateur" />
+                  </datalist>
                 </div>
               </div>
 
               <div className="form-row-2">
                 <div className="form-group">
                   <label>Modalidad / Formato</label>
-                  <div className="modality-switch-row-modal">
-                    <div
-                      className="modality-toggle-control"
-                      onClick={() => setNewTourneyModality(newTourneyModality === 'dobles' ? 'singles' : 'dobles')}
-                      title="Clic para cambiar entre Singles y Dúo"
+                  <div className="modality-segments-control">
+                    <button
+                      type="button"
+                      className={`modality-segment-btn ${newTourneyModality === 'singles' ? 'active' : ''}`}
+                      onClick={() => {
+                        setNewTourneyModality('singles')
+                        setNewTourneyCategories([
+                          { id: 'cat-4', nombre: '4ta', cupos: 16 },
+                          { id: 'cat-5a', nombre: '5ta A', cupos: 16 },
+                          { id: 'cat-5b', nombre: '5ta B', cupos: 32 },
+                          { id: 'cat-6', nombre: '6ta', cupos: 32 }
+                        ])
+                      }}
                     >
-                      <span className={`modality-option-label ${newTourneyModality !== 'dobles' ? 'active' : ''}`}>
-                        Singles
-                      </span>
-                      <div className={`modality-switch-pill ${newTourneyModality === 'dobles' ? 'is-duo' : 'is-singles'}`}>
-                        <div className="modality-switch-knob" />
-                      </div>
-                      <span className={`modality-option-label ${newTourneyModality === 'dobles' ? 'active' : ''}`}>
-                        Dúo
-                      </span>
-                    </div>
+                      🎾 Singles
+                    </button>
+                    <button
+                      type="button"
+                      className={`modality-segment-btn ${newTourneyModality === 'dobles' ? 'active' : ''}`}
+                      onClick={() => {
+                        setNewTourneyModality('dobles')
+                        setNewTourneyCategories([
+                          { id: 'cat-d4', nombre: '4ta Dobles', cupos: 16 },
+                          { id: 'cat-d5a', nombre: '5ta A Dobles', cupos: 16 },
+                          { id: 'cat-d5b', nombre: '5ta B Dobles', cupos: 16 },
+                          { id: 'cat-d6', nombre: '6ta Dobles', cupos: 16 }
+                        ])
+                      }}
+                    >
+                      👥 Dúo
+                    </button>
+                    <button
+                      type="button"
+                      className={`modality-segment-btn ${newTourneyModality === 'grupal' ? 'active' : ''}`}
+                      onClick={() => {
+                        setNewTourneyModality('grupal')
+                        setNewTourneyCategories([
+                          { id: 'cat-g4', nombre: '4ta Equipos', cupos: 8 },
+                          { id: 'cat-g5a', nombre: '5ta A Equipos', cupos: 8 },
+                          { id: 'cat-g5b', nombre: '5ta B Equipos', cupos: 16 },
+                          { id: 'cat-g6', nombre: '6ta Equipos', cupos: 16 }
+                        ])
+                      }}
+                    >
+                      🏆 Grupal (5p)
+                    </button>
                   </div>
                 </div>
 
@@ -7158,39 +7346,49 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 </div>
                 <div className="form-group">
                   <label htmlFor="edit-tourney-level">Nivel del Torneo</label>
-                  <select
+                  <input
+                    type="text"
                     id="edit-tourney-level"
+                    list="edit-tourney-level-options"
+                    placeholder="Ej. Nacional, Regional, Master..."
                     value={editTourneyLevel}
                     onChange={(e) => setEditTourneyLevel(e.target.value)}
-                  >
-                    <option value="Nacional">Nacional</option>
-                    <option value="Regional">Regional</option>
-                    <option value="Internacional">Internacional</option>
-                    <option value="Master">Master</option>
-                    <option value="Amateur">Amateur</option>
-                  </select>
+                  />
+                  <datalist id="edit-tourney-level-options">
+                    <option value="Nacional" />
+                    <option value="Regional" />
+                    <option value="Internacional" />
+                    <option value="Master" />
+                    <option value="Amateur" />
+                  </datalist>
                 </div>
               </div>
 
               <div className="form-row-2">
                 <div className="form-group">
                   <label>Modalidad / Formato</label>
-                  <div className="modality-switch-row-modal">
-                    <div
-                      className="modality-toggle-control"
-                      onClick={() => setEditTourneyModality(editTourneyModality === 'dobles' ? 'singles' : 'dobles')}
-                      title="Clic para cambiar entre Singles y Dúo"
+                  <div className="modality-segments-control">
+                    <button
+                      type="button"
+                      className={`modality-segment-btn ${editTourneyModality === 'singles' ? 'active' : ''}`}
+                      onClick={() => setEditTourneyModality('singles')}
                     >
-                      <span className={`modality-option-label ${editTourneyModality !== 'dobles' ? 'active' : ''}`}>
-                        Singles
-                      </span>
-                      <div className={`modality-switch-pill ${editTourneyModality === 'dobles' ? 'is-duo' : 'is-singles'}`}>
-                        <div className="modality-switch-knob" />
-                      </div>
-                      <span className={`modality-option-label ${editTourneyModality === 'dobles' ? 'active' : ''}`}>
-                        Dúo
-                      </span>
-                    </div>
+                      🎾 Singles
+                    </button>
+                    <button
+                      type="button"
+                      className={`modality-segment-btn ${editTourneyModality === 'dobles' ? 'active' : ''}`}
+                      onClick={() => setEditTourneyModality('dobles')}
+                    >
+                      👥 Dúo
+                    </button>
+                    <button
+                      type="button"
+                      className={`modality-segment-btn ${editTourneyModality === 'grupal' ? 'active' : ''}`}
+                      onClick={() => setEditTourneyModality('grupal')}
+                    >
+                      🏆 Grupal (5p)
+                    </button>
                   </div>
                 </div>
 
