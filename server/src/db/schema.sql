@@ -1,5 +1,5 @@
 -- Esquema Relacional de Base de Datos para ATAP Tenis Circuito Amateur
--- Motor MySQL 8.0+ / MariaDB
+-- Motor MySQL 8.0+ / MariaDB / SiteGround phpMyAdmin
 
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(64) PRIMARY KEY,
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
   slug VARCHAR(200) NULL,
   estado VARCHAR(30) DEFAULT 'abierto',
   modalidad VARCHAR(30) DEFAULT 'singles',
-  categoria VARCHAR(50) NULL,
+  categoria VARCHAR(100) NULL,
   fechas_display VARCHAR(100) NULL,
   fecha_inicio DATE NULL,
   fecha_fin DATE NULL,
@@ -57,10 +57,12 @@ CREATE TABLE IF NOT EXISTS tournaments (
   es_destacado BOOLEAN DEFAULT FALSE,
   categorias_cupos JSON NULL,
   grupos JSON NULL,
+  fase_grupos JSON NULL,
   bracket JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_tourney_estado (estado)
+  INDEX idx_tourney_estado (estado),
+  INDEX idx_tourney_modalidad (modalidad)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS inscriptions (
@@ -80,6 +82,15 @@ CREATE TABLE IF NOT EXISTS inscriptions (
   dni_hash2 VARCHAR(64) NULL,
   email2 VARCHAR(150) NULL,
   telefono2 VARCHAR(30) NULL,
+  es_grupal BOOLEAN DEFAULT FALSE,
+  nombre_equipo VARCHAR(150) NULL,
+  foto_equipo VARCHAR(255) NULL,
+  integrantes JSON NULL,
+  jugador1 JSON NULL,
+  jugador2 JSON NULL,
+  jugador3 JSON NULL,
+  jugador4 JSON NULL,
+  jugador5 JSON NULL,
   estado_pago VARCHAR(30) DEFAULT 'pendiente',
   metodo_pago VARCHAR(50) DEFAULT 'Yape',
   comprobante_url VARCHAR(255) NULL,

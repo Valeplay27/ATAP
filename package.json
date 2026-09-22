@@ -7,7 +7,7 @@
     "dev": "vite",
     "server": "node server/src/index.js",
     "dev:all": "concurrently \"vite\" \"node server/src/index.js\"",
-    "build": "vite build",
+    "build": "vite build && node -e \"const fs=require('fs'); fs.cpSync('api', 'dist/api', {recursive:true});\"",
     "preview": "vite preview"
   },
   "dependencies": {

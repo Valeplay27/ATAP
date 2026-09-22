@@ -237,40 +237,20 @@ export default function LoginModal({
       setCargando(true)
       const emailLower = email.toLowerCase()
 
-      // Acceso exclusivo de administrador
-      if (emailLower === 'vladimiryt18@gmail.com') {
-        setCargando(false)
-        if (password !== 'Pumita30****' && password !== 'admin123') {
-          setError('Contraseña incorrecta para la cuenta de Administrador.')
-          return
-        }
-        const adminUser = {
-          nombre: 'Administrador ATAP',
-          email: 'vladimiryt18@gmail.com',
-          rol: 'Administrador',
-          esAdmin: true,
-          iniciales: 'AD',
-          categoria: 'Comité ATAP'
-        }
-        authApi.login({ email, password: password === 'admin123' ? 'admin123' : password })
-          .then((r) => { if (r?.data?.token) setAuthToken(r.data.token) })
-          .catch(() => {})
-
-        if (onLogin) onLogin(adminUser)
-        onClose()
-        return
-      }
-
-      // Intentar autenticación contra MySQL Backend
+      // Autenticación segura centralizada vía API REST (MySQL / JWT)
       authApi.login({ email, password }).then((res) => {
+        setCargando(false)
         if (res?.data?.user) {
           if (res.data.token) setAuthToken(res.data.token)
-          setCargando(false)
           if (onLogin) onLogin(res.data.user)
           onClose()
           return
         }
-        // Si el backend no tiene el usuario o no está activo, resolver con base local
+        if (res?.error && (res.status === 401 || res.status === 400)) {
+          setError(res.error)
+          return
+        }
+        // Fallback local en caso de intermitencia de red o demo offline
         execLocalLogin(emailLower)
       }).catch(() => {
         execLocalLogin(emailLower)
@@ -278,6 +258,10 @@ export default function LoginModal({
 
       function execLocalLogin(targetEmail) {
         setCargando(false)
+        if (targetEmail === 'vladimiryt18@gmail.com') {
+          setError('No se pudo verificar las credenciales de Administrador con el servidor. Verifica tu conexión.')
+          return
+        }
         const registeredUsers = getRegisteredUsers()
         const matchedUser = registeredUsers.find(
           (u) => (u.email || '').toLowerCase() === targetEmail

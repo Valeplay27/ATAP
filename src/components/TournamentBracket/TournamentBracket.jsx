@@ -193,53 +193,117 @@ export default function TournamentBracket({
                   {/* GROUP MATCHES */}
                   {matches.length > 0 && (
                     <div className="group-matches-block">
-                      <span className="group-matches-title">Partidos del Grupo:</span>
+                      <div className="group-matches-title-row">
+                        <span className="group-matches-title">Partidos del Grupo:</span>
+                        {matches.some((m) => m.esGrupal || m.subtipo) && (
+                          <span className="group-matches-mode-pill">🏆 2 Singles + 1 Dobles por Fecha</span>
+                        )}
+                      </div>
+
                       <div className="group-matches-sublist">
-                        {matches.map((m) => {
-                          const canScore = isAdmin && m.player1?.name && m.player2?.name && !m.winnerSlot
+                        {(() => {
+                          const isGrupalGroup = matches.some((m) => m.esGrupal || m.subtipo || m.fechaNum)
 
-                          return (
-                            <div className={'group-match-item' + (m.winnerSlot ? ' completed' : '')} key={m.id}>
-                              <div className="group-match-header-row">
-                                <small className="match-num-tag">Match #{m.matchNum}</small>
-                                {m.score && <span className="group-match-score">{m.score}</span>}
-                              </div>
-                              <div className="group-match-players">
-                                <span className={m.winnerSlot === 1 ? 'match-winner-name' : ''}>
-                                  {m.player1?.name || 'P1'}
-                                  {m.winnerSlot === 1 && ' ✓'}
-                                </span>
-                                <span className="vs-tag">vs</span>
-                                <span className={m.winnerSlot === 2 ? 'match-winner-name' : ''}>
-                                  {m.player2?.name || 'P2'}
-                                  {m.winnerSlot === 2 && ' ✓'}
-                                </span>
-                              </div>
+                          const renderMatchCard = (m) => {
+                            const canScore = isAdmin && m.player1?.name && m.player2?.name && !m.winnerSlot
 
-                              {isAdmin && onOpenScoreModal && (
-                                <div className="group-match-admin-actions">
-                                  {canScore ? (
-                                    <button
-                                      type="button"
-                                      className="btn-enter-score-mini"
-                                      onClick={() => onOpenScoreModal(m)}
-                                    >
-                                      <Flame size={11} /> Cargar Marcador
-                                    </button>
-                                  ) : m.winnerSlot ? (
-                                    <button
-                                      type="button"
-                                      className="btn-edit-score-mini"
-                                      onClick={() => onOpenScoreModal(m)}
-                                    >
-                                      Editar Marcador
-                                    </button>
-                                  ) : null}
+                            return (
+                              <div className={'group-match-item' + (m.winnerSlot ? ' completed' : '')} key={m.id}>
+                                <div className="group-match-header-row">
+                                  <div className="match-header-tags">
+                                    <small className="match-num-tag">Match #{m.matchNum}</small>
+                                    {m.subtipo && (
+                                      <span className={`match-subtipo-pill ${m.modalidad === 'dobles' ? 'pill-dobles' : 'pill-singles'}`}>
+                                        {m.subtipo === 'Dobles' ? '👥 Dobles' : `🎾 ${m.subtipo}`}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {m.score && <span className="group-match-score">{m.score}</span>}
                                 </div>
-                              )}
-                            </div>
-                          )
-                        })}
+                                <div className="group-match-players">
+                                  <span className={m.winnerSlot === 1 ? 'match-winner-name' : ''}>
+                                    {m.player1?.name || 'P1'}
+                                    {m.winnerSlot === 1 && ' ✓'}
+                                  </span>
+                                  <span className="vs-tag">vs</span>
+                                  <span className={m.winnerSlot === 2 ? 'match-winner-name' : ''}>
+                                    {m.player2?.name || 'P2'}
+                                    {m.winnerSlot === 2 && ' ✓'}
+                                  </span>
+                                </div>
+
+                                {isAdmin && onOpenScoreModal && (
+                                  <div className="group-match-admin-actions">
+                                    {canScore ? (
+                                      <button
+                                        type="button"
+                                        className="btn-enter-score-mini"
+                                        onClick={() => onOpenScoreModal(m)}
+                                      >
+                                        <Flame size={11} /> Cargar Marcador
+                                      </button>
+                                    ) : m.winnerSlot ? (
+                                      <button
+                                        type="button"
+                                        className="btn-edit-score-mini"
+                                        onClick={() => onOpenScoreModal(m)}
+                                      >
+                                        Editar Marcador
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+
+                          if (!isGrupalGroup) {
+                            return matches.map((m) => renderMatchCard(m))
+                          }
+
+                          // Agrupar partidos por fecha / enfrentamiento de serie
+                          const fechasMap = {}
+                          matches.forEach((m) => {
+                            const fKey = m.fechaNum || 1
+                            if (!fechasMap[fKey]) {
+                              fechasMap[fKey] = {
+                                fechaNum: fKey,
+                                serieNombre: m.serieNombre || `${m.team1 || 'Equipo 1'} vs ${m.team2 || 'Equipo 2'}`,
+                                team1: m.team1,
+                                team2: m.team2,
+                                matches: []
+                              }
+                            }
+                            fechasMap[fKey].matches.push(m)
+                          })
+
+                          return Object.values(fechasMap).map((fechaGroup) => {
+                            const wins1 = fechaGroup.matches.filter((m) => m.winnerSlot === 1).length
+                            const wins2 = fechaGroup.matches.filter((m) => m.winnerSlot === 2).length
+                            const hasFinishedAny = wins1 > 0 || wins2 > 0
+                            const isSeriesDone = (wins1 + wins2 === fechaGroup.matches.length) || wins1 >= 2 || wins2 >= 2
+                            const seriesWinner = wins1 > wins2 ? fechaGroup.team1 : (wins2 > wins1 ? fechaGroup.team2 : null)
+
+                            return (
+                              <div className="group-fecha-container" key={`fecha-${fechaGroup.fechaNum}-${fechaGroup.serieNombre}`}>
+                                <div className="group-fecha-header">
+                                  <div className="fecha-header-left">
+                                    <span className="fecha-badge">📅 Fecha {fechaGroup.fechaNum}</span>
+                                    <strong className="fecha-serie-title">{fechaGroup.serieNombre}</strong>
+                                  </div>
+                                  {hasFinishedAny && (
+                                    <span className={`fecha-serie-score-pill ${isSeriesDone ? 'completed' : ''}`}>
+                                      Serie: {wins1} - {wins2} {isSeriesDone && seriesWinner ? `(Gana: ${seriesWinner})` : ''}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="fecha-matches-sublist">
+                                  {fechaGroup.matches.map((m) => renderMatchCard(m))}
+                                </div>
+                              </div>
+                            )
+                          })
+                        })()}
                       </div>
                     </div>
                   )}

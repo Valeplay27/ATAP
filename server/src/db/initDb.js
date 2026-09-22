@@ -31,6 +31,28 @@ export async function initDatabase() {
     }
     console.log('[initDb] Tablas verificadas y creadas correctamente en MySQL.');
 
+    // 1.1 Migraciones seguras para tablas existentes
+    const safeMigrations = [
+      'ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS fase_grupos JSON NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS es_grupal BOOLEAN DEFAULT FALSE;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS nombre_equipo VARCHAR(150) NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS foto_equipo VARCHAR(255) NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS integrantes JSON NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS jugador1 JSON NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS jugador2 JSON NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS jugador3 JSON NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS jugador4 JSON NULL;',
+      'ALTER TABLE inscriptions ADD COLUMN IF NOT EXISTS jugador5 JSON NULL;'
+    ];
+
+    for (const mig of safeMigrations) {
+      try {
+        await query(mig);
+      } catch (mErr) {
+        // En versiones antiguas de MySQL que no admiten IF NOT EXISTS en ALTER TABLE, se ignora error de columna duplicada
+      }
+    }
+
     // 2. Verificar y sembrar cuenta Administrador en `users`
     const usersCount = await query('SELECT COUNT(*) as cnt FROM users');
     if (usersCount[0].cnt === 0) {
@@ -174,6 +196,63 @@ export async function initDatabase() {
           [n.id, n.title, n.summary, n.content, n.category, n.imageUrl, n.author, n.dateDisplay, n.featured]
         );
       }
+    }
+
+    // 7. Sembrar `site_settings` (Configuración oficial de Yape)
+    const yapeSetting = await query('SELECT setting_key FROM site_settings WHERE setting_key = "atap_yape_config"');
+    if (yapeSetting.length === 0) {
+      const defaultYape = JSON.stringify({
+        numero: '962 168 953',
+        numeroRaw: '962168953',
+        titular: 'DOMINGUEZ ALBINES ALVARO RAFAEL',
+        ruc: '10722166634',
+        entidad: 'Asociación de Tenistas Amateur del Perú'
+      });
+      await query('INSERT INTO site_settings (setting_key, setting_value) VALUES ("atap_yape_config", ?)', [defaultYape]);
+      console.log('[initDb] Configuración oficial de Yape sembrada en `site_settings`.');
+    }
+
+    const imgsSetting = await query('SELECT setting_key FROM site_settings WHERE setting_key = "atap_site_images"');
+    if (imgsSetting.length === 0) {
+      const defaultImgs = JSON.stringify({
+        heroBanner: '/assets/hero1.png',
+        eventoBanner: '/assets/Evento.png',
+        logoPlatino: '/assets/Logo Platino.png',
+        logoAtap: '/assets/logo.png',
+        heroSlides: [
+          { id: 'slide-1', image: '/assets/hero1.png', title: 'Circuito Oficial de Tenis Amateur', subtitle: 'Torneos en las mejores canchas de Lima' },
+          { id: 'slide-2', image: '/assets/Evento.png', title: 'Inscripciones Abiertas 2026', subtitle: 'Compite, suma puntos y sube en el ranking ATAP' },
+          { id: 'slide-3', image: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=1200&q=85', title: 'Master Series de Lima', subtitle: 'El torneo más esperado de la temporada' }
+        ]
+      });
+      await query('INSERT INTO site_settings (setting_key, setting_value) VALUES ("atap_site_images", ?)', [defaultImgs]);
+      console.log('[initDb] Banners e imágenes oficiales del sitio sembrados en `site_settings`.');
+    }
+
+    const bannersSetting = await query('SELECT setting_key FROM site_settings WHERE setting_key = "atap_home_banners"');
+    if (bannersSetting.length === 0) {
+      const defaultBanners = JSON.stringify({
+        signupBanner: {
+          kicker: 'Regístrate ahora',
+          title: 'Inscripciones abiertas',
+          highlight: 'torneos de tenis',
+          description: 'Participa en nuestros torneos y demuestra tu talento en la cancha.',
+          buttonText: 'Registrarse',
+          buttonAction: 'register',
+          buttonLink: '#registro',
+          image: '/assets/Evento.png'
+        },
+        socialBanner: {
+          eyebrow: 'SÍGUENOS EN REDES',
+          title: 'Todo el tenis,\nen un solo lugar.',
+          description: 'Mantente al día con los torneos, resultados, noticias y mucho más. ¡Sé parte de nuestra comunidad!',
+          instagramUrl: 'https://www.instagram.com/atap_tenisperu/',
+          whatsappUrl: 'https://wa.me/51977884423',
+          image: '/assets/redes.png'
+        }
+      });
+      await query('INSERT INTO site_settings (setting_key, setting_value) VALUES ("atap_home_banners", ?)', [defaultBanners]);
+      console.log('[initDb] Banners de Home sembrados en `site_settings`.');
     }
 
     return true;

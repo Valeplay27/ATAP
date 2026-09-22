@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle2, Copy, Send, X, AlertTriangle, Users, UserCheck, ShieldAlert, ArrowRight, Shield, Trophy, Image } from 'lucide-react'
-import { registerPlayerToTournament, findUserByDni, getCategoryOccupancy, isUserProfileIncomplete, saveRegisteredUser, maskDni } from '../../services/atapStorage'
+import { registerPlayerToTournament, findUserByDni, getCategoryOccupancy, isUserProfileIncomplete, saveRegisteredUser, maskDni, getYapeConfig } from '../../services/atapStorage'
 import RulesModal from '../RulesModal/RulesModal'
 import './TournamentRegisterModal.css'
 
@@ -79,6 +79,22 @@ export default function TournamentRegisterModal({
   const [unregisteredPlayerInfo, setUnregisteredPlayerInfo] = useState(null)
   const [aceptaPoliticas, setAceptaPoliticas] = useState(false)
   const [showRulesModal, setShowRulesModal] = useState(false)
+  const [yapeConfig, setYapeConfig] = useState(() => getYapeConfig())
+
+  // Sincronizar datos de Yape en tiempo real si el administrador los actualiza
+  useEffect(() => {
+    function handleYapeStorage(e) {
+      if (!e?.detail || e.detail.key === 'atap_yape_config') {
+        setYapeConfig(getYapeConfig())
+      }
+    }
+    window.addEventListener('atap_storage_update', handleYapeStorage)
+    window.addEventListener('storage', handleYapeStorage)
+    return () => {
+      window.removeEventListener('atap_storage_update', handleYapeStorage)
+      window.removeEventListener('storage', handleYapeStorage)
+    }
+  }, [])
 
   // Sincronizar automáticamente datos de usuario si se loguea o cambia
   useEffect(() => {
@@ -111,7 +127,8 @@ export default function TournamentRegisterModal({
 
   if (!tournament) return null
 
-  const precioDisplay = tournament.precio ? ('S/ ' + tournament.precio + '.00') : 'S/ 100.00'
+  const isFree = tournament.precio !== undefined && Number(tournament.precio) === 0
+  const precioDisplay = tournament.precio !== undefined ? (Number(tournament.precio) === 0 ? 'GRATIS' : ('S/ ' + tournament.precio + '.00')) : 'S/ 100.00'
 
   function handleOpenRegisterInAtap(playerData = null) {
     if (onClose) onClose()
@@ -300,15 +317,21 @@ export default function TournamentRegisterModal({
         return
       }
 
-      // Check member 4
+      // Check member 4 (Opcional)
       const cleanNombre4 = (nombre4 || '').trim()
       const cleanDni4 = (dni4 || '').replace(/\D/g, '')
-      if (!cleanNombre4 || cleanDni4.length !== 8) {
-        setValidationError('Por favor completa el nombre y DNI válido (8 dígitos) del Jugador 4 (Titular).')
-        return
+      if (cleanNombre4 || cleanDni4) {
+        if (!cleanNombre4) {
+          setValidationError('Por favor ingresa el nombre completo del Jugador 4 (Opcional) o deja ambos campos vacíos.')
+          return
+        }
+        if (cleanDni4.length !== 8) {
+          setValidationError('El DNI del Jugador 4 (Opcional) debe tener exactamente 8 dígitos o dejarse vacío.')
+          return
+        }
       }
 
-      // Check member 5 (Optional)
+      // Check member 5 (Suplente / Opcional)
       const cleanNombre5 = (nombre5 || '').trim()
       const cleanDni5 = (dni5 || '').replace(/\D/g, '')
       if (cleanNombre5 || cleanDni5) {
@@ -323,7 +346,8 @@ export default function TournamentRegisterModal({
       }
 
       // Check duplicate DNIs
-      const teamDnis = [cleanDni, cleanDni2, cleanDni3, cleanDni4]
+      const teamDnis = [cleanDni, cleanDni2, cleanDni3]
+      if (cleanDni4) teamDnis.push(cleanDni4)
       if (cleanDni5) teamDnis.push(cleanDni5)
       const uniqueDnis = new Set(teamDnis)
       if (uniqueDnis.size !== teamDnis.length) {
@@ -356,15 +380,15 @@ export default function TournamentRegisterModal({
       emailJugador3: isGrupal ? email3.trim() : undefined,
       dniJugador3: isGrupal ? dni3.trim() : undefined,
       telefonoJugador3: isGrupal ? telefono3.trim() : undefined,
-      nombreJugador4: isGrupal ? nombre4.trim() : undefined,
-      emailJugador4: isGrupal ? email4.trim() : undefined,
-      dniJugador4: isGrupal ? dni4.trim() : undefined,
-      telefonoJugador4: isGrupal ? telefono4.trim() : undefined,
+      nombreJugador4: isGrupal && nombre4.trim() ? nombre4.trim() : undefined,
+      emailJugador4: isGrupal && email4.trim() ? email4.trim() : undefined,
+      dniJugador4: isGrupal && dni4.trim() ? dni4.trim() : undefined,
+      telefonoJugador4: isGrupal && telefono4.trim() ? telefono4.trim() : undefined,
       nombreJugador5: isGrupal && nombre5.trim() ? nombre5.trim() : undefined,
       emailJugador5: isGrupal && email5.trim() ? email5.trim() : undefined,
       dniJugador5: isGrupal && dni5.trim() ? dni5.trim() : undefined,
       telefonoJugador5: isGrupal && telefono5.trim() ? telefono5.trim() : undefined,
-      metodoPago,
+      metodoPago: isFree ? 'Inscripción Gratuita' : metodoPago,
       comprobanteInfo: comprobanteRef,
       aceptoPoliticas: true,
       fechaAceptacionPoliticas: new Date().toISOString()
@@ -387,12 +411,12 @@ export default function TournamentRegisterModal({
     (isGrupal
       ? '🏆 *Equipo:* ' + (nombreEquipo || 'Equipo') + '\n' +
         '🎾 *Categoría:* ' + categoria + '\n' +
-        '👥 *Modalidad:* Grupal (5 Personas)\n' +
+        '👥 *Modalidad:* Grupal (Hasta 5 Personas)\n' +
         '👤 *Jugador 1 (Capitán):* ' + nombre + ' (DNI: ' + maskDni(dni) + ')\n' +
         '👤 *Jugador 2:* ' + nombre2 + ' (DNI: ' + maskDni(dni2) + ')\n' +
         '👤 *Jugador 3:* ' + nombre3 + ' (DNI: ' + maskDni(dni3) + ')\n' +
-        '👤 *Jugador 4:* ' + nombre4 + ' (DNI: ' + maskDni(dni4) + ')\n' +
-        (nombre5 ? '👤 *Jugador 5 (Suplente):* ' + nombre5 + ' (DNI: ' + maskDni(dni5) + ')\n' : '')
+        (nombre4.trim() ? '👤 *Jugador 4:* ' + nombre4 + ' (DNI: ' + maskDni(dni4) + ')\n' : '') +
+        (nombre5.trim() ? '👤 *Jugador 5 (Suplente):* ' + nombre5 + ' (DNI: ' + maskDni(dni5) + ')\n' : '')
       : isDobles
       ? '👥 *Modalidad:* Dúos / Dobles\n' +
         '🎾 *Categoría:* ' + categoria + '\n' +
@@ -401,8 +425,9 @@ export default function TournamentRegisterModal({
       : '👤 *Jugador:* ' + nombre + '\n' +
         '🪪 *DNI:* ' + maskDni(dni) + '\n' +
         '🎾 *Categoría:* ' + categoria + '\n') +
-    '💰 *Monto:* ' + precioDisplay + ' (Vía Yape)\n\n' +
-    'Adjunto mi comprobante de pago por Yape para la validación y aprobación en el cuadro oficial.'
+    (isFree
+      ? '💰 *Monto:* GRATIS (Sin costo de inscripción)\n\nAdjunto los datos para la confirmación en el cuadro oficial.'
+      : '💰 *Monto:* ' + precioDisplay + ' (Vía Yape)\n\nAdjunto mi comprobante de pago por Yape para la validación y aprobación en el cuadro oficial.')
   )
 
   const whatsappLink = 'https://wa.me/51977884423?text=' + whatsappMessage
@@ -443,7 +468,7 @@ export default function TournamentRegisterModal({
               <div className='tourney-badge-row'>
                 <span className='tourney-badge-kicker'>Inscripción Oficial ATAP</span>
                 <span className='tourney-modality-badge'>
-                  {isGrupal ? '🏆 Modalidad Grupal (5 Personas)' : isDobles ? '👥 Modalidad Dúos (Dobles)' : '🎾 Modalidad Singles'}
+                  {isGrupal ? '🏆 Modalidad Grupal (Equipos)' : isDobles ? '👥 Modalidad Dúos (Dobles)' : '🎾 Modalidad Singles'}
                 </span>
               </div>
               <h2>{tournament.title}</h2>
@@ -451,7 +476,7 @@ export default function TournamentRegisterModal({
                 <div>
                   <span className='price-label'>Precio de inscripción:</span>
                   <div className='price-subtext-note'>
-                    {isGrupal ? 'Inscripción de equipo completo (5 personas)' : isDobles ? 'Incluye la pareja de juego oficial' : 'Participación individual'}
+                    {isGrupal ? 'Inscripción por equipo (3 obligatorios, 4to y 5to opcionales)' : isDobles ? 'Incluye la pareja de juego oficial' : 'Participación individual'}
                   </div>
                 </div>
                 <strong className='price-value'>{precioDisplay}</strong>
@@ -509,8 +534,8 @@ export default function TournamentRegisterModal({
                   <div className='team-section-header'>
                     <Trophy size={18} color="#00CFA0" />
                     <div className='team-header-titles'>
-                      <h4>Datos del Equipo / Grupo (5 Integrantes)</h4>
-                      <span className='team-header-subtitle'>Asigna un nombre oficial y foto a tu grupo de competencia</span>
+                      <h4>Datos del Equipo / Grupo (Hasta 5 Integrantes)</h4>
+                      <span className='team-header-subtitle'>Asigna nombre y foto a tu equipo (3 obligatorios, 4to y 5to opcionales)</span>
                     </div>
                   </div>
 
@@ -912,20 +937,26 @@ export default function TournamentRegisterModal({
 
               {/* SECTION: JUGADOR 4 (IF GRUPAL) */}
               {isGrupal && (
-                <div className='player-form-section player-section-tertiary'>
+                <div className='player-form-section player-section-optional'>
                   <div className='player-section-title'>
-                    <Users size={16} color="#00304A" />
-                    <h4>Jugador 4 (Titular 4) *</h4>
+                    <Users size={16} color="#64748B" />
+                    <div className='player-optional-header-wrap'>
+                      <h4>Jugador 4</h4>
+                      <span className='badge-suplente-opcional'>OPCIONAL</span>
+                    </div>
                     {user4Verified && (
                       <span className={`verified-user-pill ${isUserProfileIncomplete(user4Verified) ? 'incomplete-pill' : ''}`}>
                         <UserCheck size={12} /> {isUserProfileIncomplete(user4Verified) ? `Precargado: ${user4Verified.nombre}` : `Usuario Registrado (${user4Verified.nombre})`}
                       </span>
                     )}
                   </div>
+                  <p className='section-subtext-hint'>
+                    Puedes registrar al 4to integrante ahora o completar el equipo más adelante.
+                  </p>
 
                   <div className='form-row-2'>
                     <div className='form-group'>
-                      <label htmlFor='t-name-4'>Nombre completo Jugador 4 *</label>
+                      <label htmlFor='t-name-4'>Nombre completo Jugador 4 (Opcional)</label>
                       <input
                         id='t-name-4'
                         type='text'
@@ -934,13 +965,12 @@ export default function TournamentRegisterModal({
                           setNombre4(e.target.value.replace(/[0-9]/g, ''))
                           if (validationError) setValidationError('')
                         }}
-                        placeholder='Ej. Andrea Salazar'
-                        required={isGrupal}
+                        placeholder='Ej. Andrea Salazar (Opcional)'
                       />
                     </div>
                     <div className='form-group'>
                       <div className='label-with-hint'>
-                        <label htmlFor='t-dni-4'>DNI Jugador 4 *</label>
+                        <label htmlFor='t-dni-4'>DNI Jugador 4 (Opcional)</label>
                         {user4Verified && (
                           <span className={`verified-tag-micro ${!isUser4Ready ? 'incomplete-tag' : ''}`}>
                             {isUser4Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
@@ -966,8 +996,7 @@ export default function TournamentRegisterModal({
                             setTelefono4(found.telefono)
                           }
                         }}
-                        placeholder='Ej. 74567890'
-                        required={isGrupal}
+                        placeholder='Ej. 74567890 (Opcional)'
                       />
                     </div>
                   </div>
@@ -1126,19 +1155,32 @@ export default function TournamentRegisterModal({
                   <label htmlFor='t-metodo'>Método de pago</label>
                   <select
                     id='t-metodo'
-                    value={metodoPago}
+                    value={isFree ? 'Gratis' : metodoPago}
                     onChange={(e) => setMetodoPago(e.target.value)}
+                    disabled={isFree}
                   >
-                    <option value='Yape'>Yape</option>
+                    {isFree ? (
+                      <option value='Gratis'>Inscripción Gratuita (S/ 0.00)</option>
+                    ) : (
+                      <option value='Yape'>Yape</option>
+                    )}
                   </select>
                 </div>
               </div>
 
               <div className='payment-guidance-box'>
-                <p className='guidance-title'>💡 Instrucciones de Pago y Confirmación:</p>
+                <p className='guidance-title'>{isFree ? '💡 Torneo Gratuito:' : '💡 Instrucciones de Pago y Confirmación:'}</p>
                 <p className='guidance-text'>
-                  Al registrar tu inscripción, tu solicitud quedará en estado <strong>Pendiente de Pago</strong>.
-                  Para confirmar tu cupo y ser incluido en el sorteo manual de la <strong>fase de grupos</strong>, realiza el abono de <strong>{precioDisplay}</strong> vía <strong>Yape</strong> y envía tu comprobante a la mesa técnica por WhatsApp.
+                  {isFree ? (
+                    <>
+                      Este torneo cuenta con <strong>inscripción 100% gratuita</strong>. Al registrar tu solicitud, tu cupo quedará registrado y validado para el sorteo de los cuadros oficiales.
+                    </>
+                  ) : (
+                    <>
+                      Al registrar tu inscripción, tu solicitud quedará en estado <strong>Pendiente de Pago</strong>.
+                      Para confirmar tu cupo y ser incluido en el sorteo manual de la <strong>fase de grupos</strong>, realiza el abono de <strong>{precioDisplay}</strong> vía <strong>Yape</strong> y envía tu comprobante a la mesa técnica por WhatsApp.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -1191,29 +1233,49 @@ export default function TournamentRegisterModal({
             <div className='success-icon-badge'>
               <CheckCircle2 size={46} color='#00CFA0' />
             </div>
-            <span className='status-pill-warning'>ESTADO: PENDIENTE DE PAGO</span>
+            <span className={isFree ? 'status-pill-approved' : 'status-pill-warning'}>
+              {isFree ? 'ESTADO: INSCRIPCIÓN CONFIRMADA' : 'ESTADO: PENDIENTE DE PAGO'}
+            </span>
             <h2>¡Inscripción Registrada con Éxito!</h2>
             <p className='success-subtext'>
-              Tu solicitud para <strong>{tournament.title}</strong> ({isGrupal ? 'Grupal (Equipos de 5)' : isDobles ? 'Dúos' : 'Singles'} - {categoria}) ha sido creada. Para confirmar tu cupo definitivo y participar en la fase de grupos, realiza el abono de <strong>{precioDisplay}</strong> vía <strong>Yape</strong> y envía tu comprobante.
+              {isFree ? (
+                <>
+                  Tu solicitud para <strong>{tournament.title}</strong> ({isGrupal ? 'Grupal (Equipos)' : isDobles ? 'Dúos' : 'Singles'} - {categoria}) ha sido registrada exitosamente. Al ser un <strong>torneo gratuito</strong>, tu participación queda registrada para el sorteo oficial.
+                </>
+              ) : (
+                <>
+                  Tu solicitud para <strong>{tournament.title}</strong> ({isGrupal ? 'Grupal (Equipos)' : isDobles ? 'Dúos' : 'Singles'} - {categoria}) ha sido creada. Para confirmar tu cupo definitivo y participar en la fase de grupos, realiza el abono de <strong>{precioDisplay}</strong> vía <strong>Yape</strong> y envía tu comprobante.
+                </>
+              )}
             </p>
 
-            <div className='payment-accounts-card'>
-              <div className='account-item'>
-                <div className='account-info'>
-                  <span className='account-name'>📲 Yape Oficial</span>
-                  <strong>977 884 423</strong>
-                  <span className='account-holder'>Titular: Asoc. Tenistas Amateur Perú</span>
+            {!isFree && (
+              <div className='payment-accounts-card'>
+                <div className='account-item'>
+                  <div className='account-info'>
+                    <span className='account-name'>📲 Yape Oficial</span>
+                    <strong className='yape-phone-number'>{yapeConfig.numero}</strong>
+                    {yapeConfig.titular && (
+                      <span className='account-holder'><strong>Titular:</strong> {yapeConfig.titular}</span>
+                    )}
+                    {yapeConfig.ruc && (
+                      <span className='account-holder-ruc'><strong>RUC Nº</strong> {yapeConfig.ruc}</span>
+                    )}
+                    {yapeConfig.entidad && (
+                      <span className='account-holder-org'>{yapeConfig.entidad}</span>
+                    )}
+                  </div>
+                  <button
+                    type='button'
+                    className='copy-btn'
+                    onClick={() => handleCopy(yapeConfig.numeroRaw || yapeConfig.numero.replace(/\D/g, ''), 'yape')}
+                  >
+                    <Copy size={14} />
+                    {copiado === 'yape' ? '¡Copiado!' : 'Copiar'}
+                  </button>
                 </div>
-                <button
-                  type='button'
-                  className='copy-btn'
-                  onClick={() => handleCopy('977884423', 'yape')}
-                >
-                  <Copy size={14} />
-                  {copiado === 'yape' ? '¡Copiado!' : 'Copiar'}
-                </button>
               </div>
-            </div>
+            )}
 
             <div className='whatsapp-action-section'>
               <a
@@ -1223,7 +1285,7 @@ export default function TournamentRegisterModal({
                 className='whatsapp-confirm-btn'
               >
                 <Send size={18} />
-                <span>Enviar Comprobante por WhatsApp</span>
+                <span>{isFree ? 'Enviar Confirmación por WhatsApp' : 'Enviar Comprobante por WhatsApp'}</span>
               </a>
               <small className='whatsapp-hint'>
                 Te dirigirá al WhatsApp oficial de ATAP con tus datos y DNI listos para validación.

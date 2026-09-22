@@ -45,7 +45,9 @@ import {
   MessageSquare,
   MapPin,
   Mail,
-  Zap
+  Zap,
+  Smartphone,
+  RotateCcw
 } from 'lucide-react'
 import {
   getTournaments,
@@ -109,7 +111,10 @@ import {
   setMatchLiveStatus,
   updateLiveMatchScore,
   getDailyRecoveryKey,
-  regenerateDailyRecoveryKey
+  regenerateDailyRecoveryKey,
+  getYapeConfig,
+  saveYapeConfig,
+  DEFAULT_YAPE_CONFIG
 } from '../../services/atapStorage'
 import { api, playerApi, tournamentApi, rankingApi, contentApi } from '../../services/api'
 import TournamentBracket from '../../components/TournamentBracket/TournamentBracket'
@@ -149,6 +154,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [contactInfo, setContactInfo] = useState(() => getContactInfo())
   const [contactInputs, setContactInputs] = useState(() => getContactInfo())
   const [isSavingContact, setIsSavingContact] = useState(false)
+
+  // Configuración Oficial de Cobro por Yape (para Aprobación de Pagos e Inscripciones)
+  const [yapeConfig, setYapeConfig] = useState(() => getYapeConfig())
+  const [isEditingYape, setIsEditingYape] = useState(false)
+  const [yapeFormData, setYapeFormData] = useState(() => getYapeConfig())
 
   // Price edits state: { [tournamentId]: priceNumber }
   const [priceInputs, setPriceInputs] = useState({})
@@ -334,6 +344,43 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const ci = getContactInfo()
     setContactInfo(ci)
     setContactInputs(ci)
+
+    const yc = getYapeConfig()
+    setYapeConfig(yc)
+  }
+
+  function handleStartEditYape() {
+    const current = getYapeConfig()
+    setYapeFormData({ ...current })
+    setIsEditingYape(true)
+  }
+
+  function handleCancelEditYape() {
+    setYapeFormData({ ...yapeConfig })
+    setIsEditingYape(false)
+  }
+
+  function handleSaveYape(e) {
+    if (e) e.preventDefault()
+    if (!yapeFormData.numero?.trim() || !yapeFormData.titular?.trim()) {
+      alert('Por favor completa al menos el número de celular y el titular oficial de Yape.')
+      return
+    }
+    const saved = saveYapeConfig(yapeFormData)
+    setYapeConfig(saved)
+    setYapeFormData(saved)
+    setIsEditingYape(false)
+    showToast('¡Datos oficiales de Yape actualizados con éxito en todo el sistema!')
+  }
+
+  function handleResetYapeDefault() {
+    if (window.confirm('¿Deseas restablecer los datos de Yape a los valores oficiales predeterminados por ATAP?')) {
+      const reset = saveYapeConfig(DEFAULT_YAPE_CONFIG)
+      setYapeConfig(reset)
+      setYapeFormData(reset)
+      setIsEditingYape(false)
+      showToast('¡Datos de Yape restablecidos a los valores predeterminados!')
+    }
   }
 
   function handleSaveContactSettings() {
@@ -425,7 +472,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
 
     window.addEventListener('atap_data_updated', handleDataUpdate)
-    return () => window.removeEventListener('atap_data_updated', handleDataUpdate)
+    window.addEventListener('atap_storage_update', handleDataUpdate)
+    return () => {
+      window.removeEventListener('atap_data_updated', handleDataUpdate)
+      window.removeEventListener('atap_storage_update', handleDataUpdate)
+    }
   }, [])
 
   // Verificación estricta: ÚNICAMENTE vladimiryt18@gmail.com es el administrador oficial
@@ -528,8 +579,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   // Handler: Update Tournament Price
   function handleSavePrice(tourneyId) {
     const newPrice = priceInputs[tourneyId]
-    if (!newPrice || isNaN(newPrice) || Number(newPrice) <= 0) {
-      showToast('Por favor ingresa un precio válido en Soles.')
+    if (newPrice === undefined || newPrice === '' || isNaN(newPrice) || Number(newPrice) < 0) {
+      showToast('Por favor ingresa un precio válido en Soles (0 o mayor).')
       return
     }
     updateTournamentPrice(tourneyId, newPrice)
@@ -605,9 +656,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               ...(g.participantes || []),
               {
                 id: player.id,
-                nombre: player.nombre,
+                nombre: player.nombreEquipo || player.nombre,
+                nombreEquipo: player.nombreEquipo,
                 categoria: player.categoria,
-                dni: player.dni
+                dni: player.dni,
+                esGrupal: Boolean(player.esGrupal || player.modalidad === 'grupal' || currentTourney?.modalidad === 'grupal' || currentTourney?.modalidad === 'equipos'),
+                integrantes: player.integrantes || []
               }
             ]
           }
@@ -679,8 +733,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   function handleGenerateMatchesForGroups() {
     if (!currentTourney) return
+    const isGrupal = currentTourney.modalidad === 'grupal' || currentTourney.modalidad === 'equipos'
     const updatedGroups = manualGroups.map((g) => {
-      const matches = generateGroupMatches(g.participantes, g.id, g.nombre)
+      const matches = generateGroupMatches(g.participantes, g.id, g.nombre, isGrupal)
       return { ...g, partidos: matches }
     })
     setManualGroups(updatedGroups)
@@ -691,7 +746,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       showToast(res.error)
     } else {
       setTournaments(getTournaments())
-      showToast('¡Partidos de fase de grupos generados con éxito! Ahora puedes cargar marcadores.')
+      showToast(
+        isGrupal
+          ? '¡Partidos de fase de grupos por equipos generados! Por cada fecha se programaron 2 partidos de singles y 1 de dobles.'
+          : '¡Partidos de fase de grupos generados con éxito! Ahora puedes cargar marcadores.'
+      )
     }
   }
 
@@ -1744,7 +1803,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setEditTourneyStartDate(dates.start)
     setEditTourneyEndDate(dates.end)
     setEditTourneyPlace(t.place || '')
-    setEditTourneyPrice(t.precio || 100)
+    setEditTourneyPrice(t.precio !== undefined ? t.precio : 100)
     setEditTourneyLevel(t.level || 'Nacional')
     setEditTourneyModality(t.modalidad || 'singles')
     setEditTourneyStatus(t.estado || 'inscripciones_abiertas')
@@ -1770,8 +1829,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       return
     }
     const priceNum = Number(editTourneyPrice)
-    if (isNaN(priceNum) || priceNum <= 0) {
-      showToast('Por favor ingresa un precio de inscripción válido (mayor a 0).')
+    if (isNaN(priceNum) || priceNum < 0) {
+      showToast('Por favor ingresa un precio de inscripción válido (0 o mayor).')
       return
     }
 
@@ -1803,7 +1862,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setTournaments(tourneys)
     showToast(
       newModality === 'grupal'
-        ? `¡"${tourney.title}" configurado como torneo GRUPAL (5 personas)!`
+        ? `¡"${tourney.title}" configurado como torneo GRUPAL!`
         : newModality === 'dobles'
         ? `¡"${tourney.title}" configurado como torneo DÚO / DOBLES!`
         : `¡"${tourney.title}" configurado como torneo SINGLES!`
@@ -1823,8 +1882,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       return
     }
     const priceNum = Number(newTourneyPrice)
-    if (isNaN(priceNum) || priceNum <= 0) {
-      showToast('Por favor ingresa un precio de inscripción válido (mayor a 0).')
+    if (isNaN(priceNum) || priceNum < 0) {
+      showToast('Por favor ingresa un precio de inscripción válido (0 o mayor).')
       return
     }
 
@@ -3354,8 +3413,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                             id={'price-' + t.id}
                             type="number"
                             min="0"
-                            step="5"
-                            value={priceInputs[t.id] ?? t.precio ?? 100}
+                            step="1"
+                            value={priceInputs[t.id] ?? (t.precio !== undefined ? t.precio : 100)}
                             onChange={(e) =>
                               setPriceInputs({
                                 ...priceInputs,
@@ -3440,6 +3499,173 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* SECCIÓN CONFIGURACIÓN EDITABLE DE YAPE OFICIAL */}
+            <div className="admin-yape-config-card">
+              <div className="admin-yape-header">
+                <div className="admin-yape-header-info">
+                  <div className="admin-yape-icon-wrap">
+                    <Smartphone size={22} color="#7209B7" />
+                  </div>
+                  <div>
+                    <div className="admin-yape-badge-row">
+                      <span className="yape-tag-badge">📲 Billetera Digital Yape Oficial</span>
+                      <span className="yape-status-active">● Activo en Pasarela de Inscripción</span>
+                    </div>
+                    <h3 className="admin-yape-title">Información de Pago por Yape</h3>
+                    <p className="admin-yape-desc">
+                      Esta información se muestra a los jugadores en la ventana de inscripción de todos los torneos para transferir el abono de su cupo.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="admin-yape-actions">
+                  {!isEditingYape ? (
+                    <button
+                      type="button"
+                      className="btn-edit-yape"
+                      onClick={handleStartEditYape}
+                      title="Editar número, titular, RUC y entidad de Yape"
+                    >
+                      <Pencil size={14} />
+                      <span>Modificar Datos de Yape</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-cancel-yape"
+                      onClick={handleCancelEditYape}
+                    >
+                      <X size={14} />
+                      <span>Cancelar Edición</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {!isEditingYape ? (
+                <div className="admin-yape-preview-grid">
+                  <div className="yape-preview-item highlight">
+                    <span className="yape-preview-label">Número Yape Oficial</span>
+                    <strong className="yape-preview-value phone-val">{yapeConfig.numero}</strong>
+                    <span className="yape-preview-hint">Número al que los participantes envían el pago</span>
+                  </div>
+
+                  <div className="yape-preview-item">
+                    <span className="yape-preview-label">Titular Oficial de la Cuenta</span>
+                    <strong className="yape-preview-value">{yapeConfig.titular || '—'}</strong>
+                    <span className="yape-preview-hint">Nombre que valida el jugador en su app Yape</span>
+                  </div>
+
+                  <div className="yape-preview-item">
+                    <span className="yape-preview-label">RUC Nº Oficial</span>
+                    <strong className="yape-preview-value ruc-val">{yapeConfig.ruc || '—'}</strong>
+                    <span className="yape-preview-hint">Identificación tributaria oficial</span>
+                  </div>
+
+                  <div className="yape-preview-item">
+                    <span className="yape-preview-label">Entidad / Asociación</span>
+                    <strong className="yape-preview-value">{yapeConfig.entidad || '—'}</strong>
+                    <span className="yape-preview-hint">Institución organizadora del circuito</span>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveYape} className="admin-yape-edit-form">
+                  <div className="admin-yape-form-grid">
+                    <div className="yape-form-group">
+                      <label htmlFor="yape-input-num">
+                        Número de Celular Yape: <span className="yape-req-star">*</span>
+                      </label>
+                      <input
+                        id="yape-input-num"
+                        type="text"
+                        className="yape-input-control"
+                        placeholder="Ej: 962 168 953"
+                        value={yapeFormData.numero}
+                        onChange={(e) => setYapeFormData(prev => ({ ...prev, numero: e.target.value }))}
+                        required
+                      />
+                      <small className="yape-field-hint">Número que copiará el participante en su app Yape.</small>
+                    </div>
+
+                    <div className="yape-form-group">
+                      <label htmlFor="yape-input-titular">
+                        Titular de la Cuenta: <span className="yape-req-star">*</span>
+                      </label>
+                      <input
+                        id="yape-input-titular"
+                        type="text"
+                        className="yape-input-control"
+                        placeholder="Ej: DOMINGUEZ ALBINES ALVARO RAFAEL"
+                        value={yapeFormData.titular}
+                        onChange={(e) => setYapeFormData(prev => ({ ...prev, titular: e.target.value }))}
+                        required
+                      />
+                      <small className="yape-field-hint">Nombre que se visualiza como titular oficial al transferir.</small>
+                    </div>
+
+                    <div className="yape-form-group">
+                      <label htmlFor="yape-input-ruc">
+                        RUC Nº Oficial:
+                      </label>
+                      <input
+                        id="yape-input-ruc"
+                        type="text"
+                        className="yape-input-control"
+                        placeholder="Ej: 10722166634"
+                        value={yapeFormData.ruc}
+                        onChange={(e) => setYapeFormData(prev => ({ ...prev, ruc: e.target.value }))}
+                      />
+                      <small className="yape-field-hint">RUC institucional o personal asociado al cobro.</small>
+                    </div>
+
+                    <div className="yape-form-group">
+                      <label htmlFor="yape-input-entidad">
+                        Entidad / Asociación:
+                      </label>
+                      <input
+                        id="yape-input-entidad"
+                        type="text"
+                        className="yape-input-control"
+                        placeholder="Ej: Asociación de Tenistas Amateur del Perú"
+                        value={yapeFormData.entidad}
+                        onChange={(e) => setYapeFormData(prev => ({ ...prev, entidad: e.target.value }))}
+                      />
+                      <small className="yape-field-hint">Razón social o nombre que acompaña el RUC.</small>
+                    </div>
+                  </div>
+
+                  <div className="admin-yape-form-actions">
+                    <button
+                      type="button"
+                      className="btn-reset-yape"
+                      onClick={handleResetYapeDefault}
+                      title="Volver a los datos oficiales de fábrica"
+                    >
+                      <RotateCcw size={14} />
+                      <span>Restablecer Oficiales por Defecto</span>
+                    </button>
+
+                    <div className="admin-yape-form-submit-group">
+                      <button
+                        type="button"
+                        className="button button-secondary-outline btn-cancel-sm"
+                        onClick={handleCancelEditYape}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="button button-lime btn-save-yape"
+                      >
+                        <Save size={15} />
+                        <span>Guardar Cambios de Yape</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
             </div>
 
             <div className="inscriptions-table-card">
@@ -3689,6 +3915,15 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   </button>
                 </div>
               </div>
+
+              {(currentTourney.modalidad === 'grupal' || currentTourney.modalidad === 'equipos') && (
+                <div className="admin-grupal-notice-bar">
+                  <span className="grupal-notice-icon">🏆</span>
+                  <div>
+                    <strong>Modalidad Oficial Grupal por Equipos:</strong> Por cada fecha (enfrentamiento entre 2 equipos), se generan automáticamente <strong>3 partidos oficiales: 2 de Singles (Singles 1 y Singles 2) y 1 de Dobles</strong>. El equipo que gane al menos 2 partidos se lleva la serie.
+                  </div>
+                </div>
+              )}
 
               {/* MAIN 2-COLUMN WORKSPACE: BANK vs GROUPS */}
               <div className="manual-draw-workspace-grid">
@@ -6542,7 +6777,18 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
             aria-modal="true"
           >
             <div className="admin-modal-header">
-              <h3>Ingresar Marcador — Match #{scoreModalMatch.matchNum}</h3>
+              <div>
+                <h3>Ingresar Marcador — Match #{scoreModalMatch.matchNum}</h3>
+                {scoreModalMatch.subtipo && (
+                  <div className="modal-match-subtipo-badge">
+                    <span className={`badge-tag ${scoreModalMatch.modalidad === 'dobles' ? 'tag-dobles' : 'tag-singles'}`}>
+                      {scoreModalMatch.subtipo === 'Dobles' ? '👥 Dobles' : `🎾 ${scoreModalMatch.subtipo}`}
+                    </span>
+                    {scoreModalMatch.serieNombre && <span className="badge-serie">Serie: {scoreModalMatch.serieNombre}</span>}
+                    {scoreModalMatch.fechaNum && <span className="badge-fecha">Fecha {scoreModalMatch.fechaNum}</span>}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className="btn-modal-close"
@@ -6554,7 +6800,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
             <form onSubmit={handleSaveScore} className="score-form">
               <p className="score-hint">
-                Selecciona al jugador ganador e ingresa los games de cada set. El jugador avanzará automáticamente a la siguiente ronda.
+                Selecciona al ganador e ingresa los games de cada set.
               </p>
 
               <div className="score-player-selector">
@@ -6569,7 +6815,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     onChange={() => setWinnerSlot(1)}
                   />
                   <div className="pick-info">
-                    <span className="pick-role">Jugador 1</span>
+                    <span className="pick-role">{scoreModalMatch.esGrupal ? 'Equipo 1' : 'Jugador 1'}</span>
                     <strong>{scoreModalMatch.player1?.name || 'Por definir'}</strong>
                     <small>{scoreModalMatch.player1?.categoria}</small>
                   </div>
@@ -6588,7 +6834,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     onChange={() => setWinnerSlot(2)}
                   />
                   <div className="pick-info">
-                    <span className="pick-role">Jugador 2</span>
+                    <span className="pick-role">{scoreModalMatch.esGrupal ? 'Equipo 2' : 'Jugador 2'}</span>
                     <strong>{scoreModalMatch.player2?.name || 'Por definir'}</strong>
                     <small>{scoreModalMatch.player2?.categoria}</small>
                   </div>
@@ -7005,9 +7251,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   <input
                     id="new-tourney-price"
                     type="number"
-                    min="10"
-                    step="5"
-                    placeholder="100"
+                    min="0"
+                    step="1"
+                    placeholder="0"
                     value={newTourneyPrice}
                     onChange={(e) => setNewTourneyPrice(e.target.value)}
                     required
@@ -7336,9 +7582,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   <input
                     id="edit-tourney-price"
                     type="number"
-                    min="10"
-                    step="5"
-                    placeholder="100"
+                    min="0"
+                    step="1"
+                    placeholder="0"
                     value={editTourneyPrice}
                     onChange={(e) => setEditTourneyPrice(e.target.value)}
                     required

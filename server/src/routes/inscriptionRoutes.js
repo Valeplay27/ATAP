@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createInscription,
+  getInscriptionsByTournament,
   updateStatus,
   addToBank,
   deleteInscription
@@ -9,6 +10,7 @@ import { requireAdmin } from '../middlewares/auth.js';
 
 const router = Router();
 
+router.get('/:tournamentId', getInscriptionsByTournament);
 router.post('/:tournamentId', createInscription);
 router.patch('/:id/status', requireAdmin, updateStatus);
 router.post('/:tournamentId/bank', requireAdmin, addToBank);

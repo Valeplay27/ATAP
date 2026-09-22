@@ -984,3 +984,129 @@
   border-color: #FCA5A5;
 }
 
+/* ==========================================================================
+   TORNEOS GRUPALES: FECHAS (2 SINGLES + 1 DOBLES)
+   ========================================================================== */
+.group-matches-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.group-matches-title-row .group-matches-title {
+  margin-bottom: 0;
+}
+
+.group-matches-mode-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #7209B7;
+  background: #F2ECFA;
+  border: 1px solid #D8C7F0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.2px;
+}
+
+.group-fecha-container {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+}
+
+.group-fecha-container:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.group-fecha-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed #E2E8F0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fecha-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fecha-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: #00304A;
+  color: #FFFFFF;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.4px;
+}
+
+.fecha-serie-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.fecha-serie-score-pill {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: #00304A;
+  background: #E2E8F0;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+}
+
+.fecha-serie-score-pill.completed {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+.fecha-matches-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.match-header-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.match-subtipo-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.match-subtipo-pill.pill-singles {
+  background: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #BAE6FD;
+}
+
+.match-subtipo-pill.pill-dobles {
+  background: #F3E8FF;
+  color: #7E22CE;
+  border: 1px solid #E9D5FF;
+}
+

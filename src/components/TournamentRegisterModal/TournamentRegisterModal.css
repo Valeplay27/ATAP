@@ -228,6 +228,20 @@
   border: 1px solid #00CFA0;
 }
 
+.status-pill-approved {
+  display: inline-block;
+  background: #E6FBF5;
+  color: #008761;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+  border: 1px solid #00CFA0;
+}
+
 .tourney-success-content h2 {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 28px;
@@ -280,16 +294,40 @@
   text-transform: uppercase;
 }
 
+.account-info strong.yape-phone-number,
 .account-info strong {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 17px;
-  letter-spacing: 0.5px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
   color: #25005C;
 }
 
 .account-holder {
-  font-size: 10px;
-  color: #64727A;
+  font-size: 11.5px;
+  color: #1E293B;
+  line-height: 1.4;
+}
+
+.account-holder strong {
+  font-family: inherit;
+  font-size: 11.5px;
+  color: #0F172A;
+  font-weight: 700;
+}
+
+.account-holder-ruc {
+  font-size: 11.5px;
+  color: #008761;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.account-holder-org {
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 600;
+  margin-top: 1px;
 }
 
 .copy-btn {

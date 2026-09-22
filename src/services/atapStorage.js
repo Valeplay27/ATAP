@@ -19,8 +19,57 @@ export const STORAGE_KEYS = {
   POLICIES: 'atap_politicas_reglas',
   HOME_BANNERS: 'atap_home_banners',
   CONTACT_INFO: 'atap_contacto_soporte',
-  DAILY_RECOVERY_KEY: 'atap_clave_recuperacion_diaria'
+  DAILY_RECOVERY_KEY: 'atap_clave_recuperacion_diaria',
+  YAPE_CONFIG: 'atap_yape_config'
 };
+
+export const DEFAULT_YAPE_CONFIG = {
+  numero: '962 168 953',
+  numeroRaw: '962168953',
+  titular: 'DOMINGUEZ ALBINES ALVARO RAFAEL',
+  ruc: '10722166634',
+  entidad: 'Asociación de Tenistas Amateur del Perú'
+};
+
+export function getYapeConfig() {
+  try {
+    if (typeof localStorage === 'undefined') return DEFAULT_YAPE_CONFIG;
+    const raw = localStorage.getItem(STORAGE_KEYS.YAPE_CONFIG);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.YAPE_CONFIG, JSON.stringify(DEFAULT_YAPE_CONFIG));
+      return DEFAULT_YAPE_CONFIG;
+    }
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_YAPE_CONFIG, ...parsed };
+  } catch (e) {
+    return DEFAULT_YAPE_CONFIG;
+  }
+}
+
+export function saveYapeConfig(config) {
+  try {
+    const cleanNum = String(config?.numero || '').replace(/\D/g, '');
+    const formatted = {
+      numero: (config?.numero || '962 168 953').trim(),
+      numeroRaw: cleanNum || '962168953',
+      titular: (config?.titular || '').trim() || DEFAULT_YAPE_CONFIG.titular,
+      ruc: (config?.ruc || '').trim() || DEFAULT_YAPE_CONFIG.ruc,
+      entidad: (config?.entidad || '').trim() || DEFAULT_YAPE_CONFIG.entidad
+    };
+    localStorage.setItem(STORAGE_KEYS.YAPE_CONFIG, JSON.stringify(formatted));
+    emitAtapUpdate(STORAGE_KEYS.YAPE_CONFIG, formatted);
+
+    // Sincronizar con backend MySQL / SiteGround
+    contentApi.saveSetting('atap_yape_config', formatted).catch((err) => {
+      console.warn('[ATAP] Sincronización de Yape con servidor pendiente:', err);
+    });
+
+    return formatted;
+  } catch (e) {
+    console.error('Error saving yape config:', e);
+    return DEFAULT_YAPE_CONFIG;
+  }
+}
 
 // Categorías oficiales exclusivas del circuito amateur de tenis ATAP (de mayor a menor nivel)
 export const OFFICIAL_CATEGORIES = ['4ta', '5ta A', '5ta B', '6ta'];
@@ -378,13 +427,15 @@ sanitizeStorageDnis();
 
 export const INITIAL_TOURNAMENTS = [
   {
-    id: 'torneo-1',
-    title: 'Torneo Nacional Open',
+    id: 't-apertura-2026',
+    title: 'Torneo Apertura ATAP 2026',
     level: 'Nacional',
-    place: 'Lima, Perú',
-    date: '12 May - 18 May 2026',
-    image: 'https://images.unsplash.com/photo-1530915365347-9b4b6e0b3d16?auto=format&fit=crop&w=500&q=85',
-    precio: 120,
+    place: 'Club Lawn Tennis de la Exposición',
+    date: '15 Mar - 29 Mar 2026',
+    fechaInicio: '2026-03-15',
+    fechaFin: '2026-03-29',
+    image: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=800&q=85',
+    precio: 85,
     estado: 'inscripciones_abiertas',
     modalidad: 'singles',
     categorias: [
@@ -397,108 +448,125 @@ export const INITIAL_TOURNAMENTS = [
     bracket: null
   },
   {
-    id: 'torneo-2',
-    title: 'Copa Ciudad de Lima',
-    level: 'Regional',
-    place: 'Lima, Perú',
-    date: '20 May - 24 May 2026',
-    image: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=500&q=85',
-    precio: 80,
-    estado: 'inscripciones_abiertas',
+    id: 't-copa-dobles-2026',
+    title: 'Copa Nacional de Dúos y Dobles ATAP',
+    level: 'Nacional',
+    place: 'Rinconada Country Club',
+    date: '12 Abr - 26 Abr 2026',
+    fechaInicio: '2026-04-12',
+    fechaFin: '2026-04-26',
+    image: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=800&q=85',
+    precio: 140,
+    estado: 'proximo',
     modalidad: 'dobles',
     categorias: [
       { id: 'cat-d4', nombre: '4ta Dobles', cupos: 16 },
       { id: 'cat-d5a', nombre: '5ta A Dobles', cupos: 16 },
-      { id: 'cat-d5b', nombre: '5ta B Dobles', cupos: 16 },
-      { id: 'cat-d6', nombre: '6ta Dobles', cupos: 16 }
+      { id: 'cat-d5b', nombre: '5ta B Dobles', cupos: 16 }
     ],
     inscripciones: [],
     bracket: null
   },
   {
-    id: 'torneo-3',
-    title: 'ITF World Tennis Tour',
-    level: 'Internacional',
-    place: 'Trujillo, Perú',
-    date: '5 Jun - 15 Jun 2026',
-    image: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=500&q=85',
-    precio: 150,
+    id: 't-copa-equipos-2026',
+    title: 'Copa Interclubes por Equipos ATAP 2026',
+    level: 'Interclubes',
+    place: 'Centro Naval del Perú - San Borja',
+    date: '10 May - 31 May 2026',
+    fechaInicio: '2026-05-10',
+    fechaFin: '2026-05-31',
+    image: '/assets/Evento.png',
+    precio: 350,
     estado: 'inscripciones_abiertas',
-    modalidad: 'singles',
+    modalidad: 'grupal',
     categorias: [
-      { id: 'cat-4', nombre: '4ta', cupos: 32 },
-      { id: 'cat-5a', nombre: '5ta A', cupos: 32 },
-      { id: 'cat-5b', nombre: '5ta B', cupos: 32 },
-      { id: 'cat-6', nombre: '6ta', cupos: 32 }
+      { id: 'cat-g4', nombre: '4ta Equipos', cupos: 8 },
+      { id: 'cat-g5a', nombre: '5ta A Equipos', cupos: 8 },
+      { id: 'cat-g5b', nombre: '5ta B Equipos', cupos: 16 }
     ],
     inscripciones: [],
     bracket: null
   },
   {
-    id: 'torneo-4',
-    title: 'Masters Juvenil',
-    level: 'Regional',
-    place: 'Lima, Perú',
-    date: '21 Jun - 28 Jun 2026',
-    image: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=500&q=85',
-    precio: 90,
-    estado: 'finalizado',
+    id: 't-master-lima-2026',
+    title: 'Master Series de Lima 2026',
+    level: 'Master',
+    place: 'Club Terrazas Miraflores',
+    date: '14 Jun - 28 Jun 2026',
+    fechaInicio: '2026-06-14',
+    fechaFin: '2026-06-28',
+    image: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=500&q=85',
+    precio: 110,
+    estado: 'proximo',
     modalidad: 'singles',
     categorias: [
       { id: 'cat-4', nombre: '4ta', cupos: 16 },
       { id: 'cat-5a', nombre: '5ta A', cupos: 16 },
-      { id: 'cat-5b', nombre: '5ta B', cupos: 32 },
-      { id: 'cat-6', nombre: '6ta', cupos: 32 }
+      { id: 'cat-5b', nombre: '5ta B', cupos: 32 }
     ],
     inscripciones: [],
+    bracket: null
+  },
+  {
+    id: 't-verano-2026',
+    title: 'Torneo Relámpago de Verano ATAP',
+    level: 'Circuito',
+    place: 'Club Terrazas Miraflores',
+    date: '01 Feb - 15 Feb 2026',
+    fechaInicio: '2026-02-01',
+    fechaFin: '2026-02-15',
+    image: 'https://images.unsplash.com/photo-1530915365347-9b4b6e0b3d16?auto=format&fit=crop&w=500&q=85',
+    precio: 80,
+    estado: 'finalizado',
+    modalidad: 'singles',
+    categorias: [
+      { id: 'cat-4', nombre: '4ta', cupos: 16 },
+      { id: 'cat-5a', nombre: '5ta A', cupos: 16 }
+    ],
+    inscripciones: [],
+    bracket: {
+      champion: { name: 'Diego Sánchez', nombre: 'Diego Sánchez' }
+    },
     resultados: [
       {
-        id: 'res-m-1',
-        categoria: '4ta',
+        id: 'res-verano-final',
         ronda: 'Gran Final',
-        jugador1: 'Diego Sánchez',
-        jugador2: 'Mateo Rojas',
-        set1: '6-4',
-        set2: '6-3',
-        set3: '',
+        ganador: 'Diego Sánchez',
         score: '6-4, 6-3',
-        ganador: 'Diego Sánchez',
         puntos: 250,
-        observaciones: 'Diego Sánchez Campeón Oficial del Masters',
-        fechaCarga: '2026-06-28'
-      },
-      {
-        id: 'res-m-2',
-        categoria: '4ta',
-        ronda: 'Semifinales',
-        jugador1: 'Diego Sánchez',
-        jugador2: 'Carlos Benavides',
-        set1: '7-5',
-        set2: '6-2',
-        set3: '',
-        score: '7-5, 6-2',
-        ganador: 'Diego Sánchez',
-        puntos: 150,
-        observaciones: 'Semifinal 1',
-        fechaCarga: '2026-06-27'
-      },
-      {
-        id: 'res-m-3',
-        categoria: '4ta',
-        ronda: 'Semifinales',
-        jugador1: 'Mateo Rojas',
-        jugador2: 'Fernando Gálvez',
-        set1: '6-3',
-        set2: '4-6',
-        set3: '10-8',
-        score: '6-3, 4-6, 10-8',
-        ganador: 'Mateo Rojas',
-        puntos: 150,
-        observaciones: 'Semifinal 2 definida en match tie-break',
-        fechaCarga: '2026-06-27'
+        fechaCarga: '2026-02-15'
       }
+    ]
+  },
+  {
+    id: 't-copa-pretemporada-2026',
+    title: 'Copa Desafío de Pretemporada ATAP',
+    level: 'Regional',
+    place: 'Club Lawn Tennis de la Exposición',
+    date: '10 Ene - 25 Ene 2026',
+    fechaInicio: '2026-01-10',
+    fechaFin: '2026-01-25',
+    image: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=500&q=85',
+    precio: 120,
+    estado: 'finalizado',
+    modalidad: 'dobles',
+    categorias: [
+      { id: 'cat-d4', nombre: '4ta Dobles', cupos: 16 }
     ],
-    bracket: null
+    inscripciones: [],
+    bracket: {
+      champion: { name: 'Mendoza / Gómez', nombre: 'Mendoza / Gómez' }
+    },
+    resultados: [
+      {
+        id: 'res-pretemp-final',
+        ronda: 'Gran Final',
+        ganador: 'Mendoza / Gómez',
+        score: '7-6, 6-4',
+        puntos: 200,
+        fechaCarga: '2026-01-25'
+      }
+    ]
   }
 ];
 
@@ -1737,6 +1805,27 @@ export async function syncStorageWithBackend() {
       localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(playersRes.data));
       emitAtapUpdate(STORAGE_KEYS.REGISTERED_USERS, playersRes.data);
     }
+
+    // 6. Sincronizar Configuración de Yape
+    const yapeRes = await contentApi.getSetting('atap_yape_config').catch(() => null);
+    if (yapeRes?.data && yapeRes.data.numero) {
+      localStorage.setItem(STORAGE_KEYS.YAPE_CONFIG, JSON.stringify(yapeRes.data));
+      emitAtapUpdate(STORAGE_KEYS.YAPE_CONFIG, yapeRes.data);
+    }
+
+    // 7. Sincronizar Banners e Imágenes del Sitio
+    const imgsRes = await contentApi.getSetting('atap_site_images').catch(() => null);
+    if (imgsRes?.data && typeof imgsRes.data === 'object' && Object.keys(imgsRes.data).length > 0) {
+      localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(imgsRes.data));
+      emitAtapUpdate(STORAGE_KEYS.IMAGES, imgsRes.data);
+    }
+
+    // 8. Sincronizar Banners del Home
+    const bannersRes = await contentApi.getSetting('atap_home_banners').catch(() => null);
+    if (bannersRes?.data && typeof bannersRes.data === 'object' && Object.keys(bannersRes.data).length > 0) {
+      localStorage.setItem(STORAGE_KEYS.HOME_BANNERS, JSON.stringify(bannersRes.data));
+      emitAtapUpdate(STORAGE_KEYS.HOME_BANNERS, bannersRes.data);
+    }
   } catch (err) {
     console.warn('Sincronización inicial con MySQL en espera de conexión:', err);
   }
@@ -1761,20 +1850,44 @@ export function getTournaments() {
     }
     const parsed = JSON.parse(raw);
     let changed = false;
+
+    // Asegurar que contenga los torneos predeterminados oficiales si faltan por caché previa
+    const existingIds = new Set(parsed.map((t) => t.id));
+    INITIAL_TOURNAMENTS.forEach((initT) => {
+      if (!existingIds.has(initT.id)) {
+        parsed.push({ ...initT });
+        changed = true;
+      }
+    });
+
     const withDetails = parsed.map((t) => {
       let itemChanged = false;
       const updated = { ...t };
+      const initMatch = INITIAL_TOURNAMENTS.find((it) => it.id === updated.id);
+      if (initMatch) {
+        if (!updated.fechaInicio && initMatch.fechaInicio) {
+          updated.fechaInicio = initMatch.fechaInicio;
+          itemChanged = true;
+        }
+        if (!updated.fechaFin && initMatch.fechaFin) {
+          updated.fechaFin = initMatch.fechaFin;
+          itemChanged = true;
+        }
+        if (!updated.bracket && initMatch.bracket) {
+          updated.bracket = initMatch.bracket;
+          itemChanged = true;
+        }
+      }
       if (!updated.modalidad) {
         updated.modalidad = updated.id === 'torneo-2' ? 'dobles' : 'singles';
         itemChanged = true;
       }
       if (!updated.estado) {
-        const initMatch = INITIAL_TOURNAMENTS.find((it) => it.id === updated.id);
         updated.estado = initMatch?.estado || 'inscripciones_abiertas';
         itemChanged = true;
       }
-      if (!updated.resultados && INITIAL_TOURNAMENTS.find((it) => it.id === updated.id)?.resultados) {
-        updated.resultados = INITIAL_TOURNAMENTS.find((it) => it.id === updated.id).resultados;
+      if (!updated.resultados && initMatch?.resultados) {
+        updated.resultados = initMatch.resultados;
         itemChanged = true;
       }
       if (!updated.categorias || !Array.isArray(updated.categorias) || updated.categorias.length === 0) {
@@ -1939,6 +2052,141 @@ export function isTournamentDateActive(dateStr, startDate, endDate) {
   const range = parseDateRange(dateStr);
   if (!range.start || !range.end) return false;
   return todayStr >= range.start && todayStr <= range.end;
+}
+
+export function getTournamentStartDate(t) {
+  if (!t) return new Date(0);
+  if (t.fechaInicio) {
+    const d = new Date(t.fechaInicio + 'T00:00:00');
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (t.date) {
+    const range = parseDateRange(t.date);
+    if (range && range.start) {
+      const d = new Date(range.start + 'T00:00:00');
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return new Date(0);
+}
+
+export function getTournamentEndDate(t) {
+  if (!t) return new Date(0);
+  if (t.fechaFin) {
+    const d = new Date(t.fechaFin + 'T23:59:59');
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (t.date) {
+    const range = parseDateRange(t.date);
+    if (range && range.end) {
+      const d = new Date(range.end + 'T23:59:59');
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return new Date(0);
+}
+
+export function formatFriendlyDate(dateObjOrStr) {
+  if (!dateObjOrStr) return '';
+  let d;
+  if (typeof dateObjOrStr === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateObjOrStr.trim())) {
+      const [y, m, day] = dateObjOrStr.trim().split('-');
+      d = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(day, 10));
+    } else {
+      d = new Date(dateObjOrStr);
+    }
+  } else {
+    d = dateObjOrStr;
+  }
+  if (isNaN(d.getTime())) return '';
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/**
+ * Obtiene siempre 6 torneos para la sección principal del Home:
+ * - Prioriza torneos próximos a jugarse ordenados cronológicamente por fecha de inicio (el más cercano primero).
+ * - Si hay menos de 6 torneos próximos (ej. solo 3), rellena los cupos restantes con torneos ya jugados/finalizados
+ *   ordenados por fecha de finalización (el más reciente primero).
+ * - Retorna metadatos claros del diferencial (isUpcoming, isFinished, fechaInicioTexto, fechaFinTexto, campeonNombre).
+ */
+export function getHomeTournamentsDisplay() {
+  const allTournaments = getTournaments();
+  if (!allTournaments || allTournaments.length === 0) return [];
+
+  const isFinalizado = (t) => {
+    const est = String(t.estado || '').toLowerCase().trim();
+    return est === 'finalizado' || est === 'culminado';
+  };
+
+  const getChampionName = (t) => {
+    if (t.bracket?.champion?.name) return t.bracket.champion.name;
+    if (t.bracket?.champion?.nombre) return t.bracket.champion.nombre;
+    if (t.bracket?.campeon) return t.bracket.campeon;
+    if (Array.isArray(t.resultados) && t.resultados.length > 0) {
+      const finalRes = t.resultados.find((r) => /final/i.test(r.ronda || ''));
+      if (finalRes?.ganador) return finalRes.ganador;
+      if (t.resultados[0]?.ganador) return t.resultados[0].ganador;
+    }
+    return null;
+  };
+
+  const upcoming = [];
+  const finished = [];
+
+  allTournaments.forEach((t) => {
+    const startD = getTournamentStartDate(t);
+    const endD = getTournamentEndDate(t);
+    const champ = getChampionName(t);
+    const enriched = {
+      ...t,
+      startDateObj: startD,
+      endDateObj: endD,
+      campeonNombre: champ,
+      fechaInicioTexto: t.fechaInicio ? formatFriendlyDate(t.fechaInicio) : '',
+      fechaFinTexto: t.fechaFin ? formatFriendlyDate(t.fechaFin) : ''
+    };
+
+    if (isFinalizado(t)) {
+      enriched.isFinished = true;
+      enriched.isUpcoming = false;
+      finished.push(enriched);
+    } else {
+      enriched.isFinished = false;
+      enriched.isUpcoming = true;
+      upcoming.push(enriched);
+    }
+  });
+
+  // 1. Ordenar próximos por fecha de inicio más cercana primero (ascendente)
+  upcoming.sort((a, b) => a.startDateObj.getTime() - b.startDateObj.getTime());
+
+  // 2. Ordenar finalizados por fecha de finalización más reciente primero (descendente)
+  finished.sort((a, b) => b.endDateObj.getTime() - a.endDateObj.getTime());
+
+  // 3. Tomar hasta 6 próximos
+  const selectedUpcoming = upcoming.slice(0, 6);
+
+  // 4. Rellenar con los torneos jugados que sean necesarios para completar exactamente 6
+  const slotsRemaining = Math.max(0, 6 - selectedUpcoming.length);
+  const selectedFinished = finished.slice(0, slotsRemaining);
+
+  const result = [...selectedUpcoming, ...selectedFinished];
+
+  // Si aún hubiera menos de 6 torneos en el sistema, asegurar completar con los restantes
+  if (result.length < 6) {
+    const usedIds = new Set(result.map((r) => r.id));
+    for (const t of [...upcoming, ...finished]) {
+      if (!usedIds.has(t.id)) {
+        result.push(t);
+        usedIds.add(t.id);
+        if (result.length >= 6) break;
+      }
+    }
+  }
+
+  return result.slice(0, 6);
 }
 
 export function extractTournamentMatches(tournament) {
@@ -2139,6 +2387,9 @@ export function createTournament(data) {
 
   tournaments.push(newTourney);
   saveTournaments(tournaments);
+  tournamentApi.create(newTourney).catch((err) => {
+    console.warn('[ATAP] Sincronización de creación de torneo con servidor pendiente:', err);
+  });
   return newTourney;
 }
 
@@ -2146,6 +2397,9 @@ export function deleteTournament(tournamentId) {
   const tournaments = getTournaments();
   const filtered = tournaments.filter((t) => t.id !== tournamentId);
   saveTournaments(filtered);
+  tournamentApi.delete(tournamentId).catch((err) => {
+    console.warn('[ATAP] Sincronización de eliminación de torneo con servidor pendiente:', err);
+  });
   return filtered;
 }
 
@@ -2177,6 +2431,9 @@ export function updateTournament(tournamentId, updatedData) {
   };
 
   saveTournaments(tournaments);
+  tournamentApi.update(tournamentId, tournaments[index]).catch((err) => {
+    console.warn('[ATAP] Sincronización de actualización de torneo con servidor pendiente:', err);
+  });
   return tournaments[index];
 }
 
@@ -2366,29 +2623,31 @@ export function registerPlayerToTournament(tournamentId, playerData) {
       telefono: playerData.telefonoJugador3 || '',
       rol: 'Titular 3'
     } : null,
-    jugador4: isGrupal ? {
+    jugador4: (isGrupal && (playerData.nombreJugador4 || playerData.dniJugador4)) ? {
       nombre: playerData.nombreJugador4 || '',
       dni: maskDni(playerData.dniJugador4),
       email: playerData.emailJugador4 || '',
       telefono: playerData.telefonoJugador4 || '',
-      rol: 'Titular 4'
+      rol: 'Jugador 4 (Opcional)',
+      esOpcional: true
     } : null,
     jugador5: (isGrupal && (playerData.nombreJugador5 || playerData.dniJugador5)) ? {
       nombre: playerData.nombreJugador5 || '',
       dni: maskDni(playerData.dniJugador5),
       email: playerData.emailJugador5 || '',
       telefono: playerData.telefonoJugador5 || '',
-      rol: 'Suplente (Opcional)',
-      esSuplente: true
+      rol: 'Jugador 5 (Suplente / Opcional)',
+      esSuplente: true,
+      esOpcional: true
     } : null,
     integrantes: isGrupal ? [
       { rol: 'Capitán / Titular 1', nombre: playerData.nombre, dni: maskDni(playerData.dni), email: playerData.email || '', telefono: playerData.telefono || '' },
       { rol: 'Titular 2', nombre: playerData.nombreJugador2 || '', dni: maskDni(playerData.dniJugador2), email: playerData.emailJugador2 || '', telefono: playerData.telefonoJugador2 || '' },
       { rol: 'Titular 3', nombre: playerData.nombreJugador3 || '', dni: maskDni(playerData.dniJugador3), email: playerData.emailJugador3 || '', telefono: playerData.telefonoJugador3 || '' },
-      { rol: 'Titular 4', nombre: playerData.nombreJugador4 || '', dni: maskDni(playerData.dniJugador4), email: playerData.emailJugador4 || '', telefono: playerData.telefonoJugador4 || '' },
-      ...(playerData.nombreJugador5 ? [{ rol: 'Suplente (Opcional)', nombre: playerData.nombreJugador5, dni: maskDni(playerData.dniJugador5), email: playerData.emailJugador5 || '', telefono: playerData.telefonoJugador5 || '' }] : [])
+      ...(playerData.nombreJugador4 ? [{ rol: 'Jugador 4 (Opcional)', nombre: playerData.nombreJugador4, dni: maskDni(playerData.dniJugador4), email: playerData.emailJugador4 || '', telefono: playerData.telefonoJugador4 || '' }] : []),
+      ...(playerData.nombreJugador5 ? [{ rol: 'Jugador 5 (Suplente / Opcional)', nombre: playerData.nombreJugador5, dni: maskDni(playerData.dniJugador5), email: playerData.emailJugador5 || '', telefono: playerData.telefonoJugador5 || '' }] : [])
     ] : undefined,
-    estadoPago: 'pendiente',
+    estadoPago: Number(tournaments[index].precio) === 0 ? 'aprobado' : 'pendiente',
     fechaRegistro: new Date().toISOString().split('T')[0],
     metodoPago: playerData.metodoPago || 'Yape',
     comprobanteInfo: playerData.comprobanteInfo || ''
@@ -2400,6 +2659,15 @@ export function registerPlayerToTournament(tournamentId, playerData) {
 
   tournaments[index].inscripciones.push(newRegistration);
   saveTournaments(tournaments);
+
+  // Sincronizar inscripción con backend MySQL / SiteGround
+  tournamentApi.createInscription(tournamentId, {
+    ...playerData,
+    ...newRegistration
+  }).catch((err) => {
+    console.warn('[ATAP] Sincronización de inscripción con servidor pendiente:', err);
+  });
+
   return newRegistration;
 }
 
@@ -2413,6 +2681,12 @@ export function updateRegistrationStatus(tournamentId, registrationId, newStatus
   if (insc) {
     insc.estadoPago = newStatus;
     saveTournaments(tournaments);
+
+    // Sincronizar estado en MySQL
+    tournamentApi.updateInscriptionStatus(registrationId, newStatus).catch((err) => {
+      console.warn('[ATAP] Sincronización de estado de inscripción pendiente:', err);
+    });
+
     return true;
   }
   return false;
@@ -3146,27 +3420,151 @@ export function createDefaultGroups(tournament) {
   ];
 }
 
-export function generateGroupMatches(participantes, grupoId, grupoNombre) {
+export function generateGroupMatches(participantes, grupoId, grupoNombre, isGrupal = false) {
   if (!participantes || participantes.length < 2) return [];
   const matches = [];
   let matchIndex = 1;
+  let fechaIndex = 1;
+
   for (let i = 0; i < participantes.length; i++) {
     for (let j = i + 1; j < participantes.length; j++) {
-      matches.push({
-        id: `pg-${grupoId}-${matchIndex}`,
-        grupoId: grupoId,
-        grupoNombre: grupoNombre,
-        round: `${grupoNombre} - Partido ${matchIndex}`,
-        matchNum: matchIndex,
-        player1: { name: participantes[i].nombre, categoria: participantes[i].categoria || '' },
-        player2: { name: participantes[j].nombre, categoria: participantes[j].categoria || '' },
-        score: '',
-        winnerSlot: null,
-        winnerName: null,
-        nextMatchId: null,
-        nextSlot: null
-      });
-      matchIndex++;
+      const p1 = participantes[i];
+      const p2 = participantes[j];
+
+      // Detección robusta de modalidad grupal / por equipos
+      const esModalidadGrupal = Boolean(
+        isGrupal ||
+        p1.esGrupal ||
+        p2.esGrupal ||
+        p1.nombreEquipo ||
+        p2.nombreEquipo ||
+        (p1.integrantes && p1.integrantes.length > 0) ||
+        (p2.integrantes && p2.integrantes.length > 0)
+      );
+
+      if (esModalidadGrupal) {
+        const team1Name = (p1.nombreEquipo || p1.nombre || `Equipo ${i + 1}`).trim();
+        const team2Name = (p2.nombreEquipo || p2.nombre || `Equipo ${j + 1}`).trim();
+        const serieTitulo = `${team1Name} vs ${team2Name}`;
+
+        // En torneos grupales por cada fecha se juegan: 2 partidos de singles y 1 de dobles
+        // 1. Partido Singles 1
+        matches.push({
+          id: `pg-${grupoId}-f${fechaIndex}-s1`,
+          grupoId: grupoId,
+          grupoNombre: grupoNombre,
+          fechaNum: fechaIndex,
+          matchNum: matchIndex++,
+          round: `${grupoNombre} - Fecha ${fechaIndex} (Singles 1)`,
+          serieNombre: serieTitulo,
+          subtipo: 'Singles 1',
+          modalidad: 'singles',
+          esGrupal: true,
+          team1: team1Name,
+          team2: team2Name,
+          player1: {
+            name: `${team1Name} (Singles 1)`,
+            teamName: team1Name,
+            categoria: p1.categoria || '',
+            subtipo: 'Singles 1'
+          },
+          player2: {
+            name: `${team2Name} (Singles 1)`,
+            teamName: team2Name,
+            categoria: p2.categoria || '',
+            subtipo: 'Singles 1'
+          },
+          score: '',
+          winnerSlot: null,
+          winnerName: null,
+          nextMatchId: null,
+          nextSlot: null
+        });
+
+        // 2. Partido Singles 2
+        matches.push({
+          id: `pg-${grupoId}-f${fechaIndex}-s2`,
+          grupoId: grupoId,
+          grupoNombre: grupoNombre,
+          fechaNum: fechaIndex,
+          matchNum: matchIndex++,
+          round: `${grupoNombre} - Fecha ${fechaIndex} (Singles 2)`,
+          serieNombre: serieTitulo,
+          subtipo: 'Singles 2',
+          modalidad: 'singles',
+          esGrupal: true,
+          team1: team1Name,
+          team2: team2Name,
+          player1: {
+            name: `${team1Name} (Singles 2)`,
+            teamName: team1Name,
+            categoria: p1.categoria || '',
+            subtipo: 'Singles 2'
+          },
+          player2: {
+            name: `${team2Name} (Singles 2)`,
+            teamName: team2Name,
+            categoria: p2.categoria || '',
+            subtipo: 'Singles 2'
+          },
+          score: '',
+          winnerSlot: null,
+          winnerName: null,
+          nextMatchId: null,
+          nextSlot: null
+        });
+
+        // 3. Partido de Dobles
+        matches.push({
+          id: `pg-${grupoId}-f${fechaIndex}-dobles`,
+          grupoId: grupoId,
+          grupoNombre: grupoNombre,
+          fechaNum: fechaIndex,
+          matchNum: matchIndex++,
+          round: `${grupoNombre} - Fecha ${fechaIndex} (Dobles)`,
+          serieNombre: serieTitulo,
+          subtipo: 'Dobles',
+          modalidad: 'dobles',
+          esGrupal: true,
+          team1: team1Name,
+          team2: team2Name,
+          player1: {
+            name: `${team1Name} (Dobles)`,
+            teamName: team1Name,
+            categoria: p1.categoria || '',
+            subtipo: 'Dobles'
+          },
+          player2: {
+            name: `${team2Name} (Dobles)`,
+            teamName: team2Name,
+            categoria: p2.categoria || '',
+            subtipo: 'Dobles'
+          },
+          score: '',
+          winnerSlot: null,
+          winnerName: null,
+          nextMatchId: null,
+          nextSlot: null
+        });
+
+        fechaIndex++;
+      } else {
+        // Modalidad individual estándar (1 partido por enfrentamiento)
+        matches.push({
+          id: `pg-${grupoId}-${matchIndex}`,
+          grupoId: grupoId,
+          grupoNombre: grupoNombre,
+          round: `${grupoNombre} - Partido ${matchIndex}`,
+          matchNum: matchIndex++,
+          player1: { name: p1.nombre, categoria: p1.categoria || '' },
+          player2: { name: p2.nombre, categoria: p2.categoria || '' },
+          score: '',
+          winnerSlot: null,
+          winnerName: null,
+          nextMatchId: null,
+          nextSlot: null
+        });
+      }
     }
   }
   return matches;
@@ -3245,6 +3643,16 @@ export function saveManualFixture(tournamentId, { faseGrupos, rounds, bracket, s
   }
 
   saveTournaments(tournaments);
+
+  // Sincronizar fixtures con backend MySQL / SiteGround
+  tournamentApi.update(tournamentId, {
+    bracket: tournaments[index].bracket,
+    faseGrupos: tournaments[index].faseGrupos,
+    grupos: tournaments[index].faseGrupos
+  }).catch((err) => {
+    console.warn('[ATAP] Sincronización de fixture con servidor pendiente:', err);
+  });
+
   return { success: true, torneo: tournaments[index] };
 }
 
@@ -3334,6 +3742,16 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   }
 
   saveTournaments(tournaments);
+
+  // Sincronizar marcador con backend MySQL / SiteGround
+  tournamentApi.recordMatchScore(tournamentId, matchId, {
+    score: matchData.score,
+    winnerSlot,
+    pointsAward
+  }).catch((err) => {
+    console.warn('[ATAP] Sincronización de marcador con servidor pendiente:', err);
+  });
+
   return { success: true, match: targetMatch, champion: tournament.bracket?.champion };
 }
 
@@ -5139,6 +5557,12 @@ export function saveHeroSlides(slides) {
     }
     localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(current));
     emitAtapUpdate(STORAGE_KEYS.IMAGES, current);
+
+    // Sincronizar con backend MySQL / SiteGround
+    contentApi.saveSetting('atap_site_images', current).catch((err) => {
+      console.warn('[ATAP] Sincronización de hero slides con servidor pendiente:', err);
+    });
+
     return true;
   } catch (e) {
     console.error('Error saving hero slides:', e);
@@ -5160,12 +5584,19 @@ export function saveSiteImage(imageKey, newUrl) {
         parsedBanners.signupBanner = { ...(parsedBanners.signupBanner || {}), image: newUrl };
         localStorage.setItem(STORAGE_KEYS.HOME_BANNERS, JSON.stringify(parsedBanners));
         emitAtapUpdate(STORAGE_KEYS.HOME_BANNERS, parsedBanners);
+        contentApi.saveSetting('atap_home_banners', parsedBanners).catch(() => {});
       } catch (err) {
         console.warn('Error syncing signupBanner image:', err);
       }
     }
     localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(current));
     emitAtapUpdate(STORAGE_KEYS.IMAGES, current);
+
+    // Sincronizar con backend MySQL / SiteGround
+    contentApi.saveSetting('atap_site_images', current).catch((err) => {
+      console.warn('[ATAP] Sincronización de imagen de sitio con servidor pendiente:', err);
+    });
+
     return true;
   } catch (e) {
     console.error('Error saving site image:', e);
@@ -5231,8 +5662,15 @@ export function saveHomeBanners(banners) {
       siteImgs.eventoBanner = updated.signupBanner.image;
       localStorage.setItem(STORAGE_KEYS.IMAGES, JSON.stringify(siteImgs));
       emitAtapUpdate(STORAGE_KEYS.IMAGES, siteImgs);
+      contentApi.saveSetting('atap_site_images', siteImgs).catch(() => {});
     }
     emitAtapUpdate(STORAGE_KEYS.HOME_BANNERS, updated);
+
+    // Sincronizar con backend MySQL / SiteGround
+    contentApi.saveSetting('atap_home_banners', updated).catch((err) => {
+      console.warn('[ATAP] Sincronización de banners de home con servidor pendiente:', err);
+    });
+
     return true;
   } catch (e) {
     console.error('Error saving home banners:', e);
@@ -5599,6 +6037,12 @@ ATAP protege la transparencia competitiva.`
     summary: 'Formato Round Robin, marcadores, super tie-break, walk over y reserva de canchas.',
     content: `Formato Round Robin
 Este torneo se juega bajo el formato Round Robin, donde cada jugador agenda sus propios partidos directamente con sus rivales, lo que te permite competir con total flexibilidad. Todos los jugadores disputarán 3 encuentros garantizados en fase de grupos, acumulando puntos para el ranking de cada categoría.
+
+Formato Oficial para Torneos Grupales (Equipos):
+En los torneos grupales por equipos, por cada fecha (serie entre dos equipos) se disputan obligatoriamente tres (3) partidos oficiales:
+• Dos (2) partidos de Singles (Singles 1 y Singles 2).
+• Un (1) partido de Dobles.
+El equipo ganador de la serie de la fecha será aquel que consiga la victoria en al menos dos (2) de los tres partidos disputados.
 
 ¿Cómo Resulto Ganador del Partido?
 Los partidos se disputarán al mejor de tres (3) sets.

@@ -70,7 +70,7 @@ export default function Tournaments({ usuario }) {
           ) : (
             <section className="tournaments-page-list">
               {tourneyList.map((tournament) => {
-                const precioDisplay = tournament.precio ? `S/ ${tournament.precio}.00` : 'S/ 100.00'
+                const precioDisplay = tournament.precio !== undefined ? (Number(tournament.precio) === 0 ? 'GRATIS' : `S/ ${tournament.precio}.00`) : 'S/ 100.00'
                 const isFinalizado = tournament.estado === 'finalizado'
                 const isLive = !isFinalizado && (
                   tournament.estado === 'en_curso' ||

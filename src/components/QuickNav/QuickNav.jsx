@@ -1,29 +1,26 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getTournaments, INITIAL_TOURNAMENTS, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
+import { getHomeTournamentsDisplay, getAssetUrl, handleImageFallback } from '../../services/atapStorage'
 import './QuickNav.css'
 
 export default function QuickNav() {
-  const [tournaments, setTournaments] = useState(() => {
-    const list = getTournaments()
-    return list && list.length > 0 ? list : INITIAL_TOURNAMENTS
-  })
+  const [displayTourneys, setDisplayTourneys] = useState(() => getHomeTournamentsDisplay())
 
   useEffect(() => {
     function handleUpdate() {
-      const list = getTournaments()
-      if (list && list.length > 0) {
-        setTournaments(list)
-      }
+      setDisplayTourneys(getHomeTournamentsDisplay())
     }
     window.addEventListener('atap_data_updated', handleUpdate)
-    return () => window.removeEventListener('atap_data_updated', handleUpdate)
+    window.addEventListener('atap_storage_update', handleUpdate)
+    window.addEventListener('storage', handleUpdate)
+    return () => {
+      window.removeEventListener('atap_data_updated', handleUpdate)
+      window.removeEventListener('atap_storage_update', handleUpdate)
+      window.removeEventListener('storage', handleUpdate)
+    }
   }, [])
 
-  if (!tournaments || tournaments.length === 0) return null
-
-  // Mostrar los torneos registrados desde el admin (hasta 6 en la fila principal)
-  const displayTourneys = tournaments.slice(0, 6)
+  if (!displayTourneys || displayTourneys.length === 0) return null
 
   return (
     <section
@@ -33,38 +30,73 @@ export default function QuickNav() {
         gridTemplateColumns: `repeat(${Math.min(displayTourneys.length, 6)}, minmax(0, 1fr))`
       }}
     >
-      {displayTourneys.map((t) => (
-        <Link
-          to="/torneos"
-          className="quick-tourney-card"
-          aria-label={t.title}
-          title={`${t.title} - ${t.place || 'Lima, Perú'}`}
-          key={t.id}
-        >
-          <div className="quick-tourney-bg">
-            <img
-              src={getAssetUrl(t.image || '/assets/Evento.png')}
-              alt={t.title}
-              onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
-            />
-          </div>
-          <div className="quick-tourney-overlay" />
-          <div className="quick-tourney-content">
-            <div className="quick-tourney-top">
-              <span className={`quick-tourney-badge ${t.modalidad === 'dobles' ? 'is-duo' : 'is-level'}`}>
-                {t.modalidad === 'dobles' ? 'Dúo' : (t.level || 'Singles')}
-              </span>
-              {t.precio && (
-                <span className="quick-tourney-price">S/ {t.precio}</span>
-              )}
+      {displayTourneys.map((t) => {
+        const isFinished = t.isFinished
+        const badgeLabel = isFinished
+          ? '🏁 Finalizado'
+          : t.modalidad === 'dobles'
+            ? '🎾 Próx. Dobles'
+            : t.modalidad === 'grupal'
+              ? '🎾 Próx. Equipos'
+              : '🎾 Próximo'
+
+        return (
+          <Link
+            to="/torneos"
+            className={`quick-tourney-card ${isFinished ? 'is-finished' : 'is-upcoming'}`}
+            aria-label={t.title}
+            title={`${t.title} - ${isFinished ? `Finalizó: ${t.fechaFinTexto || t.date}` : `Inicia: ${t.fechaInicioTexto || t.date}`}`}
+            key={t.id}
+          >
+            <div className="quick-tourney-bg">
+              <img
+                src={getAssetUrl(t.image || '/assets/Evento.png')}
+                alt={t.title}
+                onError={(e) => handleImageFallback(e, '/assets/Evento.png')}
+              />
             </div>
-            <div className="quick-tourney-bottom">
-              <strong className="quick-tourney-title">{t.title}</strong>
-              {t.date && <small className="quick-tourney-date">{t.date}</small>}
+            <div className="quick-tourney-overlay" />
+            <div className="quick-tourney-content">
+              <div className="quick-tourney-top">
+                <span className={`quick-tourney-badge ${isFinished ? 'badge-finished' : 'badge-upcoming'}`}>
+                  {badgeLabel}
+                </span>
+
+                {isFinished ? (
+                  t.campeonNombre ? (
+                    <span className="quick-tourney-champ" title={`Campeón: ${t.campeonNombre}`}>
+                      🏆 {t.campeonNombre}
+                    </span>
+                  ) : (
+                    <span className="quick-tourney-finished-status">Concluido</span>
+                  )
+                ) : (
+                  t.precio ? (
+                    <span className="quick-tourney-price">S/ {t.precio}</span>
+                  ) : (
+                    <span className="quick-tourney-badge is-level">
+                      {t.modalidad === 'dobles' ? 'Dúo' : (t.level || 'Singles')}
+                    </span>
+                  )
+                )}
+              </div>
+
+              <div className="quick-tourney-bottom">
+                <strong className="quick-tourney-title">{t.title}</strong>
+                {isFinished ? (
+                  <small className="quick-tourney-date date-finished">
+                    🏁 Finalizó: {t.fechaFinTexto || t.date}
+                  </small>
+                ) : (
+                  <small className="quick-tourney-date date-upcoming">
+                    📅 Inicia: {t.fechaInicioTexto || t.date}
+                  </small>
+                )}
+              </div>
             </div>
-          </div>
-        </Link>
-      ))}
+          </Link>
+        )
+      })}
     </section>
   )
 }
