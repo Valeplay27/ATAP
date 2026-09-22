@@ -127,8 +127,8 @@ export default function TournamentRegisterModal({
 
   if (!tournament) return null
 
-  const isFree = tournament.precio !== undefined && Number(tournament.precio) === 0
-  const precioDisplay = tournament.precio !== undefined ? (Number(tournament.precio) === 0 ? 'GRATIS' : ('S/ ' + tournament.precio + '.00')) : 'S/ 100.00'
+  const isFree = !(tournament.precio !== undefined && Number(tournament.precio) === 0)
+  const precioDisplay = tournament.precio !== undefined ? (Number(tournament.precio) === 0 ? 'GRATIS' : ('S/ ' + tournament.precio + '.00')) : 'GRATIS'
 
   function handleOpenRegisterInAtap(playerData = null) {
     if (onClose) onClose()

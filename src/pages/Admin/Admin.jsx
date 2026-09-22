@@ -314,7 +314,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     const currentPrices = {}
     tourneys.forEach((t) => {
-      currentPrices[t.id] = t.precio || 100
+      currentPrices[t.id] = t.precio !== undefined ? Number(t.precio) : 0
     })
     setPriceInputs(currentPrices)
 
@@ -479,7 +479,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
   }, [])
 
-  // Verificación estricta: ÚNICAMENTE vladimiryt18@gmail.com es el administrador oficial
+ 
   const isAdminAuthorized = Boolean(
     usuario &&
       usuario.email?.toLowerCase() === 'vladimiryt18@gmail.com'
