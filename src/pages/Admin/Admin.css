@@ -3341,6 +3341,7 @@
 .player-card-actions {
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
 .assigned-status-box {
@@ -3389,6 +3390,28 @@
   border-radius: 6px;
   outline: none;
   cursor: pointer;
+}
+
+.btn-delete-bank-player {
+  background: #FFF1F0;
+  color: #E02424;
+  border: 1px solid #FFD8D6;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-delete-bank-player:hover {
+  background: #E02424;
+  color: #FFFFFF;
+  border-color: #E02424;
+  transform: scale(1.05);
 }
 
 /* GROUPS DROP TARGET CONTAINER */
@@ -8917,5 +8940,221 @@
   padding: 2px 6px;
   border-radius: 4px;
 }
+
+/* ==========================================================================
+   ATAP CONFIRMATION DIALOG (MODAL PROFESIONAL Y MODERNO)
+   ========================================================================== */
+.atap-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 24, 39, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: atapFadeIn 0.18s ease-out;
+}
+
+@keyframes atapFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes atapPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.atap-confirm-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 32px 28px 24px 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 24, 39, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: atapPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.atap-confirm-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.atap-confirm-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.atap-confirm-icon-wrap {
+  margin-bottom: 16px;
+}
+
+.atap-confirm-icon-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.atap-confirm-icon-circle.is-danger {
+  background: #FEE2E2;
+  color: #DC2626;
+  box-shadow: 0 0 0 8px #FEF2F2;
+}
+
+.atap-confirm-icon-circle.is-warn {
+  background: #FEF3C7;
+  color: #D97706;
+  box-shadow: 0 0 0 8px #FFFBEB;
+}
+
+.atap-confirm-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.atap-confirm-title {
+  margin: 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #001827;
+  letter-spacing: 0.3px;
+  line-height: 1.25;
+}
+
+.atap-confirm-player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #166534;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-top: 2px;
+}
+
+.atap-confirm-message {
+  margin: 0;
+  font-size: 14px;
+  color: #64748B;
+  line-height: 1.5;
+  max-width: 360px;
+}
+
+.atap-confirm-detail-box {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #92400E;
+  text-align: left;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.atap-confirm-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.atap-confirm-btn-cancel {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #E2E8F0;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.atap-confirm-btn-cancel:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.atap-confirm-btn-action {
+  border: none;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.atap-confirm-btn-action.is-danger {
+  background: #EF4444;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+}
+
+.atap-confirm-btn-action.is-danger:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+}
+
+.atap-confirm-btn-action.is-primary {
+  background: #00CFA0;
+  color: #00304A;
+  box-shadow: 0 4px 14px rgba(0, 207, 160, 0.3);
+}
+
+.atap-confirm-btn-action.is-primary:hover {
+  background: #00b88e;
+  transform: translateY(-1px);
+}
+
 
 

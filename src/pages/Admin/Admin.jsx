@@ -105,6 +105,7 @@ import {
   saveRegisteredUser,
   deleteRegisteredUser,
   addPlayerToTournamentBank,
+  removePlayerFromTournamentBank,
   maskDni,
   getHomeBanners,
   saveHomeBanners,
@@ -306,6 +307,37 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [bankModalTargetField, setBankModalTargetField] = useState('bank') // 'bank' | 'player1' | 'player2'
   const [bankModalSearch, setBankModalSearch] = useState('')
   const [bankModalCategoryFilter, setBankModalCategoryFilter] = useState('todas')
+
+  // Modal de confirmación personalizado en interfaz (reemplaza confirm() nativo del navegador)
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    playerName: '',
+    message: '',
+    detail: null,
+    confirmText: 'Sí, eliminar',
+    cancelText: 'Cancelar',
+    isDanger: true,
+    onConfirm: null
+  })
+
+  function openConfirmModal({ title, playerName = '', message, detail = null, confirmText = 'Sí, eliminar', cancelText = 'Cancelar', isDanger = true, onConfirm }) {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      playerName,
+      message,
+      detail,
+      confirmText,
+      cancelText,
+      isDanger,
+      onConfirm
+    })
+  }
+
+  function closeConfirmModal() {
+    setConfirmModal((prev) => ({ ...prev, isOpen: false, onConfirm: null }))
+  }
 
   function showToast(msg) {
     setToastMessage(msg)
@@ -2812,28 +2844,35 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const playerName = player.nombre || player.name || 'Jugador'
     const cleanDni = (player.dni || player.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
     if (player.email?.toLowerCase() === 'vladimiryt18@gmail.com' || cleanDni === '00000000' || cleanDni === '*****000') {
-      alert('La cuenta del Administrador no puede ser eliminada.')
+      showToast('La cuenta del Administrador no puede ser eliminada.')
       return
     }
 
-    const confirmDelete = window.confirm(
-      `¿Estás seguro de que deseas eliminar al jugador "${playerName}" (DNI: ${maskDni(cleanDni) || 'N/A'})?\n\nEsta acción quitará al jugador de la base de datos de ATAP, del ranking del circuito y de torneos.`
-    )
-    if (!confirmDelete) return
-
-    const deleted = deleteRegisteredUser(cleanDni || player.email || playerName)
-    if (deleted) {
-      setRegisteredUsersList(getRegisteredUsers())
-      setRanking(getRanking())
-      setTournaments(getTournaments())
-      showToast(`Jugador "${playerName}" eliminado de la base de datos y ranking.`)
-      setPlayerActionNotice({ type: 'success', message: `El jugador "${playerName}" fue eliminado correctamente del sistema.` })
-      if (isEditingExistingPlayer && playerFormData.originalDni === cleanDni) {
-        handleCancelEditPlayer()
+    openConfirmModal({
+      title: 'Eliminar Jugador del Sistema',
+      playerName: `${playerName} (DNI: ${maskDni(cleanDni) || 'S/D'})`,
+      message: '¿Estás seguro de que deseas eliminar a este jugador de la base de datos oficial?',
+      detail: 'Se retirará de la lista general de usuarios, del ranking del circuito y de torneos.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      isDanger: true,
+      onConfirm: () => {
+        const deleted = deleteRegisteredUser(cleanDni || player.email || playerName)
+        if (deleted) {
+          setRegisteredUsersList(getRegisteredUsers())
+          setRanking(getRanking())
+          setTournaments(getTournaments())
+          showToast(`Jugador "${playerName}" eliminado de la base de datos y ranking.`)
+          setPlayerActionNotice({ type: 'success', message: `El jugador "${playerName}" fue eliminado correctamente del sistema.` })
+          if (isEditingExistingPlayer && playerFormData.originalDni === cleanDni) {
+            handleCancelEditPlayer()
+          }
+        } else {
+          showToast('No se pudo eliminar al jugador.')
+        }
+        closeConfirmModal()
       }
-    } else {
-      showToast('No se pudo eliminar al jugador.')
-    }
+    })
   }
 
   function handleAddPlayerToTournamentBank(player, explicitTourneyId = null) {
@@ -2847,6 +2886,78 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       const playerName = player.nombre || player.name || 'Jugador'
       showToast(`¡${playerName} agregado al banco de participantes de ${tourneyTitle}!`)
     }
+  }
+
+  function handleDeletePlayerFromBank(player) {
+    if (!player || !currentTourney) return
+    const tourneyId = currentTourney.id
+    const playerName = player.nombre || player.name || 'Jugador'
+    const assignedGroup = getPlayerAssignedGroup(player.id)
+
+    openConfirmModal({
+      title: 'Eliminar del Banco de Participantes',
+      playerName,
+      message: '¿Estás seguro de que deseas retirar a este participante del banco del torneo actual?',
+      detail: assignedGroup
+        ? `El participante está asignado a "${assignedGroup.nombre}". Al confirmar, también será retirado de dicho grupo.`
+        : null,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      isDanger: true,
+      onConfirm: () => {
+        // 1. Quitar de manualGroups si estaba asignado
+        const updatedGroups = manualGroups.map((g) => ({
+          ...g,
+          participantes: (g.participantes || []).filter(
+            (p) => p.id !== player.id && (!player.dni || player.dni === 'S/D' || p.dni !== player.dni)
+          )
+        }))
+        setManualGroups(updatedGroups)
+
+        // 2. Eliminar del torneo en atapStorage
+        const updated = removePlayerFromTournamentBank(tourneyId, player)
+        if (updated) {
+          updateTournament(tourneyId, { faseGrupos: updatedGroups })
+          setTournaments(getTournaments())
+          handleSelectTourney(tourneyId)
+          showToast(`Jugador "${playerName}" eliminado del banco del torneo.`)
+        }
+        closeConfirmModal()
+      }
+    })
+  }
+
+  function handleDeleteInscription(tourneyId, insc) {
+    if (!tourneyId || !insc) return
+    const name = insc.nombre || insc.nombreEquipo || 'esta inscripción'
+
+    openConfirmModal({
+      title: 'Eliminar Inscripción del Torneo',
+      playerName: name,
+      message: '¿Estás seguro de que deseas eliminar este registro de inscripción de este torneo?',
+      detail: null,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      isDanger: true,
+      onConfirm: () => {
+        const updatedGroups = manualGroups.map((g) => ({
+          ...g,
+          participantes: (g.participantes || []).filter(
+            (p) => p.id !== insc.id && (!insc.dni || insc.dni === 'S/D' || p.dni !== insc.dni)
+          )
+        }))
+        setManualGroups(updatedGroups)
+
+        const updated = removePlayerFromTournamentBank(tourneyId, insc)
+        if (updated) {
+          updateTournament(tourneyId, { faseGrupos: updatedGroups })
+          setTournaments(getTournaments())
+          handleSelectTourney(tourneyId)
+          showToast(`Inscripción de "${name}" eliminada del torneo.`)
+        }
+        closeConfirmModal()
+      }
+    })
   }
 
   // Filtrado de jugadores registrados para la tabla CRUD
@@ -4209,6 +4320,14 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                   <XCircle size={15} />
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                className="btn-action-delete"
+                                title="Eliminar inscripción del torneo"
+                                onClick={() => handleDeleteInscription(currentTourney.id, insc)}
+                              >
+                                <Trash2 size={15} />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -4448,6 +4567,14 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                   ))}
                                 </select>
                               )}
+                              <button
+                                type="button"
+                                className="btn-delete-bank-player"
+                                onClick={() => handleDeletePlayerFromBank(player)}
+                                title={`Eliminar a ${player.nombre} del banco del torneo`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             </div>
                           </div>
                         )
@@ -8943,6 +9070,81 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 }}
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN ELEGANTE (REEMPLAZA window.confirm) */}
+      {confirmModal.isOpen && (
+        <div className="atap-confirm-backdrop" onClick={closeConfirmModal}>
+          <div
+            className="atap-confirm-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              className="atap-confirm-close-btn"
+              onClick={closeConfirmModal}
+              title="Cerrar"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="atap-confirm-icon-wrap">
+              <div className={`atap-confirm-icon-circle ${confirmModal.isDanger ? 'is-danger' : 'is-warn'}`}>
+                {confirmModal.isDanger ? (
+                  <Trash2 size={26} />
+                ) : (
+                  <AlertTriangle size={26} />
+                )}
+              </div>
+            </div>
+
+            <div className="atap-confirm-content">
+              <h3 className="atap-confirm-title">{confirmModal.title || '¿Estás seguro?'}</h3>
+
+              {confirmModal.playerName && (
+                <div className="atap-confirm-player-chip">
+                  <span>🎾</span>
+                  <span>{confirmModal.playerName}</span>
+                </div>
+              )}
+
+              <p className="atap-confirm-message">
+                {confirmModal.message}
+              </p>
+
+              {confirmModal.detail && (
+                <div className="atap-confirm-detail-box">
+                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{confirmModal.detail}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="atap-confirm-buttons">
+              <button
+                type="button"
+                className="atap-confirm-btn-cancel"
+                onClick={closeConfirmModal}
+              >
+                {confirmModal.cancelText || 'Cancelar'}
+              </button>
+              <button
+                type="button"
+                className={`atap-confirm-btn-action ${confirmModal.isDanger ? 'is-danger' : 'is-primary'}`}
+                onClick={() => {
+                  if (typeof confirmModal.onConfirm === 'function') {
+                    confirmModal.onConfirm()
+                  }
+                }}
+              >
+                {confirmModal.isDanger && <Trash2 size={15} />}
+                <span>{confirmModal.confirmText || 'Sí, eliminar'}</span>
               </button>
             </div>
           </div>

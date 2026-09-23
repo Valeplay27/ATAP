@@ -3222,6 +3222,81 @@ export function addPlayerToTournamentBank(tournamentId, playerOrUserData) {
   return currentTourney;
 }
 
+export function removePlayerFromTournamentBank(tournamentId, playerOrId) {
+  if (!tournamentId || !playerOrId) return null;
+  const tournaments = getTournaments();
+  const tIdx = tournaments.findIndex((t) => t.id === tournamentId);
+  if (tIdx === -1) return null;
+
+  const currentTourney = tournaments[tIdx];
+  if (!currentTourney.inscripciones) {
+    currentTourney.inscripciones = [];
+    return currentTourney;
+  }
+
+  const targetId = typeof playerOrId === 'string' ? playerOrId : (playerOrId.id || playerOrId._id);
+  const targetDniRaw = typeof playerOrId === 'object' ? (playerOrId.dni || playerOrId.documentoIdentidad || '') : '';
+  const targetDni = targetDniRaw ? String(targetDniRaw).trim().replace(/\s+/g, '') : '';
+  const targetName = typeof playerOrId === 'object' ? (playerOrId.nombre || playerOrId.name || '').trim().toLowerCase() : '';
+
+  // 1. Filtrar la inscripción
+  currentTourney.inscripciones = currentTourney.inscripciones.filter((i) => {
+    // Si coincide por ID exacto, eliminar
+    if (targetId && i.id === targetId) return false;
+
+    // Si coincide por DNI (excluyendo vacíos y placeholders)
+    const iDni = (i.dni || i.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
+    if (targetDni && iDni && targetDni !== 'S/D' && iDni !== 'S/D' && targetDni !== 'N/A' && iDni !== 'N/A') {
+      if (iDni === targetDni) return false;
+      // DNI parcial (últimos 3 dígitos con mismo nombre)
+      if (
+        targetDni.length >= 3 &&
+        iDni.endsWith(targetDni.slice(-3)) &&
+        targetName &&
+        (i.nombre || i.name || '').trim().toLowerCase() === targetName
+      ) {
+        return false;
+      }
+    }
+
+    // Coincidencia por nombre completo no genérico si targetId no estaba definido
+    const iName = (i.nombre || i.name || '').trim().toLowerCase();
+    const isGeneric = !iName || iName === 'jugador' || iName === 'jugador atap' || iName === 'por definir' || iName === 's/d';
+    if (!isGeneric && targetName && iName === targetName && !targetId) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // 2. Limpiar de faseGrupos y grupos si existieran
+  const cleanGroups = (groupList) => {
+    if (!Array.isArray(groupList)) return groupList;
+    return groupList.map((g) => ({
+      ...g,
+      participantes: (g.participantes || []).filter((p) => {
+        if (targetId && (p.id === targetId || p.jugadorId === targetId)) return false;
+        const pDni = (p.dni || p.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
+        if (targetDni && pDni && targetDni !== 'S/D' && pDni !== 'S/D' && pDni === targetDni) return false;
+        const pName = (p.nombre || p.name || '').trim().toLowerCase();
+        if (targetName && pName === targetName) return false;
+        return true;
+      })
+    }));
+  };
+
+  if (currentTourney.faseGrupos) {
+    currentTourney.faseGrupos = cleanGroups(currentTourney.faseGrupos);
+  }
+  if (currentTourney.grupos) {
+    currentTourney.grupos = cleanGroups(currentTourney.grupos);
+  }
+
+  saveTournaments(tournaments);
+  emitAtapUpdate(STORAGE_KEYS.TOURNEYS, tournaments);
+  return currentTourney;
+}
+
 export function resetAllRegisteredUsersToAdminOnly() {
   try {
     localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(INITIAL_REGISTERED_USERS));
