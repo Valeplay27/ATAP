@@ -138,8 +138,24 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [homeBanners, setHomeBanners] = useState(() => getHomeBanners())
   const [homeBannerInputs, setHomeBannerInputs] = useState(() => getHomeBanners())
 
-  // Selected tournament for tabs
-  const [selectedTourneyId, setSelectedTourneyId] = useState('')
+  // Selected tournament for tabs (persistente en localStorage para que prevalezca el torneo seleccionado)
+  const [selectedTourneyId, setSelectedTourneyId] = useState(() => {
+    try {
+      return localStorage.getItem('atap_selected_tourney_id') || ''
+    } catch {
+      return ''
+    }
+  })
+
+  function handleSelectTourney(tourneyId) {
+    if (!tourneyId) return
+    setSelectedTourneyId(tourneyId)
+    try {
+      localStorage.setItem('atap_selected_tourney_id', tourneyId)
+    } catch (e) {
+      console.warn('Error saving active tourney to storage', e)
+    }
+  }
 
   // Notification toast
   const [toastMessage, setToastMessage] = useState('')
@@ -286,6 +302,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   // Bank of Participants Add Player Modal (for Sorteos & Tournaments)
   const [showBankAddModal, setShowBankAddModal] = useState(false)
+  const [bankModalTourneyId, setBankModalTourneyId] = useState('')
   const [bankModalTargetField, setBankModalTargetField] = useState('bank') // 'bank' | 'player1' | 'player2'
   const [bankModalSearch, setBankModalSearch] = useState('')
   const [bankModalCategoryFilter, setBankModalCategoryFilter] = useState('todas')
@@ -313,9 +330,26 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   function loadData() {
     const tourneys = getTournaments()
     setTournaments(tourneys)
-    if (tourneys.length > 0 && !selectedTourneyId) {
-      setSelectedTourneyId(tourneys[0].id)
-    }
+    const savedId = (() => {
+      try {
+        return localStorage.getItem('atap_selected_tourney_id') || ''
+      } catch {
+        return ''
+      }
+    })()
+
+    setSelectedTourneyId((prev) => {
+      const active = prev || savedId
+      if (active && tourneys.some((t) => t.id === active)) {
+        try { localStorage.setItem('atap_selected_tourney_id', active) } catch {}
+        return active
+      }
+      const fallback = tourneys[0]?.id || ''
+      if (fallback) {
+        try { localStorage.setItem('atap_selected_tourney_id', fallback) } catch {}
+      }
+      return fallback
+    })
     setRegisteredUsersList(getRegisteredUsers())
     setDailyRecoveryKey(getDailyRecoveryKey())
 
@@ -606,9 +640,14 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   // Sync manualGroups and playoffSize with currentTourney
   useEffect(() => {
-    if (!currentTourney) return
-    if (currentTourney.bracket?.faseGrupos && currentTourney.bracket.faseGrupos.length > 0) {
-      setManualGroups(JSON.parse(JSON.stringify(currentTourney.bracket.faseGrupos)))
+    if (!currentTourney?.id) return
+    const gruposSource = currentTourney.bracket?.faseGrupos?.length > 0
+      ? currentTourney.bracket.faseGrupos
+      : currentTourney.faseGrupos?.length > 0
+      ? currentTourney.faseGrupos
+      : null
+    if (gruposSource) {
+      setManualGroups(JSON.parse(JSON.stringify(gruposSource)))
     } else {
       setManualGroups(createDefaultGroups(currentTourney))
     }
@@ -788,6 +827,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
     const fresh = getTournaments()
     setTournaments(fresh)
+    handleSelectTourney(currentTourney.id)
     const freshTourney = fresh.find((t) => t.id === currentTourney.id)
     if (freshTourney?.faseGrupos) {
       setManualGroups(freshTourney.faseGrupos)
@@ -819,6 +859,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
     const fresh = getTournaments()
     setTournaments(fresh)
+    handleSelectTourney(currentTourney.id)
     const freshTourney = fresh.find((t) => t.id === currentTourney.id)
     if (freshTourney?.faseGrupos) {
       setManualGroups(freshTourney.faseGrupos)
@@ -835,6 +876,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
     const fresh = getTournaments()
     setTournaments(fresh)
+    handleSelectTourney(currentTourney.id)
     const freshTourney = fresh.find((t) => t.id === currentTourney.id)
     if (freshTourney?.faseGrupos) {
       setManualGroups(freshTourney.faseGrupos)
@@ -1019,6 +1061,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       })
       if (!res.error) {
         setTournaments(getTournaments())
+        handleSelectTourney(currentTourney.id)
         showToast(`⚡ Dupla ${isTeam1 ? 1 : 2} del Match #${targetMatch.matchNum} asignada como BYE (Pase Libre).`)
       }
       return
@@ -1027,12 +1070,26 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     let foundPlayer = null
     let foundGroup = null
     for (const g of manualGroups) {
-      const p = (g.participantes || []).find((x) => x.id === playerId)
-      if (p) {
-        foundPlayer = p
-        foundGroup = g
-        break
+      for (const p of (g.participantes || [])) {
+        if (p.id === playerId) {
+          foundPlayer = p
+          foundGroup = g
+          break
+        }
+        if (p.integrantes && Array.isArray(p.integrantes)) {
+          const sub = p.integrantes.find((s, idx) => s.id === playerId || `${p.id}-sub-${idx}` === playerId)
+          if (sub) {
+            foundPlayer = {
+              ...sub,
+              teamName: p.nombreEquipo || p.nombre || '',
+              categoria: sub.categoria || p.categoria || ''
+            }
+            foundGroup = g
+            break
+          }
+        }
       }
+      if (foundPlayer) break
     }
     if (!foundPlayer) return
 
@@ -1128,6 +1185,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     })
     if (!res.error) {
       setTournaments(getTournaments())
+      handleSelectTourney(currentTourney.id)
       showToast(`🎾 ${foundPlayer.nombre} (${foundGroup?.nombre || 'Grupo'}) asignado al Match #${targetMatch.matchNum}.`)
     }
   }
@@ -1205,6 +1263,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       })
       if (!res.error) {
         setTournaments(getTournaments())
+        handleSelectTourney(currentTourney.id)
         showToast(`Posiciones de contrincantes intercambiadas en ${currentTourney.title} (P1 ⇅ P2).`)
       }
     }
@@ -1263,6 +1322,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       })
       if (!res.error) {
         setTournaments(getTournaments())
+        handleSelectTourney(currentTourney.id)
         showToast(`Casilla eliminatoria de ${currentTourney.title} vaciada.`)
       }
     }
@@ -1539,6 +1599,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     })
     if (!res.error) {
       setTournaments(getTournaments())
+      handleSelectTourney(currentTourney.id)
       showToast(`¡Sorteo aleatorio de llaves generado exitosamente en ${currentTourney.title}!`)
     }
   }
@@ -1557,6 +1618,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     })
     if (!res.error) {
       setTournaments(getTournaments())
+      handleSelectTourney(currentTourney.id)
       showToast(`Llaves eliminatorias de ${currentTourney.title} vaciadas.`)
     }
   }
@@ -1580,6 +1642,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       showToast(res.error)
     } else {
       setTournaments(getTournaments())
+      handleSelectTourney(currentTourney.id)
       showToast(`¡Cuadro Eliminatorio oficial de ${currentTourney.title} guardado y publicado en Torneos!`)
     }
   }
@@ -2260,7 +2323,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     const updated = getTournaments()
     setTournaments(updated)
-    setSelectedTourneyId(created.id)
+    handleSelectTourney(created.id)
     setShowCreateTourneyModal(false)
     setNewTourneyTitle('')
     setNewTourneyStartDate('')
@@ -2286,7 +2349,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const updated = getTournaments()
     setTournaments(updated)
     if (selectedTourneyId === t.id && updated.length > 0) {
-      setSelectedTourneyId(updated[0].id)
+      handleSelectTourney(updated[0].id)
     }
     showToast(`Torneo "${t.title}" eliminado correctamente.`)
   }
@@ -2773,12 +2836,16 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
   }
 
-  function handleAddPlayerToTournamentBank(player) {
-    if (!currentTourney) return
-    const updated = addPlayerToTournamentBank(currentTourney.id, player)
+  function handleAddPlayerToTournamentBank(player, explicitTourneyId = null) {
+    const tourneyId = explicitTourneyId || bankModalTourneyId || selectedTourneyId || currentTourney?.id
+    if (!tourneyId) return
+    const tourneyObj = tournaments.find((t) => t.id === tourneyId) || currentTourney
+    const updated = addPlayerToTournamentBank(tourneyId, player)
     if (updated) {
       setTournaments(getTournaments())
-      showToast(`¡${player.nombre} agregado al banco de participantes de ${currentTourney.title}!`)
+      const tourneyTitle = tourneyObj?.title || updated?.title || 'Torneo'
+      const playerName = player.nombre || player.name || 'Jugador'
+      showToast(`¡${playerName} agregado al banco de participantes de ${tourneyTitle}!`)
     }
   }
 
@@ -3797,7 +3864,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                           type="button"
                           className={`btn-tourney-results-action-compact ${isFinalizado ? 'highlight-final' : ''}`}
                           onClick={() => {
-                            setSelectedTourneyId(t.id)
+                            handleSelectTourney(t.id)
                             setActiveTab('marcadores')
                           }}
                         >
@@ -3811,7 +3878,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                             type="button"
                             className="btn-tourney-quick-player-compact"
                             onClick={() => {
-                              setSelectedTourneyId(t.id)
+                              handleSelectTourney(t.id)
                               setQuickPlayerCategory((t.categorias && t.categorias[0]?.nombre) || '4ta')
                               setShowQuickPlayerModal(true)
                             }}
@@ -3847,7 +3914,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 <select
                   id="select-tourney-pay"
                   value={selectedTourneyId}
-                  onChange={(e) => setSelectedTourneyId(e.target.value)}
+                  onChange={(e) => handleSelectTourney(e.target.value)}
                 >
                   {tournaments.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -4172,7 +4239,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 <select
                   id="select-tourney-draw"
                   value={selectedTourneyId}
-                  onChange={(e) => setSelectedTourneyId(e.target.value)}
+                  onChange={(e) => handleSelectTourney(e.target.value)}
                 >
                   {tournaments.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -4298,7 +4365,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       <button
                         type="button"
                         className="btn-bank-add-player"
-                        onClick={() => setShowBankAddModal(true)}
+                        onClick={() => {
+                          setBankModalTourneyId(currentTourney?.id || selectedTourneyId)
+                          setBankModalTargetField('bank')
+                          setShowBankAddModal(true)
+                        }}
                         title="Llamar o agregar jugadores registrados al banco de este torneo"
                       >
                         <UserPlus size={14} />
@@ -4511,7 +4582,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     <select
                       id="select-bracket-tourney"
                       value={selectedTourneyId}
-                      onChange={(e) => setSelectedTourneyId(e.target.value)}
+                      onChange={(e) => handleSelectTourney(e.target.value)}
                       className="select-bracket-tourney-input"
                     >
                       {tournaments.map((t) => (
@@ -4691,7 +4762,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     id="select-tourney-score"
                     value={selectedTourneyId}
                     onChange={(e) => {
-                      setSelectedTourneyId(e.target.value)
+                      handleSelectTourney(e.target.value)
                       const target = tournaments.find((t) => t.id === e.target.value)
                       if (target?.categorias?.[0]?.nombre) {
                         setSelectedCategoryForResult(target.categorias[0].nombre)
@@ -4928,6 +4999,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                               type="button"
                               className="btn-link-quick-player btn-call-bank-players"
                               onClick={() => {
+                                setBankModalTourneyId(currentTourney?.id || selectedTourneyId)
                                 setBankModalTargetField('player1')
                                 setBankModalCategoryFilter(selectedCategoryForResult || activeCatName || 'todas')
                                 setShowBankAddModal(true)
@@ -4979,6 +5051,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                               type="button"
                               className="btn-link-quick-player btn-call-bank-players"
                               onClick={() => {
+                                setBankModalTourneyId(currentTourney?.id || selectedTourneyId)
                                 setBankModalTargetField('player2')
                                 setBankModalCategoryFilter(selectedCategoryForResult || activeCatName || 'todas')
                                 setShowBankAddModal(true)
@@ -8681,152 +8754,181 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
             role="dialog"
             aria-modal="true"
           >
-            <div className="admin-modal-header">
-              <div className="modal-title-wrap">
-                <span className="modal-subtitle-eyebrow">
-                  {currentTourney ? `${currentTourney.title} (${currentTourney.category || 'Categoría General'})` : 'Torneo Actual'}
-                </span>
-                <h3>
-                  {bankModalTargetField === 'player1'
-                    ? 'Seleccionar Jugador 1 para el Partido'
-                    : bankModalTargetField === 'player2'
-                    ? 'Seleccionar Jugador 2 para el Partido'
-                    : 'Llamar Jugadores al Banco de Participantes'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                className="admin-modal-close"
-                onClick={() => {
-                  setShowBankAddModal(false)
-                  setBankModalTargetField('bank')
-                }}
-                aria-label="Cerrar modal"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            {(() => {
+              const activeModalTourney = tournaments.find((t) => t.id === bankModalTourneyId) || currentTourney
 
-            <div className="bank-modal-filters-bar">
-              <div className="search-box">
-                <Search size={16} />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre o DNI..."
-                  value={bankModalSearch}
-                  onChange={(e) => setBankModalSearch(e.target.value)}
-                />
-              </div>
+              return (
+                <>
+                  <div className="admin-modal-header">
+                    <div className="modal-title-wrap">
+                      <span className="modal-subtitle-eyebrow">
+                        {activeModalTourney ? `${activeModalTourney.title} (${activeModalTourney.category || 'Categoría General'})` : 'Torneo Actual'}
+                      </span>
+                      <h3>
+                        {bankModalTargetField === 'player1'
+                          ? 'Seleccionar Jugador 1 para el Partido'
+                          : bankModalTargetField === 'player2'
+                          ? 'Seleccionar Jugador 2 para el Partido'
+                          : 'Llamar Jugadores al Banco de Participantes'}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="admin-modal-close"
+                      onClick={() => {
+                        setShowBankAddModal(false)
+                        setBankModalTargetField('bank')
+                      }}
+                      aria-label="Cerrar modal"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
 
-              <div className="filter-select-wrap">
-                <label>Categoría:</label>
-                <select
-                  value={bankModalCategoryFilter}
-                  onChange={(e) => setBankModalCategoryFilter(e.target.value)}
-                  className="input-select"
-                >
-                  <option value="todas">Todas las categorías</option>
-                  {ALL_OFFICIAL_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      Categoría {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                  <div className="bank-modal-filters-bar">
+                    <div className="search-box">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        placeholder="Buscar por nombre o DNI..."
+                        value={bankModalSearch}
+                        onChange={(e) => setBankModalSearch(e.target.value)}
+                      />
+                    </div>
 
-            <div className="bank-modal-body">
-              {filteredBankCandidates.length === 0 ? (
-                <div className="empty-players-notice">
-                  <AlertTriangle size={24} color="#D97706" />
-                  <p>No se encontraron jugadores registrados que coincidan con la búsqueda o filtro.</p>
-                </div>
-              ) : (
-                <div className="bank-candidates-list">
-                  {filteredBankCandidates.map((candidate) => {
-                    const cDni = (candidate.dni || candidate.documentoIdentidad || '').toString().trim()
-                    const cName = candidate.nombre || candidate.name || 'Jugador'
-                    const cCat = candidate.categoria || '4ta'
-                    const cPoints = candidate.points || `${candidate.puntosNum || 0} pts`
-                    const isAlreadyInBank = (currentTourney?.inscripciones || []).some((insc) => {
-                      const inscDni = (insc.dni || insc.documentoIdentidad || '').toString().trim()
-                      const inscName = (insc.nombre || insc.name || '').toString().trim().toLowerCase()
-                      return (cDni && inscDni && cDni === inscDni) || (inscName === cName.toLowerCase())
-                    })
-
-                    return (
-                      <div
-                        key={cDni || candidate.id || candidate.email}
-                        className={`bank-candidate-item ${isAlreadyInBank ? 'already-added' : ''}`}
+                    <div className="filter-select-wrap">
+                      <label>Categoría:</label>
+                      <select
+                        value={bankModalCategoryFilter}
+                        onChange={(e) => setBankModalCategoryFilter(e.target.value)}
+                        className="input-select"
                       >
-                        <div className="candidate-info-col">
-                          <div className="candidate-avatar">
-                            {candidate.image && candidate.image !== '/assets/logo.png' ? (
-                              <img src={candidate.image} alt={cName} className="candidate-avatar-img" />
-                            ) : (
-                              cName ? cName.charAt(0).toUpperCase() : 'J'
-                            )}
-                          </div>
-                          <div className="candidate-details">
-                            <span className="candidate-name">{cName}</span>
-                            <div className="candidate-meta">
-                              <span className="candidate-dni">DNI: {maskDni(cDni) || 'S/D'}</span>
-                              <span className={`candidate-cat-pill cat-${cCat.toLowerCase().replace(/\s+/g, '-')}`}>
-                                Cat. {cCat}
-                              </span>
-                              <span className="candidate-points-pill">
-                                {cPoints}
-                              </span>
-                              <span
-                                className={`player-status-badge ${candidate.perfilIncompleto ? 'status-pending' : 'status-complete'}`}
-                                title={candidate.perfilIncompleto ? 'Pre-cargado por administración para torneos, pendiente de registro web' : 'Cuenta registrada en la plataforma'}
-                              >
-                                {candidate.perfilIncompleto ? 'Pre-cargado' : 'Registrado Web'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        <option value="todas">Todas las categorías</option>
+                        {ALL_OFFICIAL_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>
+                            Categoría {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-                        <div className="candidate-action-col">
-                          {bankModalTargetField === 'player1' || bankModalTargetField === 'player2' ? (
-                            <button
-                              type="button"
-                              className="btn-add-candidate-now select-for-match-btn"
-                              onClick={() => {
-                                if (bankModalTargetField === 'player1') {
-                                  setResultPlayer1(cName)
-                                  if (!resultWinner) setResultWinner(cName)
-                                } else {
-                                  setResultPlayer2(cName)
-                                }
-                                handleAddPlayerToTournamentBank(candidate)
-                                setShowBankAddModal(false)
-                                setBankModalTargetField('bank')
-                                showToast(`"${cName}" asignado al partido y agregado al torneo.`)
-                              }}
-                            >
-                              <Check size={14} /> Seleccionar
-                            </button>
-                          ) : isAlreadyInBank ? (
-                            <span className="bank-badge-already">
-                              <UserCheck size={14} /> Ya en el banco
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn-add-candidate-now"
-                              onClick={() => handleAddPlayerToTournamentBank(candidate)}
-                            >
-                              <Plus size={14} /> Agregar
-                            </button>
-                          )}
-                        </div>
+                  <div className="bank-modal-body">
+                    {filteredBankCandidates.length === 0 ? (
+                      <div className="empty-players-notice">
+                        <AlertTriangle size={24} color="#D97706" />
+                        <p>No se encontraron jugadores registrados que coincidan con la búsqueda o filtro.</p>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+                    ) : (
+                      <div className="bank-candidates-list">
+                        {filteredBankCandidates.map((candidate) => {
+                          const cDni = (candidate.dni || candidate.documentoIdentidad || '').toString().trim()
+                          const cName = candidate.nombre || candidate.name || 'Jugador'
+                          const cCat = candidate.categoria || '4ta'
+                          const cPoints = candidate.points || `${candidate.puntosNum || 0} pts`
+                          const isAlreadyInBank = Boolean(
+                            (activeModalTourney?.inscripciones || []).some((insc) => {
+                              const cDniClean = cDni.replace(/\s+/g, '')
+                              const inscDniClean = (insc.dni || insc.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
+                              const candNorm = cName.trim().toLowerCase()
+                              const inscNorm = (insc.nombre || insc.name || '').trim().toLowerCase()
+                              const isGeneric = (n) => !n || n === 'jugador' || n === 'jugador atap' || n === 'por definir' || n === 's/d' || n === 'bye'
+
+                              // 1. Coincidencia por DNI exacto válido
+                              if (cDniClean && inscDniClean && cDniClean !== 'S/D' && inscDniClean !== 'S/D' && cDniClean !== 'N/A' && inscDniClean !== 'N/A') {
+                                if (cDniClean === inscDniClean) return true
+                              }
+
+                              // 2. Coincidencia por nombre completo no genérico
+                              if (!isGeneric(candNorm) && !isGeneric(inscNorm) && candNorm === inscNorm) {
+                                return true
+                              }
+
+                              // 3. Coincidencia por ID de usuario
+                              if (candidate.id && (insc.id === candidate.id || insc.userId === candidate.id || insc.playerId === candidate.id)) {
+                                return true
+                              }
+
+                              return false
+                            })
+                          )
+
+                          return (
+                            <div
+                              key={cDni || candidate.id || candidate.email}
+                              className={`bank-candidate-item ${isAlreadyInBank ? 'already-added' : ''}`}
+                            >
+                              <div className="candidate-info-col">
+                                <div className="candidate-avatar">
+                                  {candidate.image && candidate.image !== '/assets/logo.png' ? (
+                                    <img src={candidate.image} alt={cName} className="candidate-avatar-img" />
+                                  ) : (
+                                    cName ? cName.charAt(0).toUpperCase() : 'J'
+                                  )}
+                                </div>
+                                <div className="candidate-details">
+                                  <span className="candidate-name">{cName}</span>
+                                  <div className="candidate-meta">
+                                    <span className="candidate-dni">DNI: {maskDni(cDni) || 'S/D'}</span>
+                                    <span className={`candidate-cat-pill cat-${cCat.toLowerCase().replace(/\s+/g, '-')}`}>
+                                      Cat. {cCat}
+                                    </span>
+                                    <span className="candidate-points-pill">
+                                      {cPoints}
+                                    </span>
+                                    <span
+                                      className={`player-status-badge ${candidate.perfilIncompleto ? 'status-pending' : 'status-complete'}`}
+                                      title={candidate.perfilIncompleto ? 'Pre-cargado por administración para torneos, pendiente de registro web' : 'Cuenta registrada en la plataforma'}
+                                    >
+                                      {candidate.perfilIncompleto ? 'Pre-cargado' : 'Registrado Web'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="candidate-action-col">
+                                {bankModalTargetField === 'player1' || bankModalTargetField === 'player2' ? (
+                                  <button
+                                    type="button"
+                                    className="btn-add-candidate-now select-for-match-btn"
+                                    onClick={() => {
+                                      if (bankModalTargetField === 'player1') {
+                                        setResultPlayer1(cName)
+                                        if (!resultWinner) setResultWinner(cName)
+                                      } else {
+                                        setResultPlayer2(cName)
+                                      }
+                                      handleAddPlayerToTournamentBank(candidate, activeModalTourney?.id)
+                                      setShowBankAddModal(false)
+                                      setBankModalTargetField('bank')
+                                      showToast(`"${cName}" asignado al partido y agregado al torneo.`)
+                                    }}
+                                  >
+                                    <Check size={14} /> Seleccionar
+                                  </button>
+                                ) : isAlreadyInBank ? (
+                                  <span className="bank-badge-already">
+                                    <UserCheck size={14} /> Ya en el banco
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn-add-candidate-now"
+                                    onClick={() => handleAddPlayerToTournamentBank(candidate, activeModalTourney?.id)}
+                                  >
+                                    <Plus size={14} /> Agregar
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )
+            })()}
 
             <div className="admin-modal-footer">
               <span className="bank-modal-count-hint">

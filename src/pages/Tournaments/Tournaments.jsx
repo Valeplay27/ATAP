@@ -73,7 +73,6 @@ export default function Tournaments({ usuario }) {
                   tournament.estado === 'en_curso' ||
                   isTournamentDateActive(tournament.date, tournament.startDate, tournament.endDate)
                 )
-                const surfaceName = (tournament.superficie || tournament.surface || 'Arcilla').toUpperCase()
                 const levelName = (tournament.level || 'Nacional').toUpperCase()
 
                 return (
@@ -147,7 +146,11 @@ export default function Tournaments({ usuario }) {
                         {/* BOTTOM META ROW INSIDE POSTER */}
                         <div className="wta-poster-footer-row">
                           <span className="wta-surface-label">
-                            {tournament.modalidad === 'dobles' ? 'DÚO / DOBLES' : 'SINGLES'} • {surfaceName}
+                            {(tournament.modalidad === 'grupal' || tournament.modalidad === 'equipos')
+                              ? 'EQUIPOS'
+                              : tournament.modalidad === 'dobles'
+                              ? 'DÚO / DOBLES'
+                              : 'SINGLES'}
                           </span>
                           <span className="wta-level-badge">ATAP {levelName}</span>
                         </div>
@@ -222,7 +225,6 @@ export default function Tournaments({ usuario }) {
         const filteredJugados = filterByCat(jugados)
         const filteredFuturos = filterByCat(futuros)
         const filteredAll = filterByCat(all)
-        const surfaceName = (selectedLiveTourney.superficie || selectedLiveTourney.surface || 'Arcilla').toUpperCase()
 
         return (
           <div className="tourney-modal-backdrop" onClick={() => setSelectedLiveTourney(null)}>
@@ -246,7 +248,11 @@ export default function Tournaments({ usuario }) {
                   <h2>{selectedLiveTourney.title}</h2>
                   <p className="live-modal-meta">
                     <CalendarDays size={14} /> {selectedLiveTourney.date} • {selectedLiveTourney.place} •{' '}
-                    {selectedLiveTourney.modalidad === 'dobles' ? 'Modalidad Dúo' : 'Singles'} • {surfaceName}
+                    {(selectedLiveTourney.modalidad === 'grupal' || selectedLiveTourney.modalidad === 'equipos')
+                      ? 'Modalidad Equipos'
+                      : selectedLiveTourney.modalidad === 'dobles'
+                      ? 'Modalidad Dúo'
+                      : 'Singles'}
                   </p>
                 </div>
                 <button
@@ -550,7 +556,11 @@ export default function Tournaments({ usuario }) {
                 <h2>{selectedResultsTourney.title}</h2>
                 <p className="results-modal-meta">
                   {selectedResultsTourney.date} • {selectedResultsTourney.place} •{' '}
-                  {selectedResultsTourney.modalidad === 'dobles' ? 'Modalidad Dúo' : 'Modalidad Singles'}
+                  {(selectedResultsTourney.modalidad === 'grupal' || selectedResultsTourney.modalidad === 'equipos')
+                    ? 'Modalidad Equipos'
+                    : selectedResultsTourney.modalidad === 'dobles'
+                    ? 'Modalidad Dúo'
+                    : 'Modalidad Singles'}
                 </p>
               </div>
               <button

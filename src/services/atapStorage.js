@@ -3159,14 +3159,33 @@ export function addPlayerToTournamentBank(tournamentId, playerOrUserData) {
   const cleanNombre = (playerOrUserData.nombre || playerOrUserData.name || '').trim();
 
   // Verificar si ya existe en las inscripciones
-  const existingInscIdx = currentTourney.inscripciones.findIndex(
-    (i) => {
-      const iDni = (i.dni || i.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
-      const matchDni = cleanDni && (iDni === cleanDni || iDni === maskedDni || (cleanDni.length >= 3 && iDni.endsWith(cleanDni.slice(-3))));
-      const matchName = cleanNombre && (i.nombre || i.name || '').trim().toLowerCase() === cleanNombre.toLowerCase();
-      return matchDni || matchName;
-    }
-  );
+  const existingInscIdx = currentTourney.inscripciones.findIndex((i) => {
+    const iDni = (i.dni || i.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
+    const iName = (i.nombre || i.name || '').trim().toLowerCase();
+    const candName = cleanNombre.toLowerCase();
+
+    // 1. Coincidencia por DNI exacto (excluyendo vacíos o S/D)
+    const exactDni = Boolean(cleanDni && iDni && cleanDni !== 'S/D' && iDni !== 'S/D' && (iDni === cleanDni || iDni === maskedDni));
+
+    // 2. Coincidencia por DNI enmascarado (últimos 3 dígitos sólo si el nombre también coincide)
+    const partialDniMatch = Boolean(
+      cleanDni && iDni &&
+      cleanDni !== 'S/D' && iDni !== 'S/D' &&
+      cleanDni.length >= 3 &&
+      iDni.endsWith(cleanDni.slice(-3)) &&
+      candName && iName &&
+      candName === iName
+    );
+
+    // 3. Coincidencia por nombre completo (excluyendo genéricos/placeholders)
+    const exactName = Boolean(
+      candName && iName &&
+      candName !== 'jugador' && candName !== 'jugador atap' && candName !== 'por definir' && candName !== 's/d' &&
+      iName === candName
+    );
+
+    return exactDni || partialDniMatch || exactName;
+  });
 
   if (existingInscIdx !== -1) {
     // Si ya existe, asegurar que su estado sea aprobado

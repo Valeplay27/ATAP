@@ -75,7 +75,11 @@ export default function QuickNav() {
                     <span className="quick-tourney-price">S/ {t.precio}</span>
                   ) : (
                     <span className="quick-tourney-badge is-level">
-                      {t.modalidad === 'dobles' ? 'Dúo' : (t.level || 'Singles')}
+                      {(t.modalidad === 'grupal' || t.modalidad === 'equipos')
+                        ? 'Equipos'
+                        : t.modalidad === 'dobles'
+                        ? 'Dúo'
+                        : (t.level || 'Singles')}
                     </span>
                   )
                 )}
