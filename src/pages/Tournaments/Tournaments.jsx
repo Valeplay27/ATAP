@@ -8,6 +8,7 @@ import {
   getAssetUrl,
   handleImageFallback
 } from '../../services/atapStorage'
+import SimplePage from '../Shared/SimplePage'
 import TournamentRegisterModal from '../../components/TournamentRegisterModal/TournamentRegisterModal'
 import TournamentBracket from '../../components/TournamentBracket/TournamentBracket'
 import './Tournaments.css'
@@ -50,17 +51,13 @@ export default function Tournaments({ usuario }) {
   }, [])
 
   return (
-    <main className="page-content tournaments-page">
-      <div className="tournaments-content-shell">
-        <section className="page-heading">
-          <p className="eyebrow">Calendario Oficial ATAP</p>
-          <h1>Todos los torneos</h1>
-          <p>
-            Revisa las próximas competencias, inscríbete y sigue los resultados y cuadros de llaves en tiempo real.
-          </p>
-        </section>
-
-        <div className="tournaments-wrapper">
+    <SimplePage
+      className="tournaments-page"
+      eyebrow="Calendario Oficial ATAP"
+      title="Todos los torneos"
+      description="Revisa las próximas competencias, inscríbete y sigue los resultados y cuadros de llaves en tiempo real."
+    >
+      <div className="tournaments-wrapper">
           {tourneyList.length === 0 ? (
             <div className="tourneys-empty-state">
               <Trophy size={48} color="#00304A" />
@@ -198,7 +195,6 @@ export default function Tournaments({ usuario }) {
             </section>
           )}
         </div>
-      </div>
 
       {/* MODAL DE INSCRIPCIÓN */}
       {registerTourney && (
@@ -751,6 +747,6 @@ export default function Tournaments({ usuario }) {
           </div>
         </div>
       )}
-    </main>
+    </SimplePage>
   )
 }

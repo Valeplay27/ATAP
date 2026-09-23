@@ -1,37 +1,5 @@
-.tournaments-page {
-  max-width: none;
-  padding: 34px 20px 72px;
-  background: #FFFFFF;
-}
-
-.tournaments-content-shell {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 26px 20px 30px;
-  border-radius: 28px;
-  background: #FFFFFF;
-  border: 1.5px solid #E8EEEE;
-}
-
-.tournaments-page .page-heading {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 12px 0 30px;
-}
-
-.tournaments-page .page-heading h1 {
-  color: #25005C;
-}
-
-.tournaments-page .page-heading > p:last-child {
-  color: #64727A;
-}
-
 .tournaments-wrapper {
   margin: 0 auto;
-  padding: 18px 0 0;
-  border-radius: 20px;
-  background: #FFFFFF;
 }
 
 /* WTA-STYLE CARDS GRID */

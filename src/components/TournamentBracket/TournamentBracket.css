@@ -1110,3 +1110,114 @@
   border: 1px solid #E9D5FF;
 }
 
+/* MODALIDAD PILL / SELECT IN MATCH HEADER */
+.match-modality-select-pill {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #1E293B;
+  border-radius: 999px;
+  padding: 1px 7px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.match-modality-select-pill:hover,
+.match-modality-select-pill:focus {
+  border-color: #00CFA0;
+  background: #FFFFFF;
+}
+
+.match-modality-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: #F3E8FF;
+  color: #7E22CE;
+  border: 1px solid #E9D5FF;
+}
+
+/* DOBLES MATCH PARTICIPANTS (4 JUGADORES) */
+.doubles-match-participants {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doubles-team-card {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.doubles-team-card.is-winner-team {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+}
+
+.doubles-team-card.is-loser-team {
+  opacity: 0.7;
+}
+
+.doubles-team-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.doubles-team-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 0.5px;
+}
+
+.doubles-team-card.is-winner-team .doubles-team-title {
+  color: #16A34A;
+}
+
+.doubles-duo-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.player-slot.is-doubles-slot {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-height: 28px;
+}
+
+.player-slot.is-doubles-slot.is-bye-slot {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+.player-slot.is-doubles-slot .player-slot-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.slot-interactive-picker.doubles-slot-picker {
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+

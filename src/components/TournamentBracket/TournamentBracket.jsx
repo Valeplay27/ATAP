@@ -3,6 +3,7 @@ import './TournamentBracket.css'
 
 export default function TournamentBracket({
   bracket,
+  bracketModality,
   isAdmin = false,
   onOpenScoreModal,
   isInteractive = false,
@@ -13,11 +14,13 @@ export default function TournamentBracket({
   onClearMatchSlot,
   onAssignBye,
   onUpdateMatchHora,
-  onToggleMatchLive
+  onToggleMatchLive,
+  onUpdateMatchModality
 }) {
   const hasRounds = Boolean(bracket && bracket.rounds && bracket.rounds.length > 0)
   const hasGroups = Boolean(bracket && bracket.faseGrupos && bracket.faseGrupos.length > 0)
   const groupsList = manualGroups && manualGroups.length > 0 ? manualGroups : (bracket?.faseGrupos || [])
+  const isTournamentDobles = bracket?.modalidad === 'dobles' || bracketModality === 'dobles'
 
   const norm = (str) => (str || '').trim().toLowerCase()
 
@@ -66,15 +69,27 @@ export default function TournamentBracket({
       }
     }
 
-    // 1. REGLA: No permitir el mismo jugador en el mismo campo/partido
+    const isSlot1a = targetSlot === 1 || targetSlot === '1' || targetSlot === '1a'
+    const isSlot1b = targetSlot === '1b'
+    const isSlot2a = targetSlot === 2 || targetSlot === '2' || targetSlot === '2a'
+    const isSlot2b = targetSlot === '2b'
+
+    // 1. REGLA: No permitir el mismo jugador en el mismo partido (en cualquiera de las 4 casillas)
     const currentMatch = firstRound.matches.find((m) => m.id === currentMatchId)
     if (currentMatch) {
-      const opposingPlayer = targetSlot === 1 ? currentMatch.player2 : currentMatch.player1
-      if (opposingPlayer && arePlayersMatching(participant, opposingPlayer)) {
-        return {
-          isAvailable: false,
-          reason: 'same_match',
-          label: `🚫 ${participant.nombre} (Mismo partido — No permitido)`
+      const otherPlayersInMatch = []
+      if (!isSlot1a && currentMatch.player1) otherPlayersInMatch.push(currentMatch.player1)
+      if (!isSlot1b && currentMatch.player1b) otherPlayersInMatch.push(currentMatch.player1b)
+      if (!isSlot2a && currentMatch.player2) otherPlayersInMatch.push(currentMatch.player2)
+      if (!isSlot2b && currentMatch.player2b) otherPlayersInMatch.push(currentMatch.player2b)
+
+      for (const op of otherPlayersInMatch) {
+        if (arePlayersMatching(participant, op)) {
+          return {
+            isAvailable: false,
+            reason: 'same_match',
+            label: `🚫 ${participant.nombre} (Mismo partido — No permitido)`
+          }
         }
       }
     }
@@ -84,9 +99,11 @@ export default function TournamentBracket({
       if (m.id === currentMatchId) continue
 
       const inP1 = arePlayersMatching(participant, m.player1)
+      const inP1b = arePlayersMatching(participant, m.player1b)
       const inP2 = arePlayersMatching(participant, m.player2)
+      const inP2b = arePlayersMatching(participant, m.player2b)
 
-      if (inP1 || inP2) {
+      if (inP1 || inP1b || inP2 || inP2b) {
         if (m.winnerSlot != null) {
           return {
             isAvailable: false,
@@ -115,7 +132,12 @@ export default function TournamentBracket({
     const matches = bracket.rounds[0].matches
     for (const m of matches) {
       if (m.id === currentMatchId) continue
-      if (arePlayersMatching(player, m.player1) || arePlayersMatching(player, m.player2)) {
+      if (
+        arePlayersMatching(player, m.player1) ||
+        arePlayersMatching(player, m.player1b) ||
+        arePlayersMatching(player, m.player2) ||
+        arePlayersMatching(player, m.player2b)
+      ) {
         return true
       }
     }
@@ -340,31 +362,53 @@ export default function TournamentBracket({
 
                   <div className="round-matches-list">
                     {round.matches.map((match) => {
+                      const isMatchDobles = match.modalidad ? match.modalidad === 'dobles' : isTournamentDobles
+
                       const hasPlayer1 = Boolean(match.player1 && match.player1.name)
+                      const hasPlayer1b = Boolean(match.player1b && match.player1b.name)
                       const hasPlayer2 = Boolean(match.player2 && match.player2.name)
+                      const hasPlayer2b = Boolean(match.player2b && match.player2b.name)
 
-                      const isSamePlayer = Boolean(
-                        hasPlayer1 &&
-                        hasPlayer2 &&
-                        arePlayersMatching(match.player1, match.player2)
-                      )
+                      const isDupla1Bye = Boolean(match.player1?.isBye || match.player1?.name === 'BYE')
+                      const isDupla2Bye = Boolean(match.player2?.isBye || match.player2?.name === 'BYE')
 
-                      const isP1DuplicatedInRound = Boolean(
+                      const hasTeam1 = isMatchDobles
+                        ? ((hasPlayer1 && hasPlayer1b) || isDupla1Bye)
+                        : (hasPlayer1 || isDupla1Bye)
+                      const hasTeam2 = isMatchDobles
+                        ? ((hasPlayer2 && hasPlayer2b) || isDupla2Bye)
+                        : (hasPlayer2 || isDupla2Bye)
+
+                      // Conflict checking: strict rule that no duplicate players exist in the match or across the round (exempting BYE)
+                      const activePlayersInMatch = []
+                      if (hasPlayer1 && !isDupla1Bye) activePlayersInMatch.push(match.player1)
+                      if (isMatchDobles && hasPlayer1b && !isDupla1Bye) activePlayersInMatch.push(match.player1b)
+                      if (hasPlayer2 && !isDupla2Bye) activePlayersInMatch.push(match.player2)
+                      if (isMatchDobles && hasPlayer2b && !isDupla2Bye) activePlayersInMatch.push(match.player2b)
+
+                      let isSamePlayer = false
+                      for (let i = 0; i < activePlayersInMatch.length; i++) {
+                        for (let j = i + 1; j < activePlayersInMatch.length; j++) {
+                          if (arePlayersMatching(activePlayersInMatch[i], activePlayersInMatch[j])) {
+                            isSamePlayer = true
+                            break
+                          }
+                        }
+                        if (isSamePlayer) break
+                      }
+
+                      const isAnyDuplicatedInRound = Boolean(
                         isFirstRound &&
-                        hasPlayer1 &&
-                        isPlayerDuplicatedInRound(match.player1, match.id)
+                        activePlayersInMatch.some((p) => isPlayerDuplicatedInRound(p, match.id))
                       )
 
-                      const isP2DuplicatedInRound = Boolean(
-                        isFirstRound &&
-                        hasPlayer2 &&
-                        isPlayerDuplicatedInRound(match.player2, match.id)
-                      )
+                      const hasMatchConflict = isSamePlayer || isAnyDuplicatedInRound
+                      const canScore = isAdmin && hasTeam1 && hasTeam2 && !hasMatchConflict && !match.winnerSlot
 
-                      const hasMatchConflict = isSamePlayer || isP1DuplicatedInRound || isP2DuplicatedInRound
-                      const canScore = isAdmin && hasPlayer1 && hasPlayer2 && !hasMatchConflict && !match.winnerSlot
                       const groupP1 = findGroupForPlayer(match.player1)
+                      const groupP1b = findGroupForPlayer(match.player1b)
                       const groupP2 = findGroupForPlayer(match.player2)
+                      const groupP2b = findGroupForPlayer(match.player2b)
 
                       return (
                         <div
@@ -381,6 +425,19 @@ export default function TournamentBracket({
                             <div className="match-node-header-left">
                               <span>Match #{match.matchNum}</span>
                               {isFinalRound && <span className="match-final-trophy-pill">🏆 Gran Final</span>}
+                              {isAdmin && isInteractive && isFirstRound && onUpdateMatchModality ? (
+                                <select
+                                  className="match-modality-select-pill"
+                                  value={isMatchDobles ? 'dobles' : 'singles'}
+                                  onChange={(e) => onUpdateMatchModality(match.id, e.target.value)}
+                                  title="Modalidad de este partido"
+                                >
+                                  <option value="singles">Singles</option>
+                                  <option value="dobles">Dobles</option>
+                                </select>
+                              ) : isMatchDobles ? (
+                                <span className="match-modality-pill">👥 Dobles</span>
+                              ) : null}
                               {match.isLive && (
                                 <span className="match-live-pulse-badge" title="Partido en transmisión directa">
                                   <span className="live-dot-pulse" /> EN VIVO
@@ -406,295 +463,727 @@ export default function TournamentBracket({
                             )}
                           </div>
 
-                          <div className="match-participants">
-                            {/* SLOT 1 */}
-                            {isInteractive && isAdmin && isFirstRound && !hasPlayer1 && onAssignPlayerToSlot ? (
-                              <div className="player-slot is-unassigned-interactive">
-                                <div className="slot-picker-wrap">
-                                  <select
-                                    className="slot-interactive-picker"
-                                    value=""
-                                    onChange={(e) => {
-                                      if (e.target.value) {
-                                        onAssignPlayerToSlot(match.id, 1, e.target.value)
-                                      }
-                                    }}
-                                  >
-                                    <option value="">+ Asignar jugador de grupo...</option>
-                                    <option value="__BYE__">⚡ Asignar BYE (Pase Libre)</option>
-                                    {groupsList.map((g) => (
-                                      <optgroup key={g.id} label={g.nombre}>
-                                        {(g.participantes || []).map((p) => {
-                                          const status = getPlayerAssignmentStatus(p, match.id, 1)
-                                          return (
-                                            <option
-                                              key={p.id}
-                                              value={p.id}
-                                              disabled={!status.isAvailable}
-                                            >
-                                              {status.label}
-                                            </option>
-                                          )
-                                        })}
-                                      </optgroup>
-                                    ))}
-                                  </select>
-                                  {hasPlayer2 && !match.player2?.isBye && onAssignBye && (
-                                    <button
-                                      type="button"
-                                      className="btn-quick-give-bye"
-                                      title={`Otorgar victoria por BYE a ${match.player2.name}`}
-                                      onClick={() => onAssignBye(match, 1)}
-                                    >
-                                      <Zap size={11} /> Dar BYE
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ) : match.player1?.isBye || match.player1?.name === 'BYE' ? (
+                          {isMatchDobles ? (
+                            /* DOBLES (4 JUGADORES: DUPLA 1 vs DUPLA 2) */
+                            <div className="doubles-match-participants">
+                              {/* DUPLA 1 */}
                               <div
                                 className={
-                                  'player-slot is-bye-slot' +
+                                  'doubles-team-card' +
                                   (match.winnerSlot === 1
-                                    ? ' is-winner'
+                                    ? ' is-winner-team'
                                     : match.winnerSlot === 2
-                                    ? ' is-loser'
+                                    ? ' is-loser-team'
                                     : '')
                                 }
                               >
-                                <div className="player-slot-info">
-                                  <div className="player-slot-name-row">
-                                    <span className="slot-bye-tag">⚡ BYE</span>
-                                    <span className="player-slot-name is-bye-text">Pase Libre</span>
-                                  </div>
-                                  <span className="player-slot-cat">Avanza contrincante</span>
-                                </div>
-                                <div className="slot-right-actions">
-                                  {isInteractive &&
-                                    isAdmin &&
-                                    isFirstRound &&
-                                    !match.winnerSlot &&
-                                    onClearMatchSlot && (
-                                      <button
-                                        type="button"
-                                        className="btn-clear-slot"
-                                        title="Quitar BYE"
-                                        onClick={() => onClearMatchSlot(match.id, 1)}
-                                      >
-                                        ✕
-                                      </button>
-                                    )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                className={
-                                  'player-slot' +
-                                  (match.winnerSlot === 1
-                                    ? ' is-winner'
-                                    : match.winnerSlot === 2
-                                    ? ' is-loser'
-                                    : '')
-                                }
-                              >
-                                <div className="player-slot-info">
-                                  <div className="player-slot-name-row">
-                                    {groupP1 && (
-                                      <span className="slot-group-origin-tag">{groupP1}</span>
-                                    )}
-                                    <span className="player-slot-name">
-                                      {hasPlayer1 ? match.player1.name : 'Por definir'}
-                                    </span>
-                                  </div>
-                                  {hasPlayer1 && match.player1.categoria && (
-                                    <span className="player-slot-cat">{match.player1.categoria}</span>
-                                  )}
-                                </div>
-                                <div className="slot-right-actions">
+                                <div className="doubles-team-header-row">
+                                  <span className="doubles-team-title">👥 Dupla 1</span>
                                   {match.winnerSlot === 1 && (
                                     <span className="winner-tick">
-                                      <Check size={14} />
+                                      <Check size={13} />
                                     </span>
                                   )}
-                                  {isInteractive &&
-                                    isAdmin &&
-                                    isFirstRound &&
-                                    hasPlayer1 &&
-                                    !match.winnerSlot &&
-                                    onClearMatchSlot && (
-                                      <button
-                                        type="button"
-                                        className="btn-clear-slot"
-                                        title="Quitar de esta llave"
-                                        onClick={() => onClearMatchSlot(match.id, 1)}
-                                      >
-                                        ✕
-                                      </button>
-                                    )}
                                 </div>
-                              </div>
-                            )}
 
-                            {/* VS & SWAP ROW */}
-                            <div className="match-vs-row">
-                              <span className="match-vs-divider">vs</span>
-                              {isInteractive &&
-                                isAdmin &&
-                                isFirstRound &&
-                                !match.winnerSlot &&
-                                onSwapMatchSlots &&
-                                (hasPlayer1 || hasPlayer2) && (
-                                  <button
-                                    type="button"
-                                    className="btn-swap-slots"
-                                    title="Intercambiar posiciones (P1 ⇅ P2)"
-                                    onClick={() => onSwapMatchSlots(match.id)}
+                                {isDupla1Bye ? (
+                                  <div
+                                    className={
+                                      'player-slot is-bye-slot is-doubles-slot' +
+                                      (match.winnerSlot === 1
+                                        ? ' is-winner'
+                                        : match.winnerSlot === 2
+                                        ? ' is-loser'
+                                        : '')
+                                    }
                                   >
-                                    ⇅ Swap
-                                  </button>
-                                )}
-                            </div>
-
-                            {/* SLOT 2 */}
-                            {isInteractive && isAdmin && isFirstRound && !hasPlayer2 && onAssignPlayerToSlot ? (
-                              <div className="player-slot is-unassigned-interactive">
-                                <div className="slot-picker-wrap">
-                                  <select
-                                    className="slot-interactive-picker"
-                                    value=""
-                                    onChange={(e) => {
-                                      if (e.target.value) {
-                                        onAssignPlayerToSlot(match.id, 2, e.target.value)
-                                      }
-                                    }}
-                                  >
-                                    <option value="">+ Asignar jugador de grupo...</option>
-                                    <option value="__BYE__">⚡ Asignar BYE (Pase Libre)</option>
-                                    {groupsList.map((g) => (
-                                      <optgroup key={g.id} label={g.nombre}>
-                                        {(g.participantes || []).map((p) => {
-                                          const status = getPlayerAssignmentStatus(p, match.id, 2)
-                                          return (
-                                            <option
-                                              key={p.id}
-                                              value={p.id}
-                                              disabled={!status.isAvailable}
+                                    <div className="player-slot-info">
+                                      <div className="player-slot-name-row">
+                                        <span className="slot-bye-tag">⚡ BYE</span>
+                                        <span className="player-slot-name is-bye-text">Pase Libre</span>
+                                      </div>
+                                      <span className="player-slot-cat">Avanza Dupla 2</span>
+                                    </div>
+                                    <div className="slot-right-actions">
+                                      {isInteractive &&
+                                        isAdmin &&
+                                        isFirstRound &&
+                                        !match.winnerSlot &&
+                                        onClearMatchSlot && (
+                                          <button
+                                            type="button"
+                                            className="btn-clear-slot"
+                                            title="Quitar BYE"
+                                            onClick={() => onClearMatchSlot(match.id, 1)}
+                                          >
+                                            ✕
+                                          </button>
+                                        )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="doubles-duo-slots">
+                                    {/* CASILLA 1A (JUGADOR 1) */}
+                                    {isInteractive && isAdmin && isFirstRound && !hasPlayer1 && onAssignPlayerToSlot ? (
+                                      <div className="player-slot is-unassigned-interactive is-doubles-slot">
+                                        <div className="slot-picker-wrap">
+                                          <select
+                                            className="slot-interactive-picker doubles-slot-picker"
+                                            value=""
+                                            onChange={(e) => {
+                                              if (e.target.value) {
+                                                onAssignPlayerToSlot(match.id, '1a', e.target.value)
+                                              }
+                                            }}
+                                          >
+                                            <option value="">+ Jugador 1 (Dupla 1)...</option>
+                                            <option value="__BYE__">⚡ Asignar BYE a Dupla 1</option>
+                                            {groupsList.map((g) => (
+                                              <optgroup key={g.id} label={g.nombre}>
+                                                {(g.participantes || []).map((p) => {
+                                                  const status = getPlayerAssignmentStatus(p, match.id, '1a')
+                                                  return (
+                                                    <option
+                                                      key={p.id}
+                                                      value={p.id}
+                                                      disabled={!status.isAvailable}
+                                                    >
+                                                      {status.label}
+                                                    </option>
+                                                  )
+                                                })}
+                                              </optgroup>
+                                            ))}
+                                          </select>
+                                          {hasTeam2 && !isDupla2Bye && onAssignBye && (
+                                            <button
+                                              type="button"
+                                              className="btn-quick-give-bye"
+                                              title="Otorgar victoria por BYE a Dupla 2"
+                                              onClick={() => onAssignBye(match, 1)}
                                             >
-                                              {status.label}
-                                            </option>
-                                          )
-                                        })}
-                                      </optgroup>
-                                    ))}
-                                  </select>
-                                  {hasPlayer1 && !match.player1?.isBye && onAssignBye && (
+                                              <Zap size={11} /> Dar BYE
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="player-slot is-doubles-slot">
+                                        <div className="player-slot-info">
+                                          <div className="player-slot-name-row">
+                                            {groupP1 && <span className="slot-group-origin-tag">{groupP1}</span>}
+                                            <span className="player-slot-name">
+                                              {hasPlayer1 ? match.player1.name : (isFirstRound ? 'Por definir' : 'Ganador Dupla 1')}
+                                            </span>
+                                          </div>
+                                          {hasPlayer1 && match.player1.categoria && (
+                                            <span className="player-slot-cat">{match.player1.categoria}</span>
+                                          )}
+                                        </div>
+                                        <div className="slot-right-actions">
+                                          {isInteractive &&
+                                            isAdmin &&
+                                            isFirstRound &&
+                                            hasPlayer1 &&
+                                            !match.winnerSlot &&
+                                            onClearMatchSlot && (
+                                              <button
+                                                type="button"
+                                                className="btn-clear-slot"
+                                                title="Quitar de Dupla 1"
+                                                onClick={() => onClearMatchSlot(match.id, '1a')}
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* CASILLA 1B (JUGADOR 2) */}
+                                    {isInteractive && isAdmin && isFirstRound && !hasPlayer1b && onAssignPlayerToSlot ? (
+                                      <div className="player-slot is-unassigned-interactive is-doubles-slot">
+                                        <div className="slot-picker-wrap">
+                                          <select
+                                            className="slot-interactive-picker doubles-slot-picker"
+                                            value=""
+                                            onChange={(e) => {
+                                              if (e.target.value) {
+                                                onAssignPlayerToSlot(match.id, '1b', e.target.value)
+                                              }
+                                            }}
+                                          >
+                                            <option value="">+ Jugador 2 (Dupla 1)...</option>
+                                            {groupsList.map((g) => (
+                                              <optgroup key={g.id} label={g.nombre}>
+                                                {(g.participantes || []).map((p) => {
+                                                  const status = getPlayerAssignmentStatus(p, match.id, '1b')
+                                                  return (
+                                                    <option
+                                                      key={p.id}
+                                                      value={p.id}
+                                                      disabled={!status.isAvailable}
+                                                    >
+                                                      {status.label}
+                                                    </option>
+                                                  )
+                                                })}
+                                              </optgroup>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="player-slot is-doubles-slot">
+                                        <div className="player-slot-info">
+                                          <div className="player-slot-name-row">
+                                            {groupP1b && <span className="slot-group-origin-tag">{groupP1b}</span>}
+                                            <span className="player-slot-name">
+                                              {hasPlayer1b ? match.player1b.name : (isFirstRound ? 'Por definir' : (hasPlayer1 ? 'Compañero' : 'Por definir'))}
+                                            </span>
+                                          </div>
+                                          {hasPlayer1b && match.player1b.categoria && (
+                                            <span className="player-slot-cat">{match.player1b.categoria}</span>
+                                          )}
+                                        </div>
+                                        <div className="slot-right-actions">
+                                          {isInteractive &&
+                                            isAdmin &&
+                                            isFirstRound &&
+                                            hasPlayer1b &&
+                                            !match.winnerSlot &&
+                                            onClearMatchSlot && (
+                                              <button
+                                                type="button"
+                                                className="btn-clear-slot"
+                                                title="Quitar compañero de Dupla 1"
+                                                onClick={() => onClearMatchSlot(match.id, '1b')}
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* VS & SWAP ROW */}
+                              <div className="match-vs-row">
+                                <span className="match-vs-divider">vs</span>
+                                {isInteractive &&
+                                  isAdmin &&
+                                  isFirstRound &&
+                                  !match.winnerSlot &&
+                                  onSwapMatchSlots &&
+                                  (hasTeam1 || hasTeam2) && (
                                     <button
                                       type="button"
-                                      className="btn-quick-give-bye"
-                                      title={`Otorgar victoria por BYE a ${match.player1.name}`}
-                                      onClick={() => onAssignBye(match, 2)}
+                                      className="btn-swap-slots"
+                                      title="Intercambiar posiciones (Dupla 1 ⇅ Dupla 2)"
+                                      onClick={() => onSwapMatchSlots(match.id)}
                                     >
-                                      <Zap size={11} /> Dar BYE
+                                      ⇅ Swap
                                     </button>
                                   )}
-                                </div>
                               </div>
-                            ) : match.player2?.isBye || match.player2?.name === 'BYE' ? (
+
+                              {/* DUPLA 2 */}
                               <div
                                 className={
-                                  'player-slot is-bye-slot' +
+                                  'doubles-team-card' +
                                   (match.winnerSlot === 2
-                                    ? ' is-winner'
+                                    ? ' is-winner-team'
                                     : match.winnerSlot === 1
-                                    ? ' is-loser'
+                                    ? ' is-loser-team'
                                     : '')
                                 }
                               >
-                                <div className="player-slot-info">
-                                  <div className="player-slot-name-row">
-                                    <span className="slot-bye-tag">⚡ BYE</span>
-                                    <span className="player-slot-name is-bye-text">Pase Libre</span>
-                                  </div>
-                                  <span className="player-slot-cat">Avanza contrincante</span>
-                                </div>
-                                <div className="slot-right-actions">
-                                  {isInteractive &&
-                                    isAdmin &&
-                                    isFirstRound &&
-                                    !match.winnerSlot &&
-                                    onClearMatchSlot && (
-                                      <button
-                                        type="button"
-                                        className="btn-clear-slot"
-                                        title="Quitar BYE"
-                                        onClick={() => onClearMatchSlot(match.id, 2)}
-                                      >
-                                        ✕
-                                      </button>
-                                    )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                className={
-                                  'player-slot' +
-                                  (match.winnerSlot === 2
-                                    ? ' is-winner'
-                                    : match.winnerSlot === 1
-                                    ? ' is-loser'
-                                    : '')
-                                }
-                              >
-                                <div className="player-slot-info">
-                                  <div className="player-slot-name-row">
-                                    {groupP2 && (
-                                      <span className="slot-group-origin-tag">{groupP2}</span>
-                                    )}
-                                    <span className="player-slot-name">
-                                      {hasPlayer2 ? match.player2.name : 'Por definir'}
-                                    </span>
-                                  </div>
-                                  {hasPlayer2 && match.player2.categoria && (
-                                    <span className="player-slot-cat">{match.player2.categoria}</span>
-                                  )}
-                                </div>
-                                <div className="slot-right-actions">
+                                <div className="doubles-team-header-row">
+                                  <span className="doubles-team-title">👥 Dupla 2</span>
                                   {match.winnerSlot === 2 && (
                                     <span className="winner-tick">
-                                      <Check size={14} />
+                                      <Check size={13} />
                                     </span>
                                   )}
-                                  {isInteractive &&
-                                    isAdmin &&
-                                    isFirstRound &&
-                                    hasPlayer2 &&
-                                    !match.winnerSlot &&
-                                    onClearMatchSlot && (
+                                </div>
+
+                                {isDupla2Bye ? (
+                                  <div
+                                    className={
+                                      'player-slot is-bye-slot is-doubles-slot' +
+                                      (match.winnerSlot === 2
+                                        ? ' is-winner'
+                                        : match.winnerSlot === 1
+                                        ? ' is-loser'
+                                        : '')
+                                    }
+                                  >
+                                    <div className="player-slot-info">
+                                      <div className="player-slot-name-row">
+                                        <span className="slot-bye-tag">⚡ BYE</span>
+                                        <span className="player-slot-name is-bye-text">Pase Libre</span>
+                                      </div>
+                                      <span className="player-slot-cat">Avanza Dupla 1</span>
+                                    </div>
+                                    <div className="slot-right-actions">
+                                      {isInteractive &&
+                                        isAdmin &&
+                                        isFirstRound &&
+                                        !match.winnerSlot &&
+                                        onClearMatchSlot && (
+                                          <button
+                                            type="button"
+                                            className="btn-clear-slot"
+                                            title="Quitar BYE"
+                                            onClick={() => onClearMatchSlot(match.id, 2)}
+                                          >
+                                            ✕
+                                          </button>
+                                        )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="doubles-duo-slots">
+                                    {/* CASILLA 2A (JUGADOR 1) */}
+                                    {isInteractive && isAdmin && isFirstRound && !hasPlayer2 && onAssignPlayerToSlot ? (
+                                      <div className="player-slot is-unassigned-interactive is-doubles-slot">
+                                        <div className="slot-picker-wrap">
+                                          <select
+                                            className="slot-interactive-picker doubles-slot-picker"
+                                            value=""
+                                            onChange={(e) => {
+                                              if (e.target.value) {
+                                                onAssignPlayerToSlot(match.id, '2a', e.target.value)
+                                              }
+                                            }}
+                                          >
+                                            <option value="">+ Jugador 1 (Dupla 2)...</option>
+                                            <option value="__BYE__">⚡ Asignar BYE a Dupla 2</option>
+                                            {groupsList.map((g) => (
+                                              <optgroup key={g.id} label={g.nombre}>
+                                                {(g.participantes || []).map((p) => {
+                                                  const status = getPlayerAssignmentStatus(p, match.id, '2a')
+                                                  return (
+                                                    <option
+                                                      key={p.id}
+                                                      value={p.id}
+                                                      disabled={!status.isAvailable}
+                                                    >
+                                                      {status.label}
+                                                    </option>
+                                                  )
+                                                })}
+                                              </optgroup>
+                                            ))}
+                                          </select>
+                                          {hasTeam1 && !isDupla1Bye && onAssignBye && (
+                                            <button
+                                              type="button"
+                                              className="btn-quick-give-bye"
+                                              title="Otorgar victoria por BYE a Dupla 1"
+                                              onClick={() => onAssignBye(match, 2)}
+                                            >
+                                              <Zap size={11} /> Dar BYE
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="player-slot is-doubles-slot">
+                                        <div className="player-slot-info">
+                                          <div className="player-slot-name-row">
+                                            {groupP2 && <span className="slot-group-origin-tag">{groupP2}</span>}
+                                            <span className="player-slot-name">
+                                              {hasPlayer2 ? match.player2.name : (isFirstRound ? 'Por definir' : 'Ganador Dupla 2')}
+                                            </span>
+                                          </div>
+                                          {hasPlayer2 && match.player2.categoria && (
+                                            <span className="player-slot-cat">{match.player2.categoria}</span>
+                                          )}
+                                        </div>
+                                        <div className="slot-right-actions">
+                                          {isInteractive &&
+                                            isAdmin &&
+                                            isFirstRound &&
+                                            hasPlayer2 &&
+                                            !match.winnerSlot &&
+                                            onClearMatchSlot && (
+                                              <button
+                                                type="button"
+                                                className="btn-clear-slot"
+                                                title="Quitar de Dupla 2"
+                                                onClick={() => onClearMatchSlot(match.id, '2a')}
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* CASILLA 2B (JUGADOR 2) */}
+                                    {isInteractive && isAdmin && isFirstRound && !hasPlayer2b && onAssignPlayerToSlot ? (
+                                      <div className="player-slot is-unassigned-interactive is-doubles-slot">
+                                        <div className="slot-picker-wrap">
+                                          <select
+                                            className="slot-interactive-picker doubles-slot-picker"
+                                            value=""
+                                            onChange={(e) => {
+                                              if (e.target.value) {
+                                                onAssignPlayerToSlot(match.id, '2b', e.target.value)
+                                              }
+                                            }}
+                                          >
+                                            <option value="">+ Jugador 2 (Dupla 2)...</option>
+                                            {groupsList.map((g) => (
+                                              <optgroup key={g.id} label={g.nombre}>
+                                                {(g.participantes || []).map((p) => {
+                                                  const status = getPlayerAssignmentStatus(p, match.id, '2b')
+                                                  return (
+                                                    <option
+                                                      key={p.id}
+                                                      value={p.id}
+                                                      disabled={!status.isAvailable}
+                                                    >
+                                                      {status.label}
+                                                    </option>
+                                                  )
+                                                })}
+                                              </optgroup>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="player-slot is-doubles-slot">
+                                        <div className="player-slot-info">
+                                          <div className="player-slot-name-row">
+                                            {groupP2b && <span className="slot-group-origin-tag">{groupP2b}</span>}
+                                            <span className="player-slot-name">
+                                              {hasPlayer2b ? match.player2b.name : (isFirstRound ? 'Por definir' : (hasPlayer2 ? 'Compañero' : 'Por definir'))}
+                                            </span>
+                                          </div>
+                                          {hasPlayer2b && match.player2b.categoria && (
+                                            <span className="player-slot-cat">{match.player2b.categoria}</span>
+                                          )}
+                                        </div>
+                                        <div className="slot-right-actions">
+                                          {isInteractive &&
+                                            isAdmin &&
+                                            isFirstRound &&
+                                            hasPlayer2b &&
+                                            !match.winnerSlot &&
+                                            onClearMatchSlot && (
+                                              <button
+                                                type="button"
+                                                className="btn-clear-slot"
+                                                title="Quitar compañero de Dupla 2"
+                                                onClick={() => onClearMatchSlot(match.id, '2b')}
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            /* SINGLES (2 JUGADORES: P1 vs P2) */
+                            <div className="match-participants">
+                              {/* SLOT 1 */}
+                              {isInteractive && isAdmin && isFirstRound && !hasPlayer1 && onAssignPlayerToSlot ? (
+                                <div className="player-slot is-unassigned-interactive">
+                                  <div className="slot-picker-wrap">
+                                    <select
+                                      className="slot-interactive-picker"
+                                      value=""
+                                      onChange={(e) => {
+                                        if (e.target.value) {
+                                          onAssignPlayerToSlot(match.id, 1, e.target.value)
+                                        }
+                                      }}
+                                    >
+                                      <option value="">+ Asignar jugador de grupo...</option>
+                                      <option value="__BYE__">⚡ Asignar BYE (Pase Libre)</option>
+                                      {groupsList.map((g) => (
+                                        <optgroup key={g.id} label={g.nombre}>
+                                          {(g.participantes || []).map((p) => {
+                                            const status = getPlayerAssignmentStatus(p, match.id, 1)
+                                            return (
+                                              <option
+                                                key={p.id}
+                                                value={p.id}
+                                                disabled={!status.isAvailable}
+                                              >
+                                                {status.label}
+                                              </option>
+                                            )
+                                          })}
+                                        </optgroup>
+                                      ))}
+                                    </select>
+                                    {hasPlayer2 && !match.player2?.isBye && onAssignBye && (
                                       <button
                                         type="button"
-                                        className="btn-clear-slot"
-                                        title="Quitar de esta llave"
-                                        onClick={() => onClearMatchSlot(match.id, 2)}
+                                        className="btn-quick-give-bye"
+                                        title={`Otorgar victoria por BYE a ${match.player2.name}`}
+                                        onClick={() => onAssignBye(match, 1)}
                                       >
-                                        ✕
+                                        <Zap size={11} /> Dar BYE
                                       </button>
                                     )}
+                                  </div>
                                 </div>
+                              ) : match.player1?.isBye || match.player1?.name === 'BYE' ? (
+                                <div
+                                  className={
+                                    'player-slot is-bye-slot' +
+                                    (match.winnerSlot === 1
+                                      ? ' is-winner'
+                                      : match.winnerSlot === 2
+                                      ? ' is-loser'
+                                      : '')
+                                  }
+                                >
+                                  <div className="player-slot-info">
+                                    <div className="player-slot-name-row">
+                                      <span className="slot-bye-tag">⚡ BYE</span>
+                                      <span className="player-slot-name is-bye-text">Pase Libre</span>
+                                    </div>
+                                    <span className="player-slot-cat">Avanza contrincante</span>
+                                  </div>
+                                  <div className="slot-right-actions">
+                                    {isInteractive &&
+                                      isAdmin &&
+                                      isFirstRound &&
+                                      !match.winnerSlot &&
+                                      onClearMatchSlot && (
+                                        <button
+                                          type="button"
+                                          className="btn-clear-slot"
+                                          title="Quitar BYE"
+                                          onClick={() => onClearMatchSlot(match.id, 1)}
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  className={
+                                    'player-slot' +
+                                    (match.winnerSlot === 1
+                                      ? ' is-winner'
+                                      : match.winnerSlot === 2
+                                      ? ' is-loser'
+                                      : '')
+                                  }
+                                >
+                                  <div className="player-slot-info">
+                                    <div className="player-slot-name-row">
+                                      {groupP1 && (
+                                        <span className="slot-group-origin-tag">{groupP1}</span>
+                                      )}
+                                      <span className="player-slot-name">
+                                        {hasPlayer1 ? match.player1.name : (isFirstRound ? 'Por definir' : 'Ganador anterior')}
+                                      </span>
+                                    </div>
+                                    {hasPlayer1 && match.player1.categoria && (
+                                      <span className="player-slot-cat">{match.player1.categoria}</span>
+                                    )}
+                                  </div>
+                                  <div className="slot-right-actions">
+                                    {match.winnerSlot === 1 && (
+                                      <span className="winner-tick">
+                                        <Check size={14} />
+                                      </span>
+                                    )}
+                                    {isInteractive &&
+                                      isAdmin &&
+                                      isFirstRound &&
+                                      hasPlayer1 &&
+                                      !match.winnerSlot &&
+                                      onClearMatchSlot && (
+                                        <button
+                                          type="button"
+                                          className="btn-clear-slot"
+                                          title="Quitar de esta llave"
+                                          onClick={() => onClearMatchSlot(match.id, 1)}
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* VS & SWAP ROW */}
+                              <div className="match-vs-row">
+                                <span className="match-vs-divider">vs</span>
+                                {isInteractive &&
+                                  isAdmin &&
+                                  isFirstRound &&
+                                  !match.winnerSlot &&
+                                  onSwapMatchSlots &&
+                                  (hasPlayer1 || hasPlayer2) && (
+                                    <button
+                                      type="button"
+                                      className="btn-swap-slots"
+                                      title="Intercambiar posiciones (P1 ⇅ P2)"
+                                      onClick={() => onSwapMatchSlots(match.id)}
+                                    >
+                                      ⇅ Swap
+                                    </button>
+                                  )}
                               </div>
-                            )}
-                          </div>
+
+                              {/* SLOT 2 */}
+                              {isInteractive && isAdmin && isFirstRound && !hasPlayer2 && onAssignPlayerToSlot ? (
+                                <div className="player-slot is-unassigned-interactive">
+                                  <div className="slot-picker-wrap">
+                                    <select
+                                      className="slot-interactive-picker"
+                                      value=""
+                                      onChange={(e) => {
+                                        if (e.target.value) {
+                                          onAssignPlayerToSlot(match.id, 2, e.target.value)
+                                        }
+                                      }}
+                                    >
+                                      <option value="">+ Asignar jugador de grupo...</option>
+                                      <option value="__BYE__">⚡ Asignar BYE (Pase Libre)</option>
+                                      {groupsList.map((g) => (
+                                        <optgroup key={g.id} label={g.nombre}>
+                                          {(g.participantes || []).map((p) => {
+                                            const status = getPlayerAssignmentStatus(p, match.id, 2)
+                                            return (
+                                              <option
+                                                key={p.id}
+                                                value={p.id}
+                                                disabled={!status.isAvailable}
+                                              >
+                                                {status.label}
+                                              </option>
+                                            )
+                                          })}
+                                        </optgroup>
+                                      ))}
+                                    </select>
+                                    {hasPlayer1 && !match.player1?.isBye && onAssignBye && (
+                                      <button
+                                        type="button"
+                                        className="btn-quick-give-bye"
+                                        title={`Otorgar victoria por BYE a ${match.player1.name}`}
+                                        onClick={() => onAssignBye(match, 2)}
+                                      >
+                                        <Zap size={11} /> Dar BYE
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : match.player2?.isBye || match.player2?.name === 'BYE' ? (
+                                <div
+                                  className={
+                                    'player-slot is-bye-slot' +
+                                    (match.winnerSlot === 2
+                                      ? ' is-winner'
+                                      : match.winnerSlot === 1
+                                      ? ' is-loser'
+                                      : '')
+                                  }
+                                >
+                                  <div className="player-slot-info">
+                                    <div className="player-slot-name-row">
+                                      <span className="slot-bye-tag">⚡ BYE</span>
+                                      <span className="player-slot-name is-bye-text">Pase Libre</span>
+                                    </div>
+                                    <span className="player-slot-cat">Avanza contrincante</span>
+                                  </div>
+                                  <div className="slot-right-actions">
+                                    {isInteractive &&
+                                      isAdmin &&
+                                      isFirstRound &&
+                                      !match.winnerSlot &&
+                                      onClearMatchSlot && (
+                                        <button
+                                          type="button"
+                                          className="btn-clear-slot"
+                                          title="Quitar BYE"
+                                          onClick={() => onClearMatchSlot(match.id, 2)}
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  className={
+                                    'player-slot' +
+                                    (match.winnerSlot === 2
+                                      ? ' is-winner'
+                                      : match.winnerSlot === 1
+                                      ? ' is-loser'
+                                      : '')
+                                  }
+                                >
+                                  <div className="player-slot-info">
+                                    <div className="player-slot-name-row">
+                                      {groupP2 && (
+                                        <span className="slot-group-origin-tag">{groupP2}</span>
+                                      )}
+                                      <span className="player-slot-name">
+                                        {hasPlayer2 ? match.player2.name : (isFirstRound ? 'Por definir' : 'Ganador anterior')}
+                                      </span>
+                                    </div>
+                                    {hasPlayer2 && match.player2.categoria && (
+                                      <span className="player-slot-cat">{match.player2.categoria}</span>
+                                    )}
+                                  </div>
+                                  <div className="slot-right-actions">
+                                    {match.winnerSlot === 2 && (
+                                      <span className="winner-tick">
+                                        <Check size={14} />
+                                      </span>
+                                    )}
+                                    {isInteractive &&
+                                      isAdmin &&
+                                      isFirstRound &&
+                                      hasPlayer2 &&
+                                      !match.winnerSlot &&
+                                      onClearMatchSlot && (
+                                        <button
+                                          type="button"
+                                          className="btn-clear-slot"
+                                          title="Quitar de esta llave"
+                                          onClick={() => onClearMatchSlot(match.id, 2)}
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {isAdmin && (
                             <div className="match-admin-actions">
                               {hasMatchConflict && !match.winnerSlot && (
                                 <div className="match-conflict-banner">
                                   <div className="match-conflict-title">
-                                    ⚠️ {isSamePlayer ? 'Mismo jugador en ambos lados' : 'Jugador duplicado en la ronda'}
+                                    ⚠️ {isSamePlayer ? 'Mismo jugador en varias casillas' : 'Jugador duplicado en la ronda'}
                                   </div>
                                   <div className="match-conflict-hint">
                                     {isSamePlayer
-                                      ? 'Un jugador no puede competir contra sí mismo. Quita uno usando el botón ✕.'
-                                      : 'Este jugador ya está asignado en otra llave. Retira la casilla duplicada con ✕.'}
+                                      ? 'Un jugador no puede competir consigo mismo o repetirse en el partido. Retira uno usando el botón ✕.'
+                                      : 'Este jugador ya está asignado en otra llave de la ronda. Retira la casilla duplicada con ✕.'}
                                   </div>
                                 </div>
                               )}
@@ -713,11 +1202,11 @@ export default function TournamentBracket({
                                 </div>
                               )}
 
-                              {!match.winnerSlot && ((hasPlayer1 && (match.player2?.isBye || match.player2?.name === 'BYE')) || (hasPlayer2 && (match.player1?.isBye || match.player1?.name === 'BYE'))) && onAssignBye && (
+                              {!match.winnerSlot && ((hasTeam1 && isDupla2Bye) || (hasTeam2 && isDupla1Bye)) && onAssignBye && (
                                 <button
                                   type="button"
                                   className="btn-enter-score btn-bye-highlight"
-                                  onClick={() => onAssignBye(match, (match.player1?.isBye || match.player1?.name === 'BYE') ? 1 : 2)}
+                                  onClick={() => onAssignBye(match, isDupla1Bye ? 1 : 2)}
                                 >
                                   <Zap size={12} /> Confirmar Victoria por BYE
                                 </button>
@@ -745,7 +1234,7 @@ export default function TournamentBracket({
                                 </div>
                               )}
 
-                              {!match.isLive && canScore && onOpenScoreModal && !((hasPlayer1 && (match.player2?.isBye || match.player2?.name === 'BYE')) || (hasPlayer2 && (match.player1?.isBye || match.player1?.name === 'BYE'))) && (
+                              {!match.isLive && canScore && onOpenScoreModal && !((hasTeam1 && isDupla2Bye) || (hasTeam2 && isDupla1Bye)) && (
                                 <div className="match-admin-btn-group">
                                   <button
                                     type="button"

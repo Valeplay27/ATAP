@@ -3570,7 +3570,7 @@ export function generateGroupMatches(participantes, grupoId, grupoNombre, isGrup
   return matches;
 }
 
-export function generateKnockoutStructure(size = 4) {
+export function generateKnockoutStructure(size = 4, modality = 'singles') {
   const sizeNum = Number(size) || 4;
 
   const ALL_ROUNDS_CONFIG = [
@@ -3602,7 +3602,10 @@ export function generateKnockoutStructure(size = 4) {
         round: cfg.name,
         matchNum: globalMatchNum++,
         player1: null,
+        player1b: null,
         player2: null,
+        player2b: null,
+        modalidad: modality,
         score: '',
         winnerSlot: null,
         winnerName: null,
@@ -3631,9 +3634,11 @@ export function saveManualFixture(tournamentId, { faseGrupos, rounds, bracket, s
   }
   if (rounds !== undefined || bracket !== undefined || size !== undefined) {
     const determinedSize = size || bracket?.size || tournaments[index].bracket?.size || (rounds?.[0]?.matches?.length === 4 ? 8 : 4);
+    const determinedModality = bracket?.modalidad || tournaments[index].bracket?.modalidad || (tournaments[index].modalidad === 'dobles' ? 'dobles' : 'singles');
     tournaments[index].bracket = {
       ...(tournaments[index].bracket || {}),
       size: determinedSize,
+      modalidad: determinedModality,
       rounds: rounds || tournaments[index].bracket?.rounds || [],
       champion: bracket?.champion || tournaments[index].bracket?.champion || null
     };
@@ -3711,26 +3716,41 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   targetMatch.isLive = false;
   const winnerSlot = Number(matchData.winnerSlot);
   const winnerPlayer = winnerSlot === 1 ? targetMatch.player1 : targetMatch.player2;
+  const winnerPartner = winnerSlot === 1 ? targetMatch.player1b : targetMatch.player2b;
   let pointsAward = Number(matchData.pointsAward) || 0;
 
   targetMatch.score = matchData.score || '';
   targetMatch.winnerSlot = winnerSlot;
-  targetMatch.winnerName = winnerPlayer?.name || '';
+  targetMatch.winnerName = winnerPartner
+    ? `${winnerPlayer?.name || ''} & ${winnerPartner.name}`
+    : (winnerPlayer?.name || '');
 
   // Advance winner if next match exists (knockout bracket)
   if (targetMatch.nextMatchId) {
     const nextMatch = allMatches.find((m) => m.id === targetMatch.nextMatchId);
     if (nextMatch) {
       if (targetMatch.nextSlot === 1) {
-        nextMatch.player1 = { ...winnerPlayer };
+        nextMatch.player1 = winnerPlayer ? { ...winnerPlayer } : null;
+        nextMatch.player1b = winnerPartner ? { ...winnerPartner } : null;
       } else {
-        nextMatch.player2 = { ...winnerPlayer };
+        nextMatch.player2 = winnerPlayer ? { ...winnerPlayer } : null;
+        nextMatch.player2b = winnerPartner ? { ...winnerPartner } : null;
+      }
+      if (targetMatch.modalidad) {
+        nextMatch.modalidad = targetMatch.modalidad;
       }
     }
   } else if (targetMatch.round && targetMatch.round.toLowerCase().includes('final') && !targetMatch.grupoId) {
     // This was the Gran Final!
     if (tournament.bracket) {
-      tournament.bracket.champion = { ...winnerPlayer };
+      tournament.bracket.champion = winnerPartner
+        ? {
+            ...winnerPlayer,
+            name: `${winnerPlayer?.name || ''} & ${winnerPartner.name}`,
+            player1: winnerPlayer,
+            player2: winnerPartner
+          }
+        : (winnerPlayer ? { ...winnerPlayer } : null);
     }
     tournament.estado = 'finalizado';
     pointsAward = Math.max(pointsAward, 250); // Champion bonus
@@ -3739,6 +3759,9 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   // Award points to winner and update live ranking
   if (winnerPlayer && winnerPlayer.name && !winnerPlayer.isBye && winnerPlayer.name.toUpperCase() !== 'BYE' && pointsAward > 0) {
     awardPointsToPlayer(winnerPlayer.name, pointsAward);
+  }
+  if (winnerPartner && winnerPartner.name && !winnerPartner.isBye && winnerPartner.name.toUpperCase() !== 'BYE' && pointsAward > 0) {
+    awardPointsToPlayer(winnerPartner.name, pointsAward);
   }
 
   saveTournaments(tournaments);
@@ -3906,10 +3929,16 @@ export function recordByeMatch(tournamentId, matchId, winnerSlot, pointsAward = 
     isBye: true
   };
 
-  if (byeSlot === 1) targetMatch.player1 = byeObj;
-  else targetMatch.player2 = byeObj;
+  if (byeSlot === 1) {
+    targetMatch.player1 = byeObj;
+    targetMatch.player1b = null;
+  } else {
+    targetMatch.player2 = byeObj;
+    targetMatch.player2b = null;
+  }
 
   const winnerPlayer = wSlot === 1 ? targetMatch.player1 : targetMatch.player2;
+  const winnerPartner = wSlot === 1 ? targetMatch.player1b : targetMatch.player2b;
   if (!winnerPlayer || winnerPlayer.isBye || winnerPlayer.name === 'BYE') {
     return { error: 'Se requiere un jugador válido para otorgarle la victoria por BYE.' };
   }
@@ -3917,7 +3946,9 @@ export function recordByeMatch(tournamentId, matchId, winnerSlot, pointsAward = 
   targetMatch.isBye = true;
   targetMatch.score = 'BYE';
   targetMatch.winnerSlot = wSlot;
-  targetMatch.winnerName = winnerPlayer.name;
+  targetMatch.winnerName = winnerPartner
+    ? `${winnerPlayer.name} & ${winnerPartner.name}`
+    : winnerPlayer.name;
 
   let points = Number(pointsAward) || 0;
 
@@ -3926,15 +3957,27 @@ export function recordByeMatch(tournamentId, matchId, winnerSlot, pointsAward = 
     const nextMatch = allMatches.find((m) => m.id === targetMatch.nextMatchId);
     if (nextMatch) {
       if (targetMatch.nextSlot === 1) {
-        nextMatch.player1 = { ...winnerPlayer };
+        nextMatch.player1 = winnerPlayer ? { ...winnerPlayer } : null;
+        nextMatch.player1b = winnerPartner ? { ...winnerPartner } : null;
       } else {
-        nextMatch.player2 = { ...winnerPlayer };
+        nextMatch.player2 = winnerPlayer ? { ...winnerPlayer } : null;
+        nextMatch.player2b = winnerPartner ? { ...winnerPartner } : null;
+      }
+      if (targetMatch.modalidad) {
+        nextMatch.modalidad = targetMatch.modalidad;
       }
     }
   } else if (targetMatch.round && targetMatch.round.toLowerCase().includes('final') && !targetMatch.grupoId) {
     // This was the Gran Final!
     if (tournament.bracket) {
-      tournament.bracket.champion = { ...winnerPlayer };
+      tournament.bracket.champion = winnerPartner
+        ? {
+            ...winnerPlayer,
+            name: `${winnerPlayer.name} & ${winnerPartner.name}`,
+            player1: winnerPlayer,
+            player2: winnerPartner
+          }
+        : (winnerPlayer ? { ...winnerPlayer } : null);
     }
     tournament.estado = 'finalizado';
     points = Math.max(points, 250);
@@ -3942,6 +3985,9 @@ export function recordByeMatch(tournamentId, matchId, winnerSlot, pointsAward = 
 
   if (points > 0 && winnerPlayer.name) {
     awardPointsToPlayer(winnerPlayer.name, points);
+  }
+  if (points > 0 && winnerPartner && winnerPartner.name) {
+    awardPointsToPlayer(winnerPartner.name, points);
   }
 
   saveTournaments(tournaments);

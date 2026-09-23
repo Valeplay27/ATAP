@@ -1,8 +1,8 @@
 import './SimplePage.css'
 
-export default function SimplePage({ eyebrow, title, description, children }) {
+export default function SimplePage({ eyebrow, title, description, className = '', children }) {
   return (
-    <main className="page-content simple-page">
+    <main className={`page-content simple-page ${className}`.trim()}>
       <section className="page-heading">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>

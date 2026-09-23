@@ -233,6 +233,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [manualGroups, setManualGroups] = useState([])
   const [draggedPlayer, setDraggedPlayer] = useState(null)
   const [playoffSize, setPlayoffSize] = useState(4)
+  const [playoffModality, setPlayoffModality] = useState('singles')
   const [byeModalData, setByeModalData] = useState(null)
   const [byePointsAward, setByePointsAward] = useState(100)
 
@@ -608,6 +609,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     if (currentTourney.bracket?.size) {
       setPlayoffSize(Number(currentTourney.bracket.size))
     }
+    const tourneyMod = currentTourney.bracket?.modalidad || (currentTourney.modalidad === 'dobles' ? 'dobles' : 'singles')
+    setPlayoffModality(tourneyMod)
   }, [selectedTourneyId, currentTourney?.id])
 
   // Approved players for the active tournament
@@ -766,12 +769,16 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   function handleChangePlayoffSize(newSize) {
     const sizeNum = Number(newSize) || 4
     setPlayoffSize(sizeNum)
-    const newRounds = generateKnockoutStructure(sizeNum)
+    const newRounds = generateKnockoutStructure(sizeNum, playoffModality)
     if (!currentTourney) return
     const res = saveManualFixture(currentTourney.id, {
       faseGrupos: manualGroups,
       rounds: newRounds,
-      size: sizeNum
+      size: sizeNum,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: playoffModality
+      }
     })
     if (!res.error) {
       setTournaments(getTournaments())
@@ -786,12 +793,77 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
   }
 
+  function handleChangePlayoffModality(newMod) {
+    setPlayoffModality(newMod)
+    const currentRounds = currentTourney?.bracket?.rounds?.length
+      ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
+      : generateKnockoutStructure(playoffSize, newMod)
+
+    currentRounds.forEach((r) => {
+      (r.matches || []).forEach((m) => {
+        m.modalidad = newMod
+        if (newMod === 'singles') {
+          m.player1b = null
+          m.player2b = null
+        }
+      })
+    })
+
+    if (!currentTourney) return
+    const res = saveManualFixture(currentTourney.id, {
+      faseGrupos: manualGroups,
+      rounds: currentRounds,
+      size: playoffSize,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: newMod
+      }
+    })
+    if (!res.error) {
+      setTournaments(getTournaments())
+      showToast(`Modalidad de llaves cambiada a ${newMod === 'dobles' ? 'Dobles (4 jugadores por partido)' : 'Singles'}.`)
+    }
+  }
+
+  function handleUpdateMatchModality(matchId, newMod) {
+    if (!currentTourney) return
+    const currentRounds = currentTourney.bracket?.rounds?.length
+      ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
+      : generateKnockoutStructure(playoffSize, playoffModality)
+
+    for (const r of currentRounds) {
+      const m = (r.matches || []).find((x) => x.id === matchId)
+      if (m) {
+        m.modalidad = newMod
+        if (newMod === 'singles') {
+          m.player1b = null
+          m.player2b = null
+        }
+        break
+      }
+    }
+
+    const res = saveManualFixture(currentTourney.id, {
+      faseGrupos: manualGroups,
+      rounds: currentRounds,
+      size: playoffSize,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: playoffModality
+      }
+    })
+    if (!res.error) {
+      setTournaments(getTournaments())
+      showToast(`Match actualizado a modalidad ${newMod === 'dobles' ? 'Dobles' : 'Singles'}.`)
+    }
+  }
+
   function handleAssignPlayerToMatchSlot(matchId, slotNum, playerId) {
     if (!currentTourney) return
 
     const currentRounds = currentTourney.bracket?.rounds?.length
       ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
-      : generateKnockoutStructure(playoffSize)
+      : generateKnockoutStructure(playoffSize, playoffModality)
 
     const firstRound = currentRounds[0]
     if (!firstRound) return
@@ -799,9 +871,15 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const targetMatch = (firstRound.matches || []).find((m) => m.id === matchId)
     if (!targetMatch) return
 
+    const isSlot1a = slotNum === 1 || slotNum === '1' || slotNum === '1a'
+    const isSlot1b = slotNum === '1b'
+    const isSlot2a = slotNum === 2 || slotNum === '2' || slotNum === '2a'
+    const isSlot2b = slotNum === '2b'
+
     // CASO ESPECIAL: ASIGNACIÓN DE BYE (PASE LIBRE)
     if (playerId === '__BYE__' || playerId === 'bye') {
-      const oppositePlayer = slotNum === 1 ? targetMatch.player2 : targetMatch.player1
+      const isTeam1 = isSlot1a || isSlot1b
+      const oppositeTeam = isTeam1 ? targetMatch.player2 : targetMatch.player1
       const byeData = {
         id: 'bye',
         name: 'BYE',
@@ -811,23 +889,29 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
         isBye: true
       }
 
-      if (slotNum === 1) targetMatch.player1 = byeData
-      else targetMatch.player2 = byeData
+      if (isTeam1) {
+        targetMatch.player1 = byeData
+        targetMatch.player1b = null
+      } else {
+        targetMatch.player2 = byeData
+        targetMatch.player2b = null
+      }
 
       // Si la casilla contraria ya tiene un jugador real, abrir modal para confirmar victoria por BYE y puntos
-      if (oppositePlayer && !oppositePlayer.isBye && oppositePlayer.name !== 'BYE') {
-        const oppSlot = slotNum === 1 ? 2 : 1
+      if (oppositeTeam && !oppositeTeam.isBye && oppositeTeam.name !== 'BYE') {
+        const oppSlot = isTeam1 ? 2 : 1
+        const partner = oppSlot === 1 ? targetMatch.player1b : targetMatch.player2b
         setByeModalData({
           match: targetMatch,
           winnerSlot: oppSlot,
-          byeSlot: slotNum,
-          player: oppositePlayer
+          byeSlot: isTeam1 ? 1 : 2,
+          player: oppositeTeam,
+          partner: partner || null
         })
         setByePointsAward(100)
         return
       }
 
-      // Si la otra casilla aún está vacía, guardar la casilla como BYE
       targetMatch.score = ''
       targetMatch.winnerSlot = null
       targetMatch.winnerName = null
@@ -836,11 +920,15 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       const res = saveManualFixture(currentTourney.id, {
         faseGrupos: manualGroups,
         rounds: currentRounds,
-        size: playoffSize
+        size: playoffSize,
+        bracket: {
+          ...(currentTourney.bracket || {}),
+          modalidad: playoffModality
+        }
       })
       if (!res.error) {
         setTournaments(getTournaments())
-        showToast(`⚡ Casilla ${slotNum} del Match #${targetMatch.matchNum} asignada como BYE (Pase Libre).`)
+        showToast(`⚡ Dupla ${isTeam1 ? 1 : 2} del Match #${targetMatch.matchNum} asignada como BYE (Pase Libre).`)
       }
       return
     }
@@ -871,18 +959,25 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       return false
     }
 
-    // REGLA 1: No permitir escoger el mismo jugador en el mismo campo / partido
-    const oppositePlayer = slotNum === 1 ? targetMatch.player2 : targetMatch.player1
-    if (oppositePlayer && isMatch(oppositePlayer)) {
-      showToast(`⚠️ No puedes asignar a "${foundPlayer.nombre}" contra sí mismo en el Match #${targetMatch.matchNum}.`)
-      return
+    // REGLA 1: No permitir escoger el mismo jugador en el mismo partido (en cualquiera de las 4 casillas)
+    const otherPlayersInMatch = []
+    if (!isSlot1a && targetMatch.player1) otherPlayersInMatch.push(targetMatch.player1)
+    if (!isSlot1b && targetMatch.player1b) otherPlayersInMatch.push(targetMatch.player1b)
+    if (!isSlot2a && targetMatch.player2) otherPlayersInMatch.push(targetMatch.player2)
+    if (!isSlot2b && targetMatch.player2b) otherPlayersInMatch.push(targetMatch.player2b)
+
+    for (const op of otherPlayersInMatch) {
+      if (isMatch(op)) {
+        showToast(`⚠️ No puedes asignar a "${foundPlayer.nombre}" más de una vez en el Match #${targetMatch.matchNum}.`)
+        return
+      }
     }
 
     // REGLA 2: No permitir escoger si ya jugó o ya está asignado en otra llave de la primera ronda
     for (const m of (firstRound.matches || [])) {
       if (m.id === matchId) continue
 
-      if (isMatch(m.player1) || isMatch(m.player2)) {
+      if (isMatch(m.player1) || isMatch(m.player1b) || isMatch(m.player2) || isMatch(m.player2b)) {
         if (m.winnerSlot != null) {
           showToast(`⚠️ "${foundPlayer.nombre}" ya jugó en el Match #${m.matchNum} de esta ronda y no puede reingresar.`)
         } else {
@@ -900,19 +995,28 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       grupoNombre: foundGroup?.nombre || ''
     }
 
-    if (slotNum === 1) {
+    if (isSlot1a) {
       targetMatch.player1 = playerData
-    } else {
+    } else if (isSlot1b) {
+      targetMatch.player1b = playerData
+    } else if (isSlot2a) {
       targetMatch.player2 = playerData
+    } else if (isSlot2b) {
+      targetMatch.player2b = playerData
     }
 
     // Si la casilla contraria ya es BYE, abrir modal para confirmar puntos y victoria por BYE!
-    if (oppositePlayer && (oppositePlayer.isBye || oppositePlayer.name === 'BYE')) {
+    const isTeam1 = isSlot1a || isSlot1b
+    const oppositeTeam = isTeam1 ? targetMatch.player2 : targetMatch.player1
+    if (oppositeTeam && (oppositeTeam.isBye || oppositeTeam.name === 'BYE')) {
+      const winnerSlot = isTeam1 ? 1 : 2
+      const partner = winnerSlot === 1 ? targetMatch.player1b : targetMatch.player2b
       setByeModalData({
         match: targetMatch,
-        winnerSlot: slotNum,
-        byeSlot: slotNum === 1 ? 2 : 1,
-        player: playerData
+        winnerSlot,
+        byeSlot: isTeam1 ? 2 : 1,
+        player: isTeam1 ? targetMatch.player1 : targetMatch.player2,
+        partner: partner || null
       })
       setByePointsAward(100)
       return
@@ -925,7 +1029,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const res = saveManualFixture(currentTourney.id, {
       faseGrupos: manualGroups,
       rounds: currentRounds,
-      size: playoffSize
+      size: playoffSize,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: playoffModality
+      }
     })
     if (!res.error) {
       setTournaments(getTournaments())
@@ -938,6 +1046,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     const targetSlot = Number(byeSlot) || 2
     const winnerSlot = targetSlot === 1 ? 2 : 1
     const realPlayer = winnerSlot === 1 ? match.player1 : match.player2
+    const partner = winnerSlot === 1 ? match.player1b : match.player2b
     if (!realPlayer || realPlayer.isBye || realPlayer.name === 'BYE') {
       showToast('⚠️ Asigna primero al jugador en la casilla contraria para otorgarle la victoria por BYE.')
       return
@@ -946,14 +1055,15 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       match,
       winnerSlot,
       byeSlot: targetSlot,
-      player: realPlayer
+      player: realPlayer,
+      partner: partner || null
     })
     setByePointsAward(100)
   }
 
   function handleConfirmBye() {
     if (!byeModalData || !currentTourney) return
-    const { match, winnerSlot, player } = byeModalData
+    const { match, winnerSlot, player, partner } = byeModalData
     const points = Math.max(0, parseInt(byePointsAward, 10) || 0)
 
     const res = recordByeMatch(currentTourney.id, match.id, winnerSlot, points)
@@ -961,7 +1071,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       showToast(res.error)
     } else {
       setTournaments(getTournaments())
-      showToast(`¡Pase libre (BYE) asignado a ${player.name}! Avanzó a la siguiente ronda con +${points} pts de ranking.`)
+      const nameText = partner?.name ? `${player.name} & ${partner.name}` : player.name
+      showToast(`¡Pase libre (BYE) asignado a ${nameText}! Avanzó a la siguiente ronda con +${points} pts de ranking.`)
       setByeModalData(null)
     }
   }
@@ -970,15 +1081,20 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     if (!currentTourney) return
     const currentRounds = currentTourney.bracket?.rounds?.length
       ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
-      : generateKnockoutStructure(playoffSize)
+      : generateKnockoutStructure(playoffSize, playoffModality)
 
     let updated = false
     for (const r of currentRounds) {
       const match = (r.matches || []).find((m) => m.id === matchId)
       if (match) {
-        const temp = match.player1
+        const temp1 = match.player1
         match.player1 = match.player2
-        match.player2 = temp
+        match.player2 = temp1
+
+        const temp1b = match.player1b
+        match.player1b = match.player2b
+        match.player2b = temp1b
+
         if (match.winnerSlot === 1) match.winnerSlot = 2
         else if (match.winnerSlot === 2) match.winnerSlot = 1
         updated = true
@@ -990,7 +1106,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       const res = saveManualFixture(currentTourney.id, {
         faseGrupos: manualGroups,
         rounds: currentRounds,
-        size: playoffSize
+        size: playoffSize,
+        bracket: {
+          ...(currentTourney.bracket || {}),
+          modalidad: playoffModality
+        }
       })
       if (!res.error) {
         setTournaments(getTournaments())
@@ -1003,14 +1123,17 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     if (!currentTourney) return
     const currentRounds = currentTourney.bracket?.rounds?.length
       ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
-      : generateKnockoutStructure(playoffSize)
+      : generateKnockoutStructure(playoffSize, playoffModality)
 
     let updated = false
     for (const r of currentRounds) {
       const match = (r.matches || []).find((m) => m.id === matchId)
       if (match) {
-        if (slotNum === 1) match.player1 = null
-        else match.player2 = null
+        if (slotNum === 1 || slotNum === '1' || slotNum === '1a') match.player1 = null
+        else if (slotNum === '1b') match.player1b = null
+        else if (slotNum === 2 || slotNum === '2' || slotNum === '2a') match.player2 = null
+        else if (slotNum === '2b') match.player2b = null
+
         match.score = ''
         match.winnerSlot = null
         match.winnerName = null
@@ -1021,8 +1144,13 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
           for (const nextR of currentRounds) {
             const nextMatch = (nextR.matches || []).find((nm) => nm.id === match.nextMatchId)
             if (nextMatch && !nextMatch.winnerSlot) {
-              if (match.nextSlot === 1) nextMatch.player1 = null
-              else if (match.nextSlot === 2) nextMatch.player2 = null
+              if (match.nextSlot === 1) {
+                nextMatch.player1 = null
+                nextMatch.player1b = null
+              } else if (match.nextSlot === 2) {
+                nextMatch.player2 = null
+                nextMatch.player2b = null
+              }
             }
           }
         }
@@ -1036,7 +1164,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       const res = saveManualFixture(currentTourney.id, {
         faseGrupos: manualGroups,
         rounds: currentRounds,
-        size: playoffSize
+        size: playoffSize,
+        bracket: {
+          ...(currentTourney.bracket || {}),
+          modalidad: playoffModality
+        }
       })
       if (!res.error) {
         setTournaments(getTournaments())
@@ -1047,12 +1179,13 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   function handleAutoPairKnockout() {
     if (!currentTourney) return
-    if (allGroupPlayers.length < 2) {
-      showToast(`Se necesitan al menos 2 jugadores asignados a los grupos de ${currentTourney.title} para armar las llaves.`)
+    const minPlayers = playoffModality === 'dobles' ? 4 : 2
+    if (allGroupPlayers.length < minPlayers) {
+      showToast(`Se necesitan al menos ${minPlayers} jugadores asignados a los grupos de ${currentTourney.title} para armar las llaves (${playoffModality === 'dobles' ? 'Dobles' : 'Singles'}).`)
       return
     }
 
-    const currentRounds = generateKnockoutStructure(playoffSize)
+    const currentRounds = generateKnockoutStructure(playoffSize, playoffModality)
     const firstRound = currentRounds[0]
     if (!firstRound || !firstRound.matches) return
 
@@ -1090,39 +1223,101 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       }
     }
 
+    const isDobles = playoffModality === 'dobles'
     let seedIdx = 0
     firstRound.matches.forEach((m) => {
-      if (uniqueSeeds[seedIdx]) {
-        m.player1 = {
-          id: uniqueSeeds[seedIdx].id,
-          name: uniqueSeeds[seedIdx].nombre,
-          categoria: uniqueSeeds[seedIdx].categoria,
-          dni: uniqueSeeds[seedIdx].dni,
-          grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+      m.modalidad = playoffModality
+      if (isDobles) {
+        if (uniqueSeeds[seedIdx]) {
+          m.player1 = {
+            id: uniqueSeeds[seedIdx].id,
+            name: uniqueSeeds[seedIdx].nombre,
+            categoria: uniqueSeeds[seedIdx].categoria,
+            dni: uniqueSeeds[seedIdx].dni,
+            grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+          }
+          seedIdx++
+        } else {
+          m.player1 = null
         }
-        seedIdx++
-      } else {
-        m.player1 = null
-      }
 
-      if (uniqueSeeds[seedIdx]) {
-        m.player2 = {
-          id: uniqueSeeds[seedIdx].id,
-          name: uniqueSeeds[seedIdx].nombre,
-          categoria: uniqueSeeds[seedIdx].categoria,
-          dni: uniqueSeeds[seedIdx].dni,
-          grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+        if (uniqueSeeds[seedIdx]) {
+          m.player1b = {
+            id: uniqueSeeds[seedIdx].id,
+            name: uniqueSeeds[seedIdx].nombre,
+            categoria: uniqueSeeds[seedIdx].categoria,
+            dni: uniqueSeeds[seedIdx].dni,
+            grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+          }
+          seedIdx++
+        } else {
+          m.player1b = null
         }
-        seedIdx++
+
+        if (uniqueSeeds[seedIdx]) {
+          m.player2 = {
+            id: uniqueSeeds[seedIdx].id,
+            name: uniqueSeeds[seedIdx].nombre,
+            categoria: uniqueSeeds[seedIdx].categoria,
+            dni: uniqueSeeds[seedIdx].dni,
+            grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+          }
+          seedIdx++
+        } else {
+          m.player2 = null
+        }
+
+        if (uniqueSeeds[seedIdx]) {
+          m.player2b = {
+            id: uniqueSeeds[seedIdx].id,
+            name: uniqueSeeds[seedIdx].nombre,
+            categoria: uniqueSeeds[seedIdx].categoria,
+            dni: uniqueSeeds[seedIdx].dni,
+            grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+          }
+          seedIdx++
+        } else {
+          m.player2b = null
+        }
       } else {
-        m.player2 = null
+        m.player1b = null
+        m.player2b = null
+        if (uniqueSeeds[seedIdx]) {
+          m.player1 = {
+            id: uniqueSeeds[seedIdx].id,
+            name: uniqueSeeds[seedIdx].nombre,
+            categoria: uniqueSeeds[seedIdx].categoria,
+            dni: uniqueSeeds[seedIdx].dni,
+            grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+          }
+          seedIdx++
+        } else {
+          m.player1 = null
+        }
+
+        if (uniqueSeeds[seedIdx]) {
+          m.player2 = {
+            id: uniqueSeeds[seedIdx].id,
+            name: uniqueSeeds[seedIdx].nombre,
+            categoria: uniqueSeeds[seedIdx].categoria,
+            dni: uniqueSeeds[seedIdx].dni,
+            grupoNombre: uniqueSeeds[seedIdx].grupoNombre
+          }
+          seedIdx++
+        } else {
+          m.player2 = null
+        }
       }
     })
 
     const res = saveManualFixture(currentTourney.id, {
       faseGrupos: manualGroups,
       rounds: currentRounds,
-      size: playoffSize
+      size: playoffSize,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: playoffModality
+      }
     })
     if (!res.error) {
       setTournaments(getTournaments())
@@ -1132,12 +1327,13 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   function handleRandomPairKnockout() {
     if (!currentTourney) return
-    if (allGroupPlayers.length < 2) {
-      showToast(`Se necesitan al menos 2 jugadores en los grupos de ${currentTourney.title} para realizar el sorteo aleatorio.`)
+    const minPlayers = playoffModality === 'dobles' ? 4 : 2
+    if (allGroupPlayers.length < minPlayers) {
+      showToast(`Se necesitan al menos ${minPlayers} jugadores en los grupos de ${currentTourney.title} para realizar el sorteo aleatorio (${playoffModality === 'dobles' ? 'Dobles' : 'Singles'}).`)
       return
     }
 
-    const currentRounds = generateKnockoutStructure(playoffSize)
+    const currentRounds = generateKnockoutStructure(playoffSize, playoffModality)
     const firstRound = currentRounds[0]
     if (!firstRound || !firstRound.matches) return
 
@@ -1154,39 +1350,101 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     const shuffled = [...uniqueGroupPlayers].sort(() => Math.random() - 0.5)
 
+    const isDobles = playoffModality === 'dobles'
     let idx = 0
     firstRound.matches.forEach((m) => {
-      if (shuffled[idx]) {
-        m.player1 = {
-          id: shuffled[idx].id,
-          name: shuffled[idx].nombre,
-          categoria: shuffled[idx].categoria,
-          dni: shuffled[idx].dni,
-          grupoNombre: shuffled[idx].grupoNombre
+      m.modalidad = playoffModality
+      if (isDobles) {
+        if (shuffled[idx]) {
+          m.player1 = {
+            id: shuffled[idx].id,
+            name: shuffled[idx].nombre,
+            categoria: shuffled[idx].categoria,
+            dni: shuffled[idx].dni,
+            grupoNombre: shuffled[idx].grupoNombre
+          }
+          idx++
+        } else {
+          m.player1 = null
         }
-        idx++
-      } else {
-        m.player1 = null
-      }
 
-      if (shuffled[idx]) {
-        m.player2 = {
-          id: shuffled[idx].id,
-          name: shuffled[idx].nombre,
-          categoria: shuffled[idx].categoria,
-          dni: shuffled[idx].dni,
-          grupoNombre: shuffled[idx].grupoNombre
+        if (shuffled[idx]) {
+          m.player1b = {
+            id: shuffled[idx].id,
+            name: shuffled[idx].nombre,
+            categoria: shuffled[idx].categoria,
+            dni: shuffled[idx].dni,
+            grupoNombre: shuffled[idx].grupoNombre
+          }
+          idx++
+        } else {
+          m.player1b = null
         }
-        idx++
+
+        if (shuffled[idx]) {
+          m.player2 = {
+            id: shuffled[idx].id,
+            name: shuffled[idx].nombre,
+            categoria: shuffled[idx].categoria,
+            dni: shuffled[idx].dni,
+            grupoNombre: shuffled[idx].grupoNombre
+          }
+          idx++
+        } else {
+          m.player2 = null
+        }
+
+        if (shuffled[idx]) {
+          m.player2b = {
+            id: shuffled[idx].id,
+            name: shuffled[idx].nombre,
+            categoria: shuffled[idx].categoria,
+            dni: shuffled[idx].dni,
+            grupoNombre: shuffled[idx].grupoNombre
+          }
+          idx++
+        } else {
+          m.player2b = null
+        }
       } else {
-        m.player2 = null
+        m.player1b = null
+        m.player2b = null
+        if (shuffled[idx]) {
+          m.player1 = {
+            id: shuffled[idx].id,
+            name: shuffled[idx].nombre,
+            categoria: shuffled[idx].categoria,
+            dni: shuffled[idx].dni,
+            grupoNombre: shuffled[idx].grupoNombre
+          }
+          idx++
+        } else {
+          m.player1 = null
+        }
+
+        if (shuffled[idx]) {
+          m.player2 = {
+            id: shuffled[idx].id,
+            name: shuffled[idx].nombre,
+            categoria: shuffled[idx].categoria,
+            dni: shuffled[idx].dni,
+            grupoNombre: shuffled[idx].grupoNombre
+          }
+          idx++
+        } else {
+          m.player2 = null
+        }
       }
     })
 
     const res = saveManualFixture(currentTourney.id, {
       faseGrupos: manualGroups,
       rounds: currentRounds,
-      size: playoffSize
+      size: playoffSize,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: playoffModality
+      }
     })
     if (!res.error) {
       setTournaments(getTournaments())
@@ -1196,11 +1454,15 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   function handleClearAllKnockout() {
     if (!currentTourney) return
-    const cleanRounds = generateKnockoutStructure(playoffSize)
+    const cleanRounds = generateKnockoutStructure(playoffSize, playoffModality)
     const res = saveManualFixture(currentTourney.id, {
       faseGrupos: manualGroups,
       rounds: cleanRounds,
-      size: playoffSize
+      size: playoffSize,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: playoffModality
+      }
     })
     if (!res.error) {
       setTournaments(getTournaments())
@@ -1212,12 +1474,16 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     if (!currentTourney) return
     const currentRounds = currentTourney.bracket?.rounds?.length
       ? currentTourney.bracket.rounds
-      : generateKnockoutStructure(playoffSize)
+      : generateKnockoutStructure(playoffSize, playoffModality)
 
     const res = saveManualFixture(currentTourney.id, {
       faseGrupos: manualGroups,
       rounds: currentRounds,
-      size: playoffSize
+      size: playoffSize,
+      bracket: {
+        ...(currentTourney.bracket || {}),
+        modalidad: playoffModality
+      }
     })
     if (res.error) {
       showToast(res.error)
@@ -4177,6 +4443,19 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     </select>
                   </div>
 
+                  <div className="control-field-inline">
+                    <label htmlFor="select-playoff-modality">Modalidad:</label>
+                    <select
+                      id="select-playoff-modality"
+                      value={playoffModality}
+                      onChange={(e) => handleChangePlayoffModality(e.target.value)}
+                      className="select-bracket-format"
+                    >
+                      <option value="singles">Singles (Individual)</option>
+                      <option value="dobles">Dobles (Parejas / 4 jugadores)</option>
+                    </select>
+                  </div>
+
                   <button
                     type="button"
                     className="btn-bracket-assistant primary"
@@ -4229,16 +4508,18 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
               {/* BRACKET VISUAL TREE */}
               <TournamentBracket
-                key={`${currentTourney.id}-${playoffSize}-${currentTourney.bracket?.rounds?.length || 0}`}
+                key={`${currentTourney.id}-${playoffSize}-${playoffModality}-${currentTourney.bracket?.rounds?.length || 0}`}
                 bracket={
                   currentTourney.bracket?.rounds?.length
                     ? currentTourney.bracket
                     : {
                         faseGrupos: manualGroups,
-                        rounds: generateKnockoutStructure(playoffSize),
-                        champion: null
+                        rounds: generateKnockoutStructure(playoffSize, playoffModality),
+                        champion: null,
+                        modalidad: playoffModality
                       }
                 }
+                bracketModality={playoffModality}
                 isAdmin={true}
                 isInteractive={true}
                 manualGroups={manualGroups}
@@ -4250,6 +4531,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 onAssignBye={handleOpenByeModal}
                 onUpdateMatchHora={handleUpdateMatchHora}
                 onToggleMatchLive={handleToggleMatchLive}
+                onUpdateMatchModality={handleUpdateMatchModality}
               />
             </div>
           </div>
@@ -4906,11 +5188,13 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   </div>
                   <TournamentBracket
                     bracket={currentTourney.bracket}
+                    bracketModality={currentTourney.bracket?.modalidad || playoffModality}
                     isAdmin={true}
                     onOpenScoreModal={handleOpenScoreModal}
                     onAssignBye={handleOpenByeModal}
                     onUpdateMatchHora={handleUpdateMatchHora}
                     onToggleMatchLive={handleToggleMatchLive}
+                    onUpdateMatchModality={handleUpdateMatchModality}
                   />
                 </div>
               )}
@@ -6815,8 +7099,17 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     onChange={() => setWinnerSlot(1)}
                   />
                   <div className="pick-info">
-                    <span className="pick-role">{scoreModalMatch.esGrupal ? 'Equipo 1' : 'Jugador 1'}</span>
-                    <strong>{scoreModalMatch.player1?.name || 'Por definir'}</strong>
+                    <span className="pick-role">
+                      {scoreModalMatch.esGrupal
+                        ? 'Equipo 1'
+                        : scoreModalMatch.modalidad === 'dobles' || scoreModalMatch.player1b
+                        ? 'Dupla 1'
+                        : 'Jugador 1'}
+                    </span>
+                    <strong>
+                      {scoreModalMatch.player1?.name || 'Por definir'}
+                      {scoreModalMatch.player1b?.name ? ` & ${scoreModalMatch.player1b.name}` : ''}
+                    </strong>
                     <small>{scoreModalMatch.player1?.categoria}</small>
                   </div>
                 </label>
@@ -6834,8 +7127,17 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     onChange={() => setWinnerSlot(2)}
                   />
                   <div className="pick-info">
-                    <span className="pick-role">{scoreModalMatch.esGrupal ? 'Equipo 2' : 'Jugador 2'}</span>
-                    <strong>{scoreModalMatch.player2?.name || 'Por definir'}</strong>
+                    <span className="pick-role">
+                      {scoreModalMatch.esGrupal
+                        ? 'Equipo 2'
+                        : scoreModalMatch.modalidad === 'dobles' || scoreModalMatch.player2b
+                        ? 'Dupla 2'
+                        : 'Jugador 2'}
+                    </span>
+                    <strong>
+                      {scoreModalMatch.player2?.name || 'Por definir'}
+                      {scoreModalMatch.player2b?.name ? ` & ${scoreModalMatch.player2b.name}` : ''}
+                    </strong>
                     <small>{scoreModalMatch.player2?.categoria}</small>
                   </div>
                 </label>
@@ -7015,10 +7317,13 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               <div className="bye-banner-info">
                 <div className="bye-icon-circle">🎾</div>
                 <div className="bye-banner-text">
-                  <h4>{byeModalData.player?.name || 'Jugador Seleccionado'}</h4>
+                  <h4>
+                    {byeModalData.player?.name || 'Jugador Seleccionado'}
+                    {byeModalData.partner?.name ? ` & ${byeModalData.partner.name}` : ''}
+                  </h4>
                   <span className="bye-cat-chip">{byeModalData.player?.categoria || '4ta'}</span>
                   <p>
-                    Este jugador avanzará automáticamente a la siguiente ronda de <strong>{currentTourney?.title}</strong> sin tener que disputar este partido.
+                    {byeModalData.partner?.name ? 'Esta dupla avanzará' : 'Este jugador avanzará'} automáticamente a la siguiente ronda de <strong>{currentTourney?.title}</strong> sin tener que disputar este partido.
                   </p>
                 </div>
               </div>
