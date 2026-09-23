@@ -3420,6 +3420,112 @@ export function createDefaultGroups(tournament) {
   ];
 }
 
+export function getGroupSelectablePlayers(grupo) {
+  if (!grupo || !grupo.participantes) return [];
+  const list = [];
+  grupo.participantes.forEach((p) => {
+    if (p.integrantes && Array.isArray(p.integrantes) && p.integrantes.length > 0) {
+      p.integrantes.forEach((subP, subIdx) => {
+        list.push({
+          id: subP.id || `${p.id}-sub-${subIdx}`,
+          name: subP.nombre || subP.name,
+          nombre: subP.nombre || subP.name,
+          categoria: subP.categoria || p.categoria || '',
+          dni: subP.dni || '',
+          teamName: p.nombreEquipo || p.nombre || '',
+          grupoId: grupo.id,
+          grupoNombre: grupo.nombre
+        });
+      });
+    } else {
+      list.push({
+        id: p.id,
+        name: p.nombre,
+        nombre: p.nombre,
+        categoria: p.categoria || '',
+        dni: p.dni || '',
+        teamName: p.nombreEquipo || '',
+        grupoId: grupo.id,
+        grupoNombre: grupo.nombre
+      });
+    }
+  });
+  return list;
+}
+
+export function createFechaMatches(grupoId, grupoNombre, fechaNum, matchStartIndex = 1, team1Name = 'Equipo 1', team2Name = 'Equipo 2') {
+  const serieTitulo = `${team1Name} vs ${team2Name}`;
+  const uid = Math.random().toString(36).substring(2, 7);
+
+  return [
+    {
+      id: `pg-${grupoId}-f${fechaNum}-s1-${uid}`,
+      grupoId: grupoId,
+      grupoNombre: grupoNombre,
+      fechaNum: fechaNum,
+      matchNum: matchStartIndex,
+      round: `${grupoNombre} - Fecha ${fechaNum} (Singles 1)`,
+      serieNombre: serieTitulo,
+      subtipo: 'Singles 1',
+      modalidad: 'singles',
+      esGrupal: true,
+      team1: team1Name,
+      team2: team2Name,
+      player1: null,
+      player2: null,
+      score: '',
+      winnerSlot: null,
+      winnerName: null,
+      nextMatchId: null,
+      nextSlot: null
+    },
+    {
+      id: `pg-${grupoId}-f${fechaNum}-s2-${uid}`,
+      grupoId: grupoId,
+      grupoNombre: grupoNombre,
+      fechaNum: fechaNum,
+      matchNum: matchStartIndex + 1,
+      round: `${grupoNombre} - Fecha ${fechaNum} (Singles 2)`,
+      serieNombre: serieTitulo,
+      subtipo: 'Singles 2',
+      modalidad: 'singles',
+      esGrupal: true,
+      team1: team1Name,
+      team2: team2Name,
+      player1: null,
+      player2: null,
+      score: '',
+      winnerSlot: null,
+      winnerName: null,
+      nextMatchId: null,
+      nextSlot: null
+    },
+    {
+      id: `pg-${grupoId}-f${fechaNum}-dobles-${uid}`,
+      grupoId: grupoId,
+      grupoNombre: grupoNombre,
+      fechaNum: fechaNum,
+      matchNum: matchStartIndex + 2,
+      round: `${grupoNombre} - Fecha ${fechaNum} (Dobles)`,
+      serieNombre: serieTitulo,
+      subtipo: 'Dobles',
+      modalidad: 'dobles',
+      esGrupal: true,
+      team1: team1Name,
+      team2: team2Name,
+      player1: null,
+      player1b: null,
+      player2: null,
+      player2b: null,
+      score: '',
+      winnerSlot: null,
+      winnerName: null,
+      nextMatchId: null,
+      nextSlot: null
+    }
+  ];
+}
+
 export function generateGroupMatches(participantes, grupoId, grupoNombre, isGrupal = false) {
   if (!participantes || participantes.length < 2) return [];
   const matches = [];
@@ -3445,108 +3551,14 @@ export function generateGroupMatches(participantes, grupoId, grupoNombre, isGrup
       if (esModalidadGrupal) {
         const team1Name = (p1.nombreEquipo || p1.nombre || `Equipo ${i + 1}`).trim();
         const team2Name = (p2.nombreEquipo || p2.nombre || `Equipo ${j + 1}`).trim();
-        const serieTitulo = `${team1Name} vs ${team2Name}`;
 
-        // En torneos grupales por cada fecha se juegan: 2 partidos de singles y 1 de dobles
-        // 1. Partido Singles 1
-        matches.push({
-          id: `pg-${grupoId}-f${fechaIndex}-s1`,
-          grupoId: grupoId,
-          grupoNombre: grupoNombre,
-          fechaNum: fechaIndex,
-          matchNum: matchIndex++,
-          round: `${grupoNombre} - Fecha ${fechaIndex} (Singles 1)`,
-          serieNombre: serieTitulo,
-          subtipo: 'Singles 1',
-          modalidad: 'singles',
-          esGrupal: true,
-          team1: team1Name,
-          team2: team2Name,
-          player1: {
-            name: `${team1Name} (Singles 1)`,
-            teamName: team1Name,
-            categoria: p1.categoria || '',
-            subtipo: 'Singles 1'
-          },
-          player2: {
-            name: `${team2Name} (Singles 1)`,
-            teamName: team2Name,
-            categoria: p2.categoria || '',
-            subtipo: 'Singles 1'
-          },
-          score: '',
-          winnerSlot: null,
-          winnerName: null,
-          nextMatchId: null,
-          nextSlot: null
-        });
-
-        // 2. Partido Singles 2
-        matches.push({
-          id: `pg-${grupoId}-f${fechaIndex}-s2`,
-          grupoId: grupoId,
-          grupoNombre: grupoNombre,
-          fechaNum: fechaIndex,
-          matchNum: matchIndex++,
-          round: `${grupoNombre} - Fecha ${fechaIndex} (Singles 2)`,
-          serieNombre: serieTitulo,
-          subtipo: 'Singles 2',
-          modalidad: 'singles',
-          esGrupal: true,
-          team1: team1Name,
-          team2: team2Name,
-          player1: {
-            name: `${team1Name} (Singles 2)`,
-            teamName: team1Name,
-            categoria: p1.categoria || '',
-            subtipo: 'Singles 2'
-          },
-          player2: {
-            name: `${team2Name} (Singles 2)`,
-            teamName: team2Name,
-            categoria: p2.categoria || '',
-            subtipo: 'Singles 2'
-          },
-          score: '',
-          winnerSlot: null,
-          winnerName: null,
-          nextMatchId: null,
-          nextSlot: null
-        });
-
-        // 3. Partido de Dobles
-        matches.push({
-          id: `pg-${grupoId}-f${fechaIndex}-dobles`,
-          grupoId: grupoId,
-          grupoNombre: grupoNombre,
-          fechaNum: fechaIndex,
-          matchNum: matchIndex++,
-          round: `${grupoNombre} - Fecha ${fechaIndex} (Dobles)`,
-          serieNombre: serieTitulo,
-          subtipo: 'Dobles',
-          modalidad: 'dobles',
-          esGrupal: true,
-          team1: team1Name,
-          team2: team2Name,
-          player1: {
-            name: `${team1Name} (Dobles)`,
-            teamName: team1Name,
-            categoria: p1.categoria || '',
-            subtipo: 'Dobles'
-          },
-          player2: {
-            name: `${team2Name} (Dobles)`,
-            teamName: team2Name,
-            categoria: p2.categoria || '',
-            subtipo: 'Dobles'
-          },
-          score: '',
-          winnerSlot: null,
-          winnerName: null,
-          nextMatchId: null,
-          nextSlot: null
-        });
-
+        // En torneos grupales por cada fecha se juegan exactamente 3 partidos:
+        // 1. Match 1: Singles 1
+        // 2. Match 2: Singles 2
+        // 3. Match 3: Dobles
+        const fechaMatches = createFechaMatches(grupoId, grupoNombre, fechaIndex, matchIndex, team1Name, team2Name);
+        matches.push(...fechaMatches);
+        matchIndex += 3;
         fechaIndex++;
       } else {
         // Modalidad individual estándar (1 partido por enfrentamiento)
@@ -3569,6 +3581,159 @@ export function generateGroupMatches(participantes, grupoId, grupoNombre, isGrup
   }
   return matches;
 }
+
+export function addGroupFecha(tournamentId, grupoId) {
+  const tournaments = getTournaments();
+  const tIndex = tournaments.findIndex((t) => t.id === tournamentId);
+  if (tIndex === -1) return { error: 'Torneo no encontrado.' };
+
+  const tourney = tournaments[tIndex];
+  const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
+  const grupo = grupos.find((g) => g.id === grupoId);
+  if (!grupo) return { error: 'Grupo no encontrado.' };
+
+  if (!grupo.partidos) grupo.partidos = [];
+
+  const existingFechas = grupo.partidos.map((m) => Number(m.fechaNum) || 1);
+  const nextFechaNum = existingFechas.length > 0 ? Math.max(...existingFechas) + 1 : 1;
+
+  // Global matchNum across all groups
+  let allMatchesCount = 0;
+  grupos.forEach((g) => {
+    (g.partidos || []).forEach((m) => {
+      if (m.matchNum && m.matchNum > allMatchesCount) allMatchesCount = m.matchNum;
+    });
+  });
+  const nextMatchNum = allMatchesCount + 1;
+
+  const team1Name = grupo.participantes?.[0]?.nombreEquipo || grupo.participantes?.[0]?.nombre || 'Equipo 1';
+  const team2Name = grupo.participantes?.[1]?.nombreEquipo || grupo.participantes?.[1]?.nombre || 'Equipo 2';
+
+  const newMatches = createFechaMatches(grupo.id, grupo.nombre, nextFechaNum, nextMatchNum, team1Name, team2Name);
+  grupo.partidos.push(...newMatches);
+
+  saveManualFixture(tournamentId, { faseGrupos: grupos });
+  return { success: true, newMatches, fechaNum: nextFechaNum, grupos };
+}
+
+export function removeGroupFecha(tournamentId, grupoId, fechaNum) {
+  const tournaments = getTournaments();
+  const tIndex = tournaments.findIndex((t) => t.id === tournamentId);
+  if (tIndex === -1) return { error: 'Torneo no encontrado.' };
+
+  const tourney = tournaments[tIndex];
+  const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
+  const grupo = grupos.find((g) => g.id === grupoId);
+  if (!grupo) return { error: 'Grupo no encontrado.' };
+
+  const fechaNumInt = Number(fechaNum);
+  grupo.partidos = (grupo.partidos || []).filter((m) => Number(m.fechaNum) !== fechaNumInt);
+
+  saveManualFixture(tournamentId, { faseGrupos: grupos });
+  return { success: true, grupos };
+}
+
+export function assignPlayerToGroupMatchSlot(tournamentId, grupoId, matchId, slotNum, playerData) {
+  const tournaments = getTournaments();
+  const tIndex = tournaments.findIndex((t) => t.id === tournamentId);
+  if (tIndex === -1) return { error: 'Torneo no encontrado.' };
+
+  const tourney = tournaments[tIndex];
+  const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
+  const grupo = grupos.find((g) => g.id === grupoId);
+  if (!grupo) return { error: 'Grupo no encontrado.' };
+
+  const match = (grupo.partidos || []).find((m) => m.id === matchId);
+  if (!match) return { error: 'Partido no encontrado.' };
+
+  const norm = (str) => (str || '').trim().toLowerCase();
+  const isMatch = (target) => {
+    if (!target) return false;
+    if (playerData.id && target.id && playerData.id === target.id) return true;
+    if (playerData.dni && target.dni && (playerData.dni + '').trim() === (target.dni + '').trim()) return true;
+    if (playerData.name && target.name && norm(playerData.name) === norm(target.name)) return true;
+    return false;
+  };
+
+  // Validar pertenencia al grupo
+  const selectable = getGroupSelectablePlayers(grupo);
+  const belongsToGroup = selectable.some((p) => isMatch(p));
+  if (!belongsToGroup) {
+    return { error: `⚠️ "${playerData.name}" no pertenece a los participantes del ${grupo.nombre}.` };
+  }
+
+  const isDobles = match.modalidad === 'dobles' || match.subtipo === 'Dobles';
+  const isSlot1a = slotNum === 1 || slotNum === '1' || slotNum === '1a';
+  const isSlot1b = slotNum === '1b';
+  const isSlot2a = slotNum === 2 || slotNum === '2' || slotNum === '2a';
+  const isSlot2b = slotNum === '2b';
+
+  if (!isDobles) {
+    // Singles: Slot 1 vs Slot 2
+    const oppositePlayer = isSlot1a ? match.player2 : match.player1;
+    if (isMatch(oppositePlayer)) {
+      return { error: `⚠️ No puedes asignar a "${playerData.name}" como rival de sí mismo en este partido.` };
+    }
+    if (isSlot1a) {
+      match.player1 = playerData;
+    } else {
+      match.player2 = playerData;
+    }
+  } else {
+    // Dobles: 4 slots
+    const otherAssigned = [];
+    if (!isSlot1a && match.player1) otherAssigned.push(match.player1);
+    if (!isSlot1b && match.player1b) otherAssigned.push(match.player1b);
+    if (!isSlot2a && match.player2) otherAssigned.push(match.player2);
+    if (!isSlot2b && match.player2b) otherAssigned.push(match.player2b);
+
+    for (const op of otherAssigned) {
+      if (isMatch(op)) {
+        return { error: `⚠️ "${playerData.name}" ya está asignado en otra casilla de este partido de dobles.` };
+      }
+    }
+
+    if (isSlot1a) match.player1 = playerData;
+    else if (isSlot1b) match.player1b = playerData;
+    else if (isSlot2a) match.player2 = playerData;
+    else if (isSlot2b) match.player2b = playerData;
+  }
+
+  saveManualFixture(tournamentId, { faseGrupos: grupos });
+  return { success: true, match, grupos };
+}
+
+export function clearGroupMatchSlot(tournamentId, grupoId, matchId, slotNum) {
+  const tournaments = getTournaments();
+  const tIndex = tournaments.findIndex((t) => t.id === tournamentId);
+  if (tIndex === -1) return { error: 'Torneo no encontrado.' };
+
+  const tourney = tournaments[tIndex];
+  const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
+  const grupo = grupos.find((g) => g.id === grupoId);
+  if (!grupo) return { error: 'Grupo no encontrado.' };
+
+  const match = (grupo.partidos || []).find((m) => m.id === matchId);
+  if (!match) return { error: 'Partido no encontrado.' };
+
+  if (slotNum === 1 || slotNum === '1' || slotNum === '1a') {
+    match.player1 = null;
+  } else if (slotNum === '1b') {
+    match.player1b = null;
+  } else if (slotNum === 2 || slotNum === '2' || slotNum === '2a') {
+    match.player2 = null;
+  } else if (slotNum === '2b') {
+    match.player2b = null;
+  }
+
+  match.winnerSlot = null;
+  match.winnerName = null;
+  match.score = '';
+
+  saveManualFixture(tournamentId, { faseGrupos: grupos });
+  return { success: true, match, grupos };
+}
+
 
 export function generateKnockoutStructure(size = 4, modality = 'singles') {
   const sizeNum = Number(size) || 4;

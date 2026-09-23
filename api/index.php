@@ -434,7 +434,62 @@ if (preg_match('#^inscriptions/([^/]+)$#', $path, $matches) && $method === 'DELE
 if (preg_match('#^fixtures/([^/]+)/groups$#', $path, $matches) && $method === 'PUT') {
     Database::requireAdmin();
     $tournamentId = $matches[1];
-    $grupos = json_encode($body['grupos'] ?? []);
+    $gruposArr = $body['grupos'] ?? [];
+
+    // Validar modalidad grupal / por equipos
+    $stmtT = $pdo->prepare('SELECT modalidad FROM tournaments WHERE id = ?');
+    $stmtT->execute([$tournamentId]);
+    $tourneyData = $stmtT->fetch();
+    $isGrupalTourney = $tourneyData && in_array(strtolower($tourneyData['modalidad'] ?? ''), ['grupal', 'equipos']);
+
+    if ($isGrupalTourney && is_array($gruposArr)) {
+        foreach ($gruposArr as $grp) {
+            $grpName = $grp['nombre'] ?? 'Grupo';
+            $partidos = $grp['partidos'] ?? [];
+
+            foreach ($partidos as $m) {
+                $subtipo = $m['subtipo'] ?? '';
+                $mod = strtolower($m['modalidad'] ?? '');
+                $p1 = $m['player1'] ?? null;
+                $p2 = $m['player2'] ?? null;
+                $p1b = $m['player1b'] ?? null;
+                $p2b = $m['player2b'] ?? null;
+
+                if ($mod === 'singles' || strpos(strtolower($subtipo), 'singles') !== false) {
+                    if ($p1 && $p2) {
+                        $p1Id = $p1['id'] ?? null;
+                        $p2Id = $p2['id'] ?? null;
+                        $p1Name = strtolower(trim($p1['name'] ?? $p1['nombre'] ?? ''));
+                        $p2Name = strtolower(trim($p2['name'] ?? $p2['nombre'] ?? ''));
+
+                        if (($p1Id && $p2Id && $p1Id === $p2Id) || ($p1Name && $p2Name && $p1Name === $p2Name)) {
+                            Database::jsonResponse([
+                                'error' => "En {$grpName}, el partido #{$m['matchNum']} tiene al mismo jugador en ambos lados."
+                            ], 400);
+                        }
+                    }
+                } elseif ($mod === 'dobles' || strpos(strtolower($subtipo), 'dobles') !== false) {
+                    $assigned = [];
+                    foreach ([$p1, $p1b, $p2, $p2b] as $slotPlayer) {
+                        if (!$slotPlayer) continue;
+                        $id = $slotPlayer['id'] ?? null;
+                        $name = strtolower(trim($slotPlayer['name'] ?? $slotPlayer['nombre'] ?? ''));
+                        $key = $id ? "id_{$id}" : "name_{$name}";
+                        if ($key !== 'name_' && in_array($key, $assigned)) {
+                            Database::jsonResponse([
+                                'error' => "En {$grpName}, el partido de Dobles #{$m['matchNum']} tiene jugadores repetidos en las duplas."
+                            ], 400);
+                        }
+                        if ($key !== 'name_') {
+                            $assigned[] = $key;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    $grupos = json_encode($gruposArr);
     $upd = $pdo->prepare('UPDATE tournaments SET grupos = ?, fase_grupos = ? WHERE id = ?');
     $upd->execute([$grupos, $grupos, $tournamentId]);
     Database::jsonResponse(['message' => 'Grupos actualizados correctamente en SiteGround.']);

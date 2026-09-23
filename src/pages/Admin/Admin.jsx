@@ -76,6 +76,12 @@ import {
   deleteSponsor,
   createDefaultGroups,
   generateGroupMatches,
+  createFechaMatches,
+  addGroupFecha,
+  removeGroupFecha,
+  assignPlayerToGroupMatchSlot,
+  clearGroupMatchSlot,
+  getGroupSelectablePlayers,
   generateKnockoutStructure,
   saveManualFixture,
   OFFICIAL_CATEGORIES,
@@ -757,6 +763,85 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
   }
 
+  function handleAddGroupFecha(groupId) {
+    if (!currentTourney) return
+    const res = addGroupFecha(currentTourney.id, groupId)
+    if (res.error) {
+      showToast(res.error)
+      return
+    }
+    const fresh = getTournaments()
+    setTournaments(fresh)
+    const freshTourney = fresh.find((t) => t.id === currentTourney.id)
+    if (freshTourney?.faseGrupos) {
+      setManualGroups(freshTourney.faseGrupos)
+    }
+    showToast(`¡Fecha ${res.fechaNum} agregada con éxito! Se programaron 3 partidos: 2 Singles y 1 Dobles.`)
+  }
+
+  function handleRemoveGroupFecha(groupId, fechaNum) {
+    if (!currentTourney) return
+    const res = removeGroupFecha(currentTourney.id, groupId, fechaNum)
+    if (res.error) {
+      showToast(res.error)
+      return
+    }
+    const fresh = getTournaments()
+    setTournaments(fresh)
+    const freshTourney = fresh.find((t) => t.id === currentTourney.id)
+    if (freshTourney?.faseGrupos) {
+      setManualGroups(freshTourney.faseGrupos)
+    }
+    showToast(`Fecha ${fechaNum} y sus 3 partidos eliminados del grupo.`)
+  }
+
+  function handleAssignGroupPlayer(groupId, matchId, slotNum, playerId) {
+    if (!currentTourney) return
+    const grupo = manualGroups.find((g) => g.id === groupId)
+    if (!grupo) return
+    const selectable = getGroupSelectablePlayers(grupo)
+    const player = selectable.find((p) => p.id === playerId)
+    if (!player) return
+
+    const playerData = {
+      id: player.id,
+      name: player.nombre || player.name,
+      nombre: player.nombre || player.name,
+      categoria: player.categoria || '',
+      dni: player.dni || '',
+      teamName: player.teamName || grupo.nombre
+    }
+
+    const res = assignPlayerToGroupMatchSlot(currentTourney.id, groupId, matchId, slotNum, playerData)
+    if (res.error) {
+      showToast(res.error)
+      return
+    }
+    const fresh = getTournaments()
+    setTournaments(fresh)
+    const freshTourney = fresh.find((t) => t.id === currentTourney.id)
+    if (freshTourney?.faseGrupos) {
+      setManualGroups(freshTourney.faseGrupos)
+    }
+    showToast(`🎾 ${playerData.name} asignado al partido de ${grupo.nombre}.`)
+  }
+
+  function handleClearGroupSlot(groupId, matchId, slotNum) {
+    if (!currentTourney) return
+    const res = clearGroupMatchSlot(currentTourney.id, groupId, matchId, slotNum)
+    if (res.error) {
+      showToast(res.error)
+      return
+    }
+    const fresh = getTournaments()
+    setTournaments(fresh)
+    const freshTourney = fresh.find((t) => t.id === currentTourney.id)
+    if (freshTourney?.faseGrupos) {
+      setManualGroups(freshTourney.faseGrupos)
+    }
+    showToast('Jugador removido de la casilla.')
+  }
+
   // PLAYOFF & KNOCKOUT BRACKET HANDLERS (Connected with manualGroups)
   const allGroupPlayers = manualGroups.flatMap((g) =>
     (g.participantes || []).map((p) => ({
@@ -797,17 +882,19 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setPlayoffModality(newMod)
     const currentRounds = currentTourney?.bracket?.rounds?.length
       ? JSON.parse(JSON.stringify(currentTourney.bracket.rounds))
-      : generateKnockoutStructure(playoffSize, newMod)
+      : generateKnockoutStructure(playoffSize, newMod === 'personalizado' ? 'singles' : newMod)
 
-    currentRounds.forEach((r) => {
-      (r.matches || []).forEach((m) => {
-        m.modalidad = newMod
-        if (newMod === 'singles') {
-          m.player1b = null
-          m.player2b = null
-        }
+    if (newMod !== 'personalizado') {
+      currentRounds.forEach((r) => {
+        (r.matches || []).forEach((m) => {
+          m.modalidad = newMod
+          if (newMod === 'singles') {
+            m.player1b = null
+            m.player2b = null
+          }
+        })
       })
-    })
+    }
 
     if (!currentTourney) return
     const res = saveManualFixture(currentTourney.id, {
@@ -821,7 +908,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     })
     if (!res.error) {
       setTournaments(getTournaments())
-      showToast(`Modalidad de llaves cambiada a ${newMod === 'dobles' ? 'Dobles (4 jugadores por partido)' : 'Singles'}.`)
+      showToast(
+        newMod === 'personalizado'
+          ? `Modalidad personalizada activa: Ahora puedes elegir Singles o Dobles en cada partido individualmente.`
+          : `Modalidad de llaves cambiada a ${newMod === 'dobles' ? 'Dobles (4 jugadores por partido)' : 'Singles'}.`
+      )
     }
   }
 
@@ -4371,7 +4462,23 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
                           {groupMatches.length > 0 && (
                             <div className="group-fixtures-status-banner">
-                              <span>✓ {groupMatches.length} partidos programados</span>
+                              <span>✓ {groupMatches.length} partidos programados ({(() => {
+                                const fechas = new Set(groupMatches.map((m) => m.fechaNum || 1))
+                                return `${fechas.size} ${fechas.size === 1 ? 'fecha' : 'fechas'}`
+                              })()})</span>
+                            </div>
+                          )}
+                          {(currentTourney.modalidad === 'grupal' || currentTourney.modalidad === 'equipos') && (
+                            <div className="group-add-fecha-row" style={{ marginTop: '8px' }}>
+                              <button
+                                type="button"
+                                className="btn-add-fecha-direct"
+                                onClick={() => handleAddGroupFecha(grupo.id)}
+                                title="Agregar nueva fecha de 3 partidos (2 Singles + 1 Dobles)"
+                              >
+                                <Plus size={13} />
+                                <span>+ Agregar Fecha (2 Singles + 1 Dobles)</span>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -4451,8 +4558,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                       onChange={(e) => handleChangePlayoffModality(e.target.value)}
                       className="select-bracket-format"
                     >
-                      <option value="singles">Singles (Individual)</option>
-                      <option value="dobles">Dobles (Parejas / 4 jugadores)</option>
+                      <option value="singles">Singles (Todos individuales)</option>
+                      <option value="dobles">Dobles (Todos en parejas / 4 jug.)</option>
+                      <option value="personalizado">Personalizado (Elegir por partido: Singles / Dobles)</option>
                     </select>
                   </div>
 
@@ -4502,7 +4610,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
               {/* INSTRUCTION HINT */}
               <div className="knockout-interactive-hint">
                 <small>
-                  💡 <strong>Asignación Manual en Casillas ({currentTourney.title}):</strong> En cada partido de la primera ronda, haz clic en <strong>"+ Asignar jugador de grupo..."</strong> para elegir a cualquier clasificado de <strong>{currentTourney.title}</strong>. Utiliza <strong>"⇅ Swap"</strong> para invertir de lado o <strong>"✕"</strong> para cambiar de jugador. Con ambos contrincantes asignados, presiona <strong>"Cargar Marcador"</strong> y el ganador avanzará automáticamente a la Gran Final.
+                  💡 <strong>Asignación Manual en Casillas ({currentTourney.title}):</strong> Puedes configurar cada partido como <strong>🎾 Singles</strong> (2 jugadores) o <strong>👥 Dobles</strong> (4 jugadores) usando el selector <em>"Tipo:"</em> en su encabezado. En cada casilla, haz clic en <strong>"+ Asignar jugador de grupo..."</strong> para elegir a cualquier clasificado. Utiliza <strong>"⇅ Swap"</strong> para invertir posiciones o <strong>"✕"</strong> para remover jugadores. Con los contrincantes asignados, presiona <strong>"Cargar Marcador"</strong> para que el ganador avance automáticamente.
                 </small>
               </div>
 
@@ -4532,6 +4640,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 onUpdateMatchHora={handleUpdateMatchHora}
                 onToggleMatchLive={handleToggleMatchLive}
                 onUpdateMatchModality={handleUpdateMatchModality}
+                isGrupalTournament={currentTourney?.modalidad === 'grupal' || currentTourney?.modalidad === 'equipos'}
+                onAddGroupFecha={handleAddGroupFecha}
+                onRemoveGroupFecha={handleRemoveGroupFecha}
+                onAssignGroupPlayer={handleAssignGroupPlayer}
+                onClearGroupSlot={handleClearGroupSlot}
               />
             </div>
           </div>
@@ -5195,6 +5308,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     onUpdateMatchHora={handleUpdateMatchHora}
                     onToggleMatchLive={handleToggleMatchLive}
                     onUpdateMatchModality={handleUpdateMatchModality}
+                    isGrupalTournament={currentTourney?.modalidad === 'grupal' || currentTourney?.modalidad === 'equipos'}
+                    onAddGroupFecha={handleAddGroupFecha}
+                    onRemoveGroupFecha={handleRemoveGroupFecha}
+                    onAssignGroupPlayer={handleAssignGroupPlayer}
+                    onClearGroupSlot={handleClearGroupSlot}
                   />
                 </div>
               )}

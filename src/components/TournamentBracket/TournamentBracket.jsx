@@ -1,4 +1,4 @@
-import { Trophy, Check, Flame, Users, Calendar, Zap } from 'lucide-react'
+import { Trophy, Check, Flame, Users, Calendar, Zap, Plus, Trash2 } from 'lucide-react'
 import './TournamentBracket.css'
 
 export default function TournamentBracket({
@@ -15,12 +15,24 @@ export default function TournamentBracket({
   onAssignBye,
   onUpdateMatchHora,
   onToggleMatchLive,
-  onUpdateMatchModality
+  onUpdateMatchModality,
+  isGrupalTournament = false,
+  onAddGroupFecha,
+  onRemoveGroupFecha,
+  onAssignGroupPlayer,
+  onClearGroupSlot
 }) {
   const hasRounds = Boolean(bracket && bracket.rounds && bracket.rounds.length > 0)
   const hasGroups = Boolean(bracket && bracket.faseGrupos && bracket.faseGrupos.length > 0)
   const groupsList = manualGroups && manualGroups.length > 0 ? manualGroups : (bracket?.faseGrupos || [])
   const isTournamentDobles = bracket?.modalidad === 'dobles' || bracketModality === 'dobles'
+  const isTournamentGrupal = Boolean(
+    isGrupalTournament ||
+    bracket?.modalidad === 'grupal' ||
+    bracket?.modalidad === 'equipos' ||
+    bracketModality === 'grupal' ||
+    bracketModality === 'equipos'
+  )
 
   const norm = (str) => (str || '').trim().toLowerCase()
 
@@ -55,6 +67,39 @@ export default function TournamentBracket({
       }
     }
     return null
+  }
+
+  const getSelectablePlayersForGroup = (g) => {
+    if (!g || !g.participantes) return []
+    const list = []
+    g.participantes.forEach((p) => {
+      if (p.integrantes && Array.isArray(p.integrantes) && p.integrantes.length > 0) {
+        p.integrantes.forEach((subP, subIdx) => {
+          list.push({
+            id: subP.id || `${p.id}-sub-${subIdx}`,
+            name: subP.nombre || subP.name,
+            nombre: subP.nombre || subP.name,
+            categoria: subP.categoria || p.categoria || '',
+            dni: subP.dni || '',
+            teamName: p.nombreEquipo || p.nombre || '',
+            grupoId: g.id,
+            grupoNombre: g.nombre
+          })
+        })
+      } else {
+        list.push({
+          id: p.id,
+          name: p.nombre,
+          nombre: p.nombre,
+          categoria: p.categoria || '',
+          dni: p.dni || '',
+          teamName: p.nombreEquipo || '',
+          grupoId: g.id,
+          grupoNombre: g.nombre
+        })
+      }
+    })
+    return list
   }
 
   // Helper de validación para primera ronda (reglas de asignación única y contra sí mismo)
@@ -213,122 +258,522 @@ export default function TournamentBracket({
                   </div>
 
                   {/* GROUP MATCHES */}
-                  {matches.length > 0 && (
-                    <div className="group-matches-block">
-                      <div className="group-matches-title-row">
-                        <span className="group-matches-title">Partidos del Grupo:</span>
-                        {matches.some((m) => m.esGrupal || m.subtipo) && (
-                          <span className="group-matches-mode-pill">🏆 2 Singles + 1 Dobles por Fecha</span>
-                        )}
-                      </div>
+                  {(() => {
+                    const isGrupalGroup = Boolean(
+                      isTournamentGrupal ||
+                      matches.some((m) => m.esGrupal || m.subtipo || m.fechaNum)
+                    )
 
-                      <div className="group-matches-sublist">
-                        {(() => {
-                          const isGrupalGroup = matches.some((m) => m.esGrupal || m.subtipo || m.fechaNum)
+                    if (!isGrupalGroup && matches.length === 0) return null
 
-                          const renderMatchCard = (m) => {
-                            const canScore = isAdmin && m.player1?.name && m.player2?.name && !m.winnerSlot
+                    const renderStandardMatchCard = (m) => {
+                      const canScore = isAdmin && m.player1?.name && m.player2?.name && !m.winnerSlot
 
-                            return (
-                              <div className={'group-match-item' + (m.winnerSlot ? ' completed' : '')} key={m.id}>
-                                <div className="group-match-header-row">
-                                  <div className="match-header-tags">
-                                    <small className="match-num-tag">Match #{m.matchNum}</small>
-                                    {m.subtipo && (
-                                      <span className={`match-subtipo-pill ${m.modalidad === 'dobles' ? 'pill-dobles' : 'pill-singles'}`}>
-                                        {m.subtipo === 'Dobles' ? '👥 Dobles' : `🎾 ${m.subtipo}`}
-                                      </span>
+                      return (
+                        <div className={'group-match-item' + (m.winnerSlot ? ' completed' : '')} key={m.id}>
+                          <div className="group-match-header-row">
+                            <div className="match-header-tags">
+                              <small className="match-num-tag">Match #{m.matchNum}</small>
+                              {m.subtipo && (
+                                <span className={`match-subtipo-pill ${m.modalidad === 'dobles' ? 'pill-dobles' : 'pill-singles'}`}>
+                                  {m.subtipo === 'Dobles' ? '👥 Dobles' : `🎾 ${m.subtipo}`}
+                                </span>
+                              )}
+                            </div>
+                            {m.score && <span className="group-match-score">{m.score}</span>}
+                          </div>
+                          <div className="group-match-players">
+                            <span className={m.winnerSlot === 1 ? 'match-winner-name' : ''}>
+                              {m.player1?.name || 'P1'}
+                              {m.winnerSlot === 1 && ' ✓'}
+                            </span>
+                            <span className="vs-tag">vs</span>
+                            <span className={m.winnerSlot === 2 ? 'match-winner-name' : ''}>
+                              {m.player2?.name || 'P2'}
+                              {m.winnerSlot === 2 && ' ✓'}
+                            </span>
+                          </div>
+
+                          {isAdmin && onOpenScoreModal && (
+                            <div className="group-match-admin-actions">
+                              {canScore ? (
+                                <button
+                                  type="button"
+                                  className="btn-enter-score-mini"
+                                  onClick={() => onOpenScoreModal(m)}
+                                >
+                                  <Flame size={11} /> Cargar Marcador
+                                </button>
+                              ) : m.winnerSlot ? (
+                                <button
+                                  type="button"
+                                  className="btn-edit-score-mini"
+                                  onClick={() => onOpenScoreModal(m)}
+                                >
+                                  Editar Marcador
+                                </button>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    if (!isGrupalGroup) {
+                      return (
+                        <div className="group-matches-block">
+                          <div className="group-matches-title-row">
+                            <span className="group-matches-title">Partidos del Grupo:</span>
+                          </div>
+                          <div className="group-matches-sublist">
+                            {matches.map((m) => renderStandardMatchCard(m))}
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    // GRUPAL / POR EQUIPOS: OBLIGATORIO 2 SINGLES + 1 DOBLES POR FECHA
+                    const selectablePlayers = getSelectablePlayersForGroup(grupo)
+
+                    const renderGrupalMatchCard = (m) => {
+                      const isMatchDobles = m.modalidad === 'dobles' || m.subtipo === 'Dobles'
+                      const hasP1 = Boolean(m.player1 && m.player1.name && !m.player1.name.includes('(Singles') && !m.player1.name.includes('(Dobles)'))
+                      const hasP2 = Boolean(m.player2 && m.player2.name && !m.player2.name.includes('(Singles') && !m.player2.name.includes('(Dobles)'))
+                      const hasP1b = Boolean(m.player1b && m.player1b.name)
+                      const hasP2b = Boolean(m.player2b && m.player2b.name)
+
+                      const canScore = isMatchDobles
+                        ? isAdmin && (hasP1 || hasP1b) && (hasP2 || hasP2b) && !m.winnerSlot
+                        : isAdmin && hasP1 && hasP2 && !m.winnerSlot
+
+                      return (
+                        <div className={'group-match-card-grupal' + (m.winnerSlot ? ' completed' : '')} key={m.id}>
+                          <div className="group-match-header-row">
+                            <div className="match-header-tags">
+                              <small className="match-num-tag">Match #{m.matchNum}</small>
+                              <span className={`match-subtipo-pill ${isMatchDobles ? 'pill-dobles' : 'pill-singles'}`}>
+                                {isMatchDobles ? '👥 Dobles' : `🎾 ${m.subtipo || 'Singles'}`}
+                              </span>
+                            </div>
+                            {m.score && <span className="group-match-score">{m.score}</span>}
+                          </div>
+
+                          {/* SLOTS INTERACTIVOS SEGÚN MODALIDAD */}
+                          {isMatchDobles ? (
+                            /* DOBLES: DUPLA 1 (2 JUGADORES) vs DUPLA 2 (2 JUGADORES) */
+                            <div className="group-match-doubles-wrap">
+                              {/* DUPLA 1 */}
+                              <div className={'group-duo-team-box' + (m.winnerSlot === 1 ? ' is-winner' : '')}>
+                                <div className="group-duo-team-title">
+                                  <span>👥 Dupla 1 ({m.team1 || 'Equipo 1'})</span>
+                                  {m.winnerSlot === 1 && <span className="winner-check-tag">✓ Ganador</span>}
+                                </div>
+                                <div className="group-duo-slots">
+                                  {/* Slot 1a */}
+                                  <div className="group-player-slot">
+                                    {hasP1 ? (
+                                      <div className="group-assigned-slot">
+                                        <div className="slot-player-meta">
+                                          <span className="slot-assigned-name">{m.player1.name}</span>
+                                          {m.player1.categoria && <small className="slot-assigned-cat">{m.player1.categoria}</small>}
+                                        </div>
+                                        {isAdmin && isInteractive && !m.winnerSlot && onClearGroupSlot && (
+                                          <button
+                                            type="button"
+                                            className="btn-clear-group-slot"
+                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '1a')}
+                                            title="Quitar de Dupla 1"
+                                          >
+                                            ✕
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      isAdmin && isInteractive && onAssignGroupPlayer ? (
+                                        <select
+                                          className="group-slot-select"
+                                          value=""
+                                          onChange={(e) => {
+                                            if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '1a', e.target.value)
+                                          }}
+                                        >
+                                          <option value="">+ Asignar jugador de grupo (J1)...</option>
+                                          {selectablePlayers.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player1b) || arePlayersMatching(p, m.player2) || arePlayersMatching(p, m.player2b)
+                                            return (
+                                              <option key={p.id} value={p.id} disabled={isTaken}>
+                                                {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
+                                              </option>
+                                            )
+                                          })}
+                                        </select>
+                                      ) : (
+                                        <span className="slot-unassigned-label">Por definir</span>
+                                      )
                                     )}
                                   </div>
-                                  {m.score && <span className="group-match-score">{m.score}</span>}
-                                </div>
-                                <div className="group-match-players">
-                                  <span className={m.winnerSlot === 1 ? 'match-winner-name' : ''}>
-                                    {m.player1?.name || 'P1'}
-                                    {m.winnerSlot === 1 && ' ✓'}
-                                  </span>
-                                  <span className="vs-tag">vs</span>
-                                  <span className={m.winnerSlot === 2 ? 'match-winner-name' : ''}>
-                                    {m.player2?.name || 'P2'}
-                                    {m.winnerSlot === 2 && ' ✓'}
-                                  </span>
-                                </div>
 
-                                {isAdmin && onOpenScoreModal && (
-                                  <div className="group-match-admin-actions">
-                                    {canScore ? (
-                                      <button
-                                        type="button"
-                                        className="btn-enter-score-mini"
-                                        onClick={() => onOpenScoreModal(m)}
-                                      >
-                                        <Flame size={11} /> Cargar Marcador
-                                      </button>
-                                    ) : m.winnerSlot ? (
-                                      <button
-                                        type="button"
-                                        className="btn-edit-score-mini"
-                                        onClick={() => onOpenScoreModal(m)}
-                                      >
-                                        Editar Marcador
-                                      </button>
-                                    ) : null}
+                                  {/* Slot 1b */}
+                                  <div className="group-player-slot">
+                                    {hasP1b ? (
+                                      <div className="group-assigned-slot">
+                                        <div className="slot-player-meta">
+                                          <span className="slot-assigned-name">{m.player1b.name}</span>
+                                          {m.player1b.categoria && <small className="slot-assigned-cat">{m.player1b.categoria}</small>}
+                                        </div>
+                                        {isAdmin && isInteractive && !m.winnerSlot && onClearGroupSlot && (
+                                          <button
+                                            type="button"
+                                            className="btn-clear-group-slot"
+                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '1b')}
+                                            title="Quitar de Dupla 1"
+                                          >
+                                            ✕
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      isAdmin && isInteractive && onAssignGroupPlayer ? (
+                                        <select
+                                          className="group-slot-select"
+                                          value=""
+                                          onChange={(e) => {
+                                            if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '1b', e.target.value)
+                                          }}
+                                        >
+                                          <option value="">+ Asignar jugador de grupo (J2)...</option>
+                                          {selectablePlayers.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player1) || arePlayersMatching(p, m.player2) || arePlayersMatching(p, m.player2b)
+                                            return (
+                                              <option key={p.id} value={p.id} disabled={isTaken}>
+                                                {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
+                                              </option>
+                                            )
+                                          })}
+                                        </select>
+                                      ) : (
+                                        <span className="slot-unassigned-label">Por definir</span>
+                                      )
+                                    )}
                                   </div>
+                                </div>
+                              </div>
+
+                              <div className="group-vs-badge">VS</div>
+
+                              {/* DUPLA 2 */}
+                              <div className={'group-duo-team-box' + (m.winnerSlot === 2 ? ' is-winner' : '')}>
+                                <div className="group-duo-team-title">
+                                  <span>👥 Dupla 2 ({m.team2 || 'Equipo 2'})</span>
+                                  {m.winnerSlot === 2 && <span className="winner-check-tag">✓ Ganador</span>}
+                                </div>
+                                <div className="group-duo-slots">
+                                  {/* Slot 2a */}
+                                  <div className="group-player-slot">
+                                    {hasP2 ? (
+                                      <div className="group-assigned-slot">
+                                        <div className="slot-player-meta">
+                                          <span className="slot-assigned-name">{m.player2.name}</span>
+                                          {m.player2.categoria && <small className="slot-assigned-cat">{m.player2.categoria}</small>}
+                                        </div>
+                                        {isAdmin && isInteractive && !m.winnerSlot && onClearGroupSlot && (
+                                          <button
+                                            type="button"
+                                            className="btn-clear-group-slot"
+                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '2a')}
+                                            title="Quitar de Dupla 2"
+                                          >
+                                            ✕
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      isAdmin && isInteractive && onAssignGroupPlayer ? (
+                                        <select
+                                          className="group-slot-select"
+                                          value=""
+                                          onChange={(e) => {
+                                            if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '2a', e.target.value)
+                                          }}
+                                        >
+                                          <option value="">+ Asignar jugador de grupo (J1)...</option>
+                                          {selectablePlayers.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player1) || arePlayersMatching(p, m.player1b) || arePlayersMatching(p, m.player2b)
+                                            return (
+                                              <option key={p.id} value={p.id} disabled={isTaken}>
+                                                {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
+                                              </option>
+                                            )
+                                          })}
+                                        </select>
+                                      ) : (
+                                        <span className="slot-unassigned-label">Por definir</span>
+                                      )
+                                    )}
+                                  </div>
+
+                                  {/* Slot 2b */}
+                                  <div className="group-player-slot">
+                                    {hasP2b ? (
+                                      <div className="group-assigned-slot">
+                                        <div className="slot-player-meta">
+                                          <span className="slot-assigned-name">{m.player2b.name}</span>
+                                          {m.player2b.categoria && <small className="slot-assigned-cat">{m.player2b.categoria}</small>}
+                                        </div>
+                                        {isAdmin && isInteractive && !m.winnerSlot && onClearGroupSlot && (
+                                          <button
+                                            type="button"
+                                            className="btn-clear-group-slot"
+                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '2b')}
+                                            title="Quitar de Dupla 2"
+                                          >
+                                            ✕
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      isAdmin && isInteractive && onAssignGroupPlayer ? (
+                                        <select
+                                          className="group-slot-select"
+                                          value=""
+                                          onChange={(e) => {
+                                            if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '2b', e.target.value)
+                                          }}
+                                        >
+                                          <option value="">+ Asignar jugador de grupo (J2)...</option>
+                                          {selectablePlayers.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player1) || arePlayersMatching(p, m.player1b) || arePlayersMatching(p, m.player2)
+                                            return (
+                                              <option key={p.id} value={p.id} disabled={isTaken}>
+                                                {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
+                                              </option>
+                                            )
+                                          })}
+                                        </select>
+                                      ) : (
+                                        <span className="slot-unassigned-label">Por definir</span>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* SINGLES: JUGADOR 1 vs JUGADOR 2 */
+                            <div className="group-match-singles-wrap">
+                              {/* Lado 1 */}
+                              <div className={'group-single-slot' + (m.winnerSlot === 1 ? ' is-winner' : '')}>
+                                <div className="slot-header-tag">🎾 {m.team1 || 'Equipo 1'}</div>
+                                {hasP1 ? (
+                                  <div className="group-assigned-slot">
+                                    <div className="slot-player-meta">
+                                      <span className="slot-assigned-name">{m.player1.name}</span>
+                                      {m.player1.categoria && <small className="slot-assigned-cat">{m.player1.categoria}</small>}
+                                    </div>
+                                    {isAdmin && isInteractive && !m.winnerSlot && onClearGroupSlot && (
+                                      <button
+                                        type="button"
+                                        className="btn-clear-group-slot"
+                                        onClick={() => onClearGroupSlot(grupo.id, m.id, 1)}
+                                        title="Quitar jugador"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                    {m.winnerSlot === 1 && <span className="winner-check-tag">✓</span>}
+                                  </div>
+                                ) : (
+                                  isAdmin && isInteractive && onAssignGroupPlayer ? (
+                                    <select
+                                      className="group-slot-select"
+                                      value=""
+                                      onChange={(e) => {
+                                        if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, 1, e.target.value)
+                                      }}
+                                    >
+                                      <option value="">+ Asignar jugador de grupo...</option>
+                                      {selectablePlayers.map((p) => {
+                                        const isRival = arePlayersMatching(p, m.player2)
+                                        return (
+                                          <option key={p.id} value={p.id} disabled={isRival}>
+                                            {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isRival ? '⚠️ (Rival ya asignado)' : ''}
+                                          </option>
+                                        )
+                                      })}
+                                    </select>
+                                  ) : (
+                                    <span className="slot-unassigned-label">Por definir</span>
+                                  )
                                 )}
                               </div>
-                            )
-                          }
 
-                          if (!isGrupalGroup) {
-                            return matches.map((m) => renderMatchCard(m))
-                          }
+                              <div className="group-vs-badge">VS</div>
 
-                          // Agrupar partidos por fecha / enfrentamiento de serie
-                          const fechasMap = {}
-                          matches.forEach((m) => {
-                            const fKey = m.fechaNum || 1
-                            if (!fechasMap[fKey]) {
-                              fechasMap[fKey] = {
-                                fechaNum: fKey,
-                                serieNombre: m.serieNombre || `${m.team1 || 'Equipo 1'} vs ${m.team2 || 'Equipo 2'}`,
-                                team1: m.team1,
-                                team2: m.team2,
-                                matches: []
-                              }
-                            }
-                            fechasMap[fKey].matches.push(m)
-                          })
-
-                          return Object.values(fechasMap).map((fechaGroup) => {
-                            const wins1 = fechaGroup.matches.filter((m) => m.winnerSlot === 1).length
-                            const wins2 = fechaGroup.matches.filter((m) => m.winnerSlot === 2).length
-                            const hasFinishedAny = wins1 > 0 || wins2 > 0
-                            const isSeriesDone = (wins1 + wins2 === fechaGroup.matches.length) || wins1 >= 2 || wins2 >= 2
-                            const seriesWinner = wins1 > wins2 ? fechaGroup.team1 : (wins2 > wins1 ? fechaGroup.team2 : null)
-
-                            return (
-                              <div className="group-fecha-container" key={`fecha-${fechaGroup.fechaNum}-${fechaGroup.serieNombre}`}>
-                                <div className="group-fecha-header">
-                                  <div className="fecha-header-left">
-                                    <span className="fecha-badge">📅 Fecha {fechaGroup.fechaNum}</span>
-                                    <strong className="fecha-serie-title">{fechaGroup.serieNombre}</strong>
+                              {/* Lado 2 */}
+                              <div className={'group-single-slot' + (m.winnerSlot === 2 ? ' is-winner' : '')}>
+                                <div className="slot-header-tag">🎾 {m.team2 || 'Equipo 2'}</div>
+                                {hasP2 ? (
+                                  <div className="group-assigned-slot">
+                                    <div className="slot-player-meta">
+                                      <span className="slot-assigned-name">{m.player2.name}</span>
+                                      {m.player2.categoria && <small className="slot-assigned-cat">{m.player2.categoria}</small>}
+                                    </div>
+                                    {isAdmin && isInteractive && !m.winnerSlot && onClearGroupSlot && (
+                                      <button
+                                        type="button"
+                                        className="btn-clear-group-slot"
+                                        onClick={() => onClearGroupSlot(grupo.id, m.id, 2)}
+                                        title="Quitar jugador"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                    {m.winnerSlot === 2 && <span className="winner-check-tag">✓</span>}
                                   </div>
-                                  {hasFinishedAny && (
-                                    <span className={`fecha-serie-score-pill ${isSeriesDone ? 'completed' : ''}`}>
-                                      Serie: {wins1} - {wins2} {isSeriesDone && seriesWinner ? `(Gana: ${seriesWinner})` : ''}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="fecha-matches-sublist">
-                                  {fechaGroup.matches.map((m) => renderMatchCard(m))}
-                                </div>
+                                ) : (
+                                  isAdmin && isInteractive && onAssignGroupPlayer ? (
+                                    <select
+                                      className="group-slot-select"
+                                      value=""
+                                      onChange={(e) => {
+                                        if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, 2, e.target.value)
+                                      }}
+                                    >
+                                      <option value="">+ Asignar jugador de grupo...</option>
+                                      {selectablePlayers.map((p) => {
+                                        const isRival = arePlayersMatching(p, m.player1)
+                                        return (
+                                          <option key={p.id} value={p.id} disabled={isRival}>
+                                            {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isRival ? '⚠️ (Rival ya asignado)' : ''}
+                                          </option>
+                                        )
+                                      })}
+                                    </select>
+                                  ) : (
+                                    <span className="slot-unassigned-label">Por definir</span>
+                                  )
+                                )}
                               </div>
-                            )
-                          })
-                        })()}
+                            </div>
+                          )}
+
+                          {/* ACCIONES DE MARCADOR */}
+                          {isAdmin && onOpenScoreModal && (
+                            <div className="group-match-admin-actions">
+                              {canScore ? (
+                                <button
+                                  type="button"
+                                  className="btn-enter-score-mini"
+                                  onClick={() => onOpenScoreModal(m)}
+                                >
+                                  <Flame size={11} /> Cargar Marcador
+                                </button>
+                              ) : m.winnerSlot ? (
+                                <button
+                                  type="button"
+                                  className="btn-edit-score-mini"
+                                  onClick={() => onOpenScoreModal(m)}
+                                >
+                                  Editar Marcador
+                                </button>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    // Agrupar partidos por fecha / enfrentamiento de serie
+                    const fechasMap = {}
+                    matches.forEach((m) => {
+                      const fKey = m.fechaNum || 1
+                      if (!fechasMap[fKey]) {
+                        fechasMap[fKey] = {
+                          fechaNum: fKey,
+                          serieNombre: m.serieNombre || `${m.team1 || 'Equipo 1'} vs ${m.team2 || 'Equipo 2'}`,
+                          team1: m.team1,
+                          team2: m.team2,
+                          matches: []
+                        }
+                      }
+                      fechasMap[fKey].matches.push(m)
+                    })
+
+                    const fechasList = Object.values(fechasMap)
+
+                    return (
+                      <div className="group-matches-block">
+                        <div className="group-matches-title-row">
+                          <span className="group-matches-title">Partidos del Grupo:</span>
+                          <span className="group-matches-mode-pill">🏆 2 Singles + 1 Dobles por Fecha</span>
+                        </div>
+
+                        <div className="group-matches-sublist">
+                          {fechasList.length === 0 ? (
+                            <div className="group-empty-hint" style={{ padding: '12px 0' }}>
+                              Sin fechas programadas aún para este grupo.
+                            </div>
+                          ) : (
+                            fechasList.map((fechaGroup) => {
+                              const wins1 = fechaGroup.matches.filter((m) => m.winnerSlot === 1).length
+                              const wins2 = fechaGroup.matches.filter((m) => m.winnerSlot === 2).length
+                              const hasFinishedAny = wins1 > 0 || wins2 > 0
+                              const isSeriesDone = (wins1 + wins2 === fechaGroup.matches.length) || wins1 >= 2 || wins2 >= 2
+                              const seriesWinner = wins1 > wins2 ? fechaGroup.team1 : (wins2 > wins1 ? fechaGroup.team2 : null)
+
+                              return (
+                                <div className="group-fecha-container" key={`fecha-${fechaGroup.fechaNum}-${fechaGroup.serieNombre}`}>
+                                  <div className="group-fecha-header">
+                                    <div className="fecha-header-left">
+                                      <span className="fecha-badge">📅 Fecha {fechaGroup.fechaNum}</span>
+                                      <strong className="fecha-serie-title">{fechaGroup.serieNombre}</strong>
+                                    </div>
+                                    <div className="fecha-header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      {hasFinishedAny && (
+                                        <span className={`fecha-serie-score-pill ${isSeriesDone ? 'completed' : ''}`}>
+                                          Serie: {wins1} - {wins2} {isSeriesDone && seriesWinner ? `(Gana: ${seriesWinner})` : ''}
+                                        </span>
+                                      )}
+                                      {isAdmin && isInteractive && onRemoveGroupFecha && (
+                                        <button
+                                          type="button"
+                                          className="btn-delete-fecha-mini"
+                                          onClick={() => {
+                                            if (window.confirm(`¿Estás seguro de eliminar la Fecha ${fechaGroup.fechaNum} y sus 3 partidos?`)) {
+                                              onRemoveGroupFecha(grupo.id, fechaGroup.fechaNum)
+                                            }
+                                          }}
+                                          title={`Eliminar Fecha ${fechaGroup.fechaNum} (3 partidos)`}
+                                        >
+                                          <Trash2 size={12} />
+                                          <span>Eliminar Fecha</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="fecha-matches-sublist">
+                                    {fechaGroup.matches.map((m) => renderGrupalMatchCard(m))}
+                                  </div>
+                                </div>
+                              )
+                            })
+                          )}
+
+                          {isAdmin && isInteractive && onAddGroupFecha && (
+                            <button
+                              type="button"
+                              className="btn-add-group-fecha-full"
+                              onClick={() => onAddGroupFecha(grupo.id)}
+                              title="Agregar una nueva fecha con 2 partidos de Singles y 1 de Dobles"
+                            >
+                              <Plus size={14} />
+                              <span>+ Agregar Nueva Fecha (2 Singles + 1 Dobles)</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )
+                  })()}
                 </div>
               )
             })}
@@ -425,19 +870,24 @@ export default function TournamentBracket({
                             <div className="match-node-header-left">
                               <span>Match #{match.matchNum}</span>
                               {isFinalRound && <span className="match-final-trophy-pill">🏆 Gran Final</span>}
-                              {isAdmin && isInteractive && isFirstRound && onUpdateMatchModality ? (
-                                <select
-                                  className="match-modality-select-pill"
-                                  value={isMatchDobles ? 'dobles' : 'singles'}
-                                  onChange={(e) => onUpdateMatchModality(match.id, e.target.value)}
-                                  title="Modalidad de este partido"
-                                >
-                                  <option value="singles">Singles</option>
-                                  <option value="dobles">Dobles</option>
-                                </select>
-                              ) : isMatchDobles ? (
-                                <span className="match-modality-pill">👥 Dobles</span>
-                              ) : null}
+                              {isAdmin && isInteractive && !match.winnerSlot && onUpdateMatchModality ? (
+                                <div className="match-modality-picker-wrap">
+                                  <span className="match-modality-picker-label">Tipo:</span>
+                                  <select
+                                    className="match-modality-select-pill"
+                                    value={isMatchDobles ? 'dobles' : 'singles'}
+                                    onChange={(e) => onUpdateMatchModality(match.id, e.target.value)}
+                                    title="Elige si este partido es Singles (2 jugadores) o Dobles (4 jugadores)"
+                                  >
+                                    <option value="singles">🎾 Singles</option>
+                                    <option value="dobles">👥 Dobles</option>
+                                  </select>
+                                </div>
+                              ) : (
+                                <span className={`match-modality-pill ${isMatchDobles ? 'is-dobles' : 'is-singles'}`}>
+                                  {isMatchDobles ? '👥 Dobles' : '🎾 Singles'}
+                                </span>
+                              )}
                               {match.isLive && (
                                 <span className="match-live-pulse-badge" title="Partido en transmisión directa">
                                   <span className="live-dot-pulse" /> EN VIVO
