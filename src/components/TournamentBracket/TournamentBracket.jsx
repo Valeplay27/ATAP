@@ -795,7 +795,6 @@ export default function TournamentBracket({
             {bracket.rounds.map((round, rIndex) => {
               const isFirstRound = rIndex === 0
               const isFinalRound = (round.name || '').toLowerCase().includes('final') && (round.matches?.length === 1 || rIndex === bracket.rounds.length - 1)
-
               return (
                 <div className="bracket-round-column" key={round.name || rIndex}>
                   <div className="round-column-header">

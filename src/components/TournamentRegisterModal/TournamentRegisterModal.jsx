@@ -127,8 +127,9 @@ export default function TournamentRegisterModal({
 
   if (!tournament) return null
 
-  const isFree = !(tournament.precio !== undefined && Number(tournament.precio) === 0)
-  const precioDisplay = tournament.precio !== undefined ? (Number(tournament.precio) === 0 ? 'GRATIS' : ('S/ ' + tournament.precio + '.00')) : 'GRATIS'
+  // isFree = true SOLO cuando el precio del torneo es exactamente 0
+  const isFree = tournament.precio !== undefined ? Number(tournament.precio) === 0 : false
+  const precioDisplay = tournament.precio !== undefined ? (Number(tournament.precio) === 0 ? 'GRATIS' : ('S/ ' + tournament.precio + '.00')) : 'Por definir'
 
   function handleOpenRegisterInAtap(playerData = null) {
     if (onClose) onClose()
@@ -388,7 +389,7 @@ export default function TournamentRegisterModal({
       emailJugador5: isGrupal && email5.trim() ? email5.trim() : undefined,
       dniJugador5: isGrupal && dni5.trim() ? dni5.trim() : undefined,
       telefonoJugador5: isGrupal && telefono5.trim() ? telefono5.trim() : undefined,
-      metodoPago: isFree ? 'Inscripción Gratuita' : metodoPago,
+      metodoPago: isFree ? 'Método de pago' : metodoPago,
       comprobanteInfo: comprobanteRef,
       aceptoPoliticas: true,
       fechaAceptacionPoliticas: new Date().toISOString()
@@ -1153,18 +1154,19 @@ export default function TournamentRegisterModal({
 
                 <div className='form-group'>
                   <label htmlFor='t-metodo'>Método de pago</label>
-                  <select
-                    id='t-metodo'
-                    value={isFree ? 'Gratis' : metodoPago}
-                    onChange={(e) => setMetodoPago(e.target.value)}
-                    disabled={isFree}
-                  >
-                    {isFree ? (
-                      <option value='Gratis'>Inscripción Gratuita (S/ 0.00)</option>
-                    ) : (
+                  {isFree ? (
+                    <select id='t-metodo' value='Gratis' disabled>
+                      <option value='Gratis'>Método de pago</option>
+                    </select>
+                  ) : (
+                    <select
+                      id='t-metodo'
+                      value={metodoPago}
+                      onChange={(e) => setMetodoPago(e.target.value)}
+                    >
                       <option value='Yape'>Yape</option>
-                    )}
-                  </select>
+                    </select>
+                  )}
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Star, X, Trophy, Calendar, Award, Flame, User, Users, ChevronDown, ChevronUp } from 'lucide-react'
-import { getPlayerMatchHistory, getPlayerTournamentBreakdown, getPlayerBothProfiles, getAssetUrl, handleImageFallback, getZonaDistritos, isPlayerFollowed } from '../../services/atapStorage'
+import { getPlayerMatchHistory, getPlayerTournamentBreakdown, getPlayerBothProfiles, getAssetUrl, handleImageFallback, getZonaDistritos, isPlayerFollowed, getAvailableSeasons, getActiveSeasonYear } from '../../services/atapStorage'
 import './PlayerHeroModal.css'
 
 function InstagramIcon({ size = 14, className = '' }) {
@@ -562,8 +562,13 @@ export default function PlayerHeroModal({
                       value={selectedSeason}
                       onChange={(e) => setSelectedSeason(e.target.value)}
                     >
-                      <option value="2026">Temporada 2026</option>
-                      <option value="2025">Temporada 2025</option>
+                      {getAvailableSeasons()
+                        .filter((s) => Number(s.year) >= 2026)
+                        .map((s) => (
+                          <option key={s.year} value={String(s.year)}>
+                            {s.nombre}
+                          </option>
+                        ))}
                     </select>
                   </div>
 

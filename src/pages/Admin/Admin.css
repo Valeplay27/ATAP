@@ -4037,7 +4037,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .results-super-pill {
@@ -4047,37 +4047,74 @@
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 999px;
   letter-spacing: 0.5px;
 }
 
-.tourney-status-quick-select-row {
+.tourney-status-pill-clean {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.tourney-status-pill-clean.inscripciones_abiertas {
+  background: #E6FBF5;
+  color: #00875A;
+  border: 1px solid #A3E9D5;
+}
+
+.tourney-status-pill-clean.en_curso {
+  background: #EFF6FF;
+  color: #0284C7;
+  border: 1px solid #BAE6FD;
+}
+
+.tourney-status-pill-clean.finalizado {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+}
+
+.status-dot-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.tourney-status-pill-clean.inscripciones_abiertas .status-dot-pulse {
+  background: #00CFA0;
+  box-shadow: 0 0 6px rgba(0, 207, 160, 0.6);
+}
+
+.tourney-status-pill-clean.en_curso .status-dot-pulse {
+  background: #0284C7;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.6);
+}
+
+.tourney-status-pill-clean.finalizado .status-dot-pulse {
+  background: #64748B;
+}
+
+.tourney-controls-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.tourney-status-quick-select-row label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #64727A;
-  text-transform: uppercase;
+.tourney-status-selector-wrap select {
+  font-size: 14px;
 }
 
-.quick-status-dropdown {
-  height: 32px;
-  background: #FFFFFF;
-  border: 1.5px solid #E8EEEE;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #00304A;
-  padding: 0 8px;
-  outline: none;
-  cursor: pointer;
-}
 
 /* Results Status Banner */
 .results-status-banner {

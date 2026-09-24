@@ -4552,13 +4552,14 @@ export function getSeasonsArchive() {
     if (!parsed || typeof parsed !== 'object') {
       return {};
     }
-    // Depurar datos de prueba anteriores al arranque oficial de este año si existiesen
+    // Eliminar cualquier año anterior a 2026 (ATAP arranca oficialmente en 2026)
     let changed = false;
-    if (parsed['2025'] && parsed['2024']) {
-      delete parsed['2025'];
-      delete parsed['2024'];
-      changed = true;
-    }
+    Object.keys(parsed).forEach((y) => {
+      if (Number(y) < 2026) {
+        delete parsed[y];
+        changed = true;
+      }
+    });
     if (changed) {
       localStorage.setItem(STORAGE_KEYS.SEASONS_ARCHIVE, JSON.stringify(parsed));
     }

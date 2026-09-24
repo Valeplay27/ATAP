@@ -652,8 +652,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   // Handler: Update Tournament Price
   function handleSavePrice(tourneyId) {
     const newPrice = priceInputs[tourneyId]
-    if (newPrice === undefined || newPrice === '' || isNaN(newPrice) || Number(newPrice) < 0) {
-      showToast('Por favor ingresa un precio válido en Soles (0 o mayor).')
+    if (newPrice === undefined || newPrice === '' || isNaN(newPrice) || Number(newPrice) <= 0) {
+      showToast('Por favor ingresa un precio válido en Soles (mayor a 0).')
       return
     }
     updateTournamentPrice(tourneyId, newPrice)
@@ -2281,8 +2281,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       return
     }
     const priceNum = Number(editTourneyPrice)
-    if (isNaN(priceNum) || priceNum < 0) {
-      showToast('Por favor ingresa un precio de inscripción válido (0 o mayor).')
+    if (isNaN(priceNum) || priceNum <= 0) {
+      showToast('Por favor ingresa un precio de inscripción válido (mayor a 0).')
       return
     }
 
@@ -2334,8 +2334,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       return
     }
     const priceNum = Number(newTourneyPrice)
-    if (isNaN(priceNum) || priceNum < 0) {
-      showToast('Por favor ingresa un precio de inscripción válido (0 o mayor).')
+    if (isNaN(priceNum) || priceNum <= 0) {
+      showToast('Por favor ingresa un precio de inscripción válido (mayor a 0).')
       return
     }
 
@@ -3947,7 +3947,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                           <input
                             id={'price-' + t.id}
                             type="number"
-                            min="0"
+                            min="1"
                             step="1"
                             value={priceInputs[t.id] ?? (t.precio !== undefined ? t.precio : 100)}
                             onChange={(e) =>
@@ -4868,7 +4868,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   <div className="results-badge-strip">
                     <span className="results-super-pill">Gestión de Partidos</span>
                     <span
-                      className={`tourney-status-chip ${currentTourney.estado || 'inscripciones_abiertas'}`}
+                      className={`tourney-status-pill-clean ${currentTourney.estado || 'inscripciones_abiertas'}`}
                     >
                       {isFinalizado
                         ? '🏁 Torneo Finalizado'
@@ -4883,36 +4883,37 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   </p>
                 </div>
 
-                <div className="tourney-selector-wrap">
-                  <label htmlFor="select-tourney-score">Torneo Activo:</label>
-                  <select
-                    id="select-tourney-score"
-                    value={selectedTourneyId}
-                    onChange={(e) => {
-                      handleSelectTourney(e.target.value)
-                      const target = tournaments.find((t) => t.id === e.target.value)
-                      if (target?.categorias?.[0]?.nombre) {
-                        setSelectedCategoryForResult(target.categorias[0].nombre)
-                      }
-                      resetResultForm()
-                    }}
-                  >
-                    {tournaments.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title} {t.estado === 'finalizado' ? '(🏁 Finalizado)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                <div className="tourney-controls-group">
+                  <div className="tourney-selector-wrap">
+                    <label htmlFor="select-tourney-score">Torneo Activo:</label>
+                    <select
+                      id="select-tourney-score"
+                      value={selectedTourneyId}
+                      onChange={(e) => {
+                        handleSelectTourney(e.target.value)
+                        const target = tournaments.find((t) => t.id === e.target.value)
+                        if (target?.categorias?.[0]?.nombre) {
+                          setSelectedCategoryForResult(target.categorias[0].nombre)
+                        }
+                        resetResultForm()
+                      }}
+                    >
+                      {tournaments.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.title} {t.estado === 'finalizado' ? '(🏁 Finalizado)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <div className="tourney-status-quick-select-row">
+                  <div className="tourney-selector-wrap tourney-status-selector-wrap">
                     <label htmlFor="quick-status-selector">Estado:</label>
                     <select
                       id="quick-status-selector"
                       value={currentTourney.estado || 'inscripciones_abiertas'}
                       onChange={(e) => handleQuickToggleStatus(currentTourney, e.target.value)}
-                      className="quick-status-dropdown"
                     >
-                      <option value="inscripciones_abiertas">🟢 Inscripciones</option>
+                      <option value="inscripciones_abiertas">🟢 Inscripciones Abiertas</option>
                       <option value="en_curso">🔵 En Curso</option>
                       <option value="finalizado">🏁 Finalizado</option>
                     </select>
@@ -7874,9 +7875,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   <input
                     id="new-tourney-price"
                     type="number"
-                    min="0"
+                    min="1"
                     step="1"
-                    placeholder="0"
+                    placeholder="100"
                     value={newTourneyPrice}
                     onChange={(e) => setNewTourneyPrice(e.target.value)}
                     required
@@ -8205,9 +8206,9 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   <input
                     id="edit-tourney-price"
                     type="number"
-                    min="0"
+                    min="1"
                     step="1"
-                    placeholder="0"
+                    placeholder="100"
                     value={editTourneyPrice}
                     onChange={(e) => setEditTourneyPrice(e.target.value)}
                     required
