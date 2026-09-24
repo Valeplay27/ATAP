@@ -26,7 +26,38 @@ export function setAuthToken(token) {
   } catch (e) {}
 }
 
+let backendOnline = null;
+let lastHealthCheck = 0;
+
+export async function isBackendOnline() {
+  const now = Date.now();
+  if (backendOnline !== null && now - lastHealthCheck < 25000) {
+    return backendOnline;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/health`, { method: 'GET' });
+    if (res.ok) {
+      const data = await res.json().catch(() => null);
+      backendOnline = data?.status === 'ok';
+    } else {
+      backendOnline = false;
+    }
+  } catch (e) {
+    backendOnline = false;
+  }
+  lastHealthCheck = now;
+  return backendOnline;
+}
+
 async function request(endpoint, options = {}) {
+  // Evitar peticiones innecesarias de background sync si el backend no está disponible
+  if (options.isBackgroundSync) {
+    const isOnline = await isBackendOnline();
+    if (!isOnline) {
+      return { data: null, error: 'Backend no iniciado o fuera de línea', status: 503, offline: true };
+    }
+  }
+
   const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -62,11 +93,11 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
-  get: (endpoint) => request(endpoint, { method: 'GET' }),
-  post: (endpoint, body) => request(endpoint, { method: 'POST', body: JSON.stringify(body) }),
-  put: (endpoint, body) => request(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
-  patch: (endpoint, body) => request(endpoint, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: (endpoint) => request(endpoint, { method: 'DELETE' }),
+  get: (endpoint, options = {}) => request(endpoint, { ...options, method: 'GET' }),
+  post: (endpoint, body, options = {}) => request(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) }),
+  put: (endpoint, body, options = {}) => request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) }),
+  patch: (endpoint, body, options = {}) => request(endpoint, { ...options, method: 'PATCH', body: JSON.stringify(body) }),
+  delete: (endpoint, options = {}) => request(endpoint, { ...options, method: 'DELETE' }),
 
   // Subida de imagen al servidor (sin guardar base64 pesados en el navegador)
   uploadImage: async (file) => {
@@ -118,14 +149,14 @@ export const tournamentApi = {
   create: (data) => api.post('/tournaments', data),
   update: (id, data) => api.put(`/tournaments/${id}`, data),
   delete: (id) => api.delete(`/tournaments/${id}`),
-  createInscription: (tournamentId, data) => api.post(`/inscriptions/${tournamentId}`, data),
-  updateInscriptionStatus: (inscId, estadoPago) => api.patch(`/inscriptions/${inscId}/status`, { estadoPago }),
-  addToBank: (tournamentId, playerData) => api.post(`/inscriptions/${tournamentId}/bank`, playerData),
-  deleteInscription: (inscId) => api.delete(`/inscriptions/${inscId}`),
-  saveGroups: (tournamentId, grupos) => api.put(`/fixtures/${tournamentId}/groups`, { grupos }),
-  saveBracket: (tournamentId, bracket) => api.put(`/fixtures/${tournamentId}/bracket`, { bracket }),
+  createInscription: (tournamentId, data) => api.post(`/inscriptions/${tournamentId}`, data, { isBackgroundSync: true }),
+  updateInscriptionStatus: (inscId, estadoPago) => api.patch(`/inscriptions/${inscId}/status`, { estadoPago }, { isBackgroundSync: true }),
+  addToBank: (tournamentId, playerData) => api.post(`/inscriptions/${tournamentId}/bank`, playerData, { isBackgroundSync: true }),
+  deleteInscription: (inscId) => api.delete(`/inscriptions/${inscId}`, { isBackgroundSync: true }),
+  saveGroups: (tournamentId, grupos) => api.put(`/fixtures/${tournamentId}/groups`, { grupos }, { isBackgroundSync: true }),
+  saveBracket: (tournamentId, bracket) => api.put(`/fixtures/${tournamentId}/bracket`, { bracket }, { isBackgroundSync: true }),
   recordMatchScore: (tournamentId, matchId, resultData) =>
-    api.post(`/fixtures/${tournamentId}/matches/${matchId}/score`, resultData)
+    api.post(`/fixtures/${tournamentId}/matches/${matchId}/score`, resultData, { isBackgroundSync: true })
 };
 
 export const rankingApi = {
@@ -140,20 +171,20 @@ export const rankingApi = {
 
 export const playerApi = {
   getAll: () => api.get('/players'),
-  save: (playerData) => api.post('/players', playerData),
-  delete: (id) => api.delete(`/players/${id}`),
-  updateAvatar: (id, avatarUrl) => api.patch(`/players/${id}/avatar`, { avatarUrl })
+  save: (playerData) => api.post('/players', playerData, { isBackgroundSync: true }),
+  delete: (id) => api.delete(`/players/${id}`, { isBackgroundSync: true }),
+  updateAvatar: (id, avatarUrl) => api.patch(`/players/${id}/avatar`, { avatarUrl }, { isBackgroundSync: true })
 };
 
 export const contentApi = {
   getNews: () => api.get('/content/news'),
-  saveNews: (data) => api.post('/content/news', data),
-  deleteNews: (id) => api.delete(`/content/news/${id}`),
+  saveNews: (data) => api.post('/content/news', data, { isBackgroundSync: true }),
+  deleteNews: (id) => api.delete(`/content/news/${id}`, { isBackgroundSync: true }),
   getSponsors: () => api.get('/content/sponsors'),
-  saveSponsor: (data) => api.post('/content/sponsors', data),
-  deleteSponsor: (id) => api.delete(`/content/sponsors/${id}`),
+  saveSponsor: (data) => api.post('/content/sponsors', data, { isBackgroundSync: true }),
+  deleteSponsor: (id) => api.delete(`/content/sponsors/${id}`, { isBackgroundSync: true }),
   getSetting: (key) => api.get(`/content/settings/${key}`),
-  saveSetting: (key, value) => api.put(`/content/settings/${key}`, { value })
+  saveSetting: (key, value) => api.put(`/content/settings/${key}`, { value }, { isBackgroundSync: true })
 };
 
 export default api;

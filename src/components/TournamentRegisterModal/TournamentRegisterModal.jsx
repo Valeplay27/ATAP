@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CheckCircle2, Copy, Send, X, AlertTriangle, Users, UserCheck, ShieldAlert, ArrowRight, Shield, Trophy, Image } from 'lucide-react'
-import { registerPlayerToTournament, findUserByDni, getCategoryOccupancy, isUserProfileIncomplete, saveRegisteredUser, maskDni, getYapeConfig } from '../../services/atapStorage'
+import { registerPlayerToTournament, findUserByDni, findUserByName, findUserByNameOrDni, getRegisteredUsers, getCategoryOccupancy, isUserProfileIncomplete, saveRegisteredUser, maskDni, getYapeConfig } from '../../services/atapStorage'
+import { compressImageFile } from '../../utils/imageCompressor'
 import RulesModal from '../RulesModal/RulesModal'
 import './TournamentRegisterModal.css'
 
@@ -31,55 +32,71 @@ export default function TournamentRegisterModal({
         { id: 'cat-6', nombre: '6ta', cupos: 32 }
       ])
 
+  // Cargar borrador previo si el usuario salió a registrar a un compañero que faltaba
+  const pendingDraft = (() => {
+    try {
+      if (typeof sessionStorage === 'undefined') return null
+      const raw = sessionStorage.getItem('atap_tournament_register_draft')
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      if (parsed && (!tournament?.id || parsed.tournamentId === tournament.id)) {
+        return parsed
+      }
+    } catch {}
+    return null
+  })()
+
   // Team state (for grupal / 5 personas)
-  const [nombreEquipo, setNombreEquipo] = useState('')
-  const [fotoEquipo, setFotoEquipo] = useState('')
+  const [nombreEquipo, setNombreEquipo] = useState(() => pendingDraft?.nombreEquipo || '')
+  const [fotoEquipo, setFotoEquipo] = useState(() => pendingDraft?.fotoEquipo || '')
 
   // Player 1 state
-  const [nombre, setNombre] = useState(usuario?.nombre || '')
-  const [email, setEmail] = useState(usuario?.email || '')
-  const [dni, setDni] = useState(usuario?.dni || usuario?.documentoIdentidad || '')
-  const [telefono, setTelefono] = useState(usuario?.telefono || usuario?.whatsapp || '')
+  const [nombre, setNombre] = useState(() => pendingDraft?.nombre || usuario?.nombre || '')
+  const [email, setEmail] = useState(() => pendingDraft?.email || usuario?.email || '')
+  const [dni, setDni] = useState(() => pendingDraft?.dni || usuario?.dni || usuario?.documentoIdentidad || '')
+  const [telefono, setTelefono] = useState(() => pendingDraft?.telefono || usuario?.telefono || usuario?.whatsapp || '')
 
   // Player 2 state (for doubles / dúos / grupal)
-  const [nombre2, setNombre2] = useState('')
-  const [email2, setEmail2] = useState('')
-  const [dni2, setDni2] = useState('')
-  const [telefono2, setTelefono2] = useState('')
+  const [nombre2, setNombre2] = useState(() => pendingDraft?.nombre2 || '')
+  const [email2, setEmail2] = useState(() => pendingDraft?.email2 || '')
+  const [dni2, setDni2] = useState(() => pendingDraft?.dni2 || '')
+  const [telefono2, setTelefono2] = useState(() => pendingDraft?.telefono2 || '')
 
   // Player 3 state (for grupal)
-  const [nombre3, setNombre3] = useState('')
-  const [email3, setEmail3] = useState('')
-  const [dni3, setDni3] = useState('')
-  const [telefono3, setTelefono3] = useState('')
+  const [nombre3, setNombre3] = useState(() => pendingDraft?.nombre3 || '')
+  const [email3, setEmail3] = useState(() => pendingDraft?.email3 || '')
+  const [dni3, setDni3] = useState(() => pendingDraft?.dni3 || '')
+  const [telefono3, setTelefono3] = useState(() => pendingDraft?.telefono3 || '')
 
   // Player 4 state (for grupal)
-  const [nombre4, setNombre4] = useState('')
-  const [email4, setEmail4] = useState('')
-  const [dni4, setDni4] = useState('')
-  const [telefono4, setTelefono4] = useState('')
+  const [nombre4, setNombre4] = useState(() => pendingDraft?.nombre4 || '')
+  const [email4, setEmail4] = useState(() => pendingDraft?.email4 || '')
+  const [dni4, setDni4] = useState(() => pendingDraft?.dni4 || '')
+  const [telefono4, setTelefono4] = useState(() => pendingDraft?.telefono4 || '')
 
   // Player 5 state (for grupal - Suplente Opcional)
-  const [nombre5, setNombre5] = useState('')
-  const [email5, setEmail5] = useState('')
-  const [dni5, setDni5] = useState('')
-  const [telefono5, setTelefono5] = useState('')
+  const [nombre5, setNombre5] = useState(() => pendingDraft?.nombre5 || '')
+  const [email5, setEmail5] = useState(() => pendingDraft?.email5 || '')
+  const [dni5, setDni5] = useState(() => pendingDraft?.dni5 || '')
+  const [telefono5, setTelefono5] = useState(() => pendingDraft?.telefono5 || '')
 
   // Mandatory Category selection
   const [categoria, setCategoria] = useState(() => {
+    if (pendingDraft?.categoria) return pendingDraft.categoria
     if (categoriesList.length > 0) return categoriesList[0].nombre
     return isGrupal ? '4ta Equipos' : isDobles ? '4ta Dobles' : '4ta'
   })
 
-  const [metodoPago, setMetodoPago] = useState('Yape')
-  const [comprobanteRef, setComprobanteRef] = useState('')
+  const [metodoPago, setMetodoPago] = useState(() => pendingDraft?.metodoPago || 'Yape')
+  const [comprobanteRef, setComprobanteRef] = useState(() => pendingDraft?.comprobanteRef || '')
   const [enviado, setEnviado] = useState(false)
   const [copiado, setCopiado] = useState('')
   const [validationError, setValidationError] = useState('')
   const [unregisteredPlayerInfo, setUnregisteredPlayerInfo] = useState(null)
-  const [aceptaPoliticas, setAceptaPoliticas] = useState(false)
+  const [aceptaPoliticas, setAceptaPoliticas] = useState(() => pendingDraft?.aceptaPoliticas ?? false)
   const [showRulesModal, setShowRulesModal] = useState(false)
   const [yapeConfig, setYapeConfig] = useState(() => getYapeConfig())
+  const backdropMouseDownRef = useRef(false)
 
   // Sincronizar datos de Yape en tiempo real si el administrador los actualiza
   useEffect(() => {
@@ -108,11 +125,11 @@ export default function TournamentRegisterModal({
     }
   }, [usuario])
 
-  // Sincronizar cuando se crea o actualiza usuario en el sistema
+  // Sincronizar cuando se crea o actualiza usuario en el sistema (revisar todos los jugadores)
   useEffect(() => {
     function handleStorageSync() {
-      if (dni && dni.length >= 5) {
-        const found = findUserByDni(dni)
+      if (dni && dni.length >= 8) {
+        const found = findUserByDni(dni, nombre)
         if (found) {
           if (found.nombre && (!nombre || nombre === '')) setNombre(found.nombre)
           if (found.email && (!email || email === '')) setEmail(found.email)
@@ -120,10 +137,46 @@ export default function TournamentRegisterModal({
           if (fTel && (!telefono || telefono === '')) setTelefono(fTel)
         }
       }
+      if (dni2 && dni2.length >= 8) {
+        const found2 = findUserByDni(dni2, nombre2)
+        if (found2) {
+          if (found2.nombre) setNombre2(found2.nombre)
+          if (found2.email) setEmail2(found2.email)
+          const fTel = found2.telefono || found2.whatsapp
+          if (fTel) setTelefono2(fTel)
+        }
+      }
+      if (dni3 && dni3.length >= 8) {
+        const found3 = findUserByDni(dni3, nombre3)
+        if (found3) {
+          if (found3.nombre) setNombre3(found3.nombre)
+          if (found3.email) setEmail3(found3.email)
+          const fTel = found3.telefono || found3.whatsapp
+          if (fTel) setTelefono3(fTel)
+        }
+      }
+      if (dni4 && dni4.length >= 8) {
+        const found4 = findUserByDni(dni4, nombre4)
+        if (found4) {
+          if (found4.nombre) setNombre4(found4.nombre)
+          if (found4.email) setEmail4(found4.email)
+          const fTel = found4.telefono || found4.whatsapp
+          if (fTel) setTelefono4(fTel)
+        }
+      }
+      if (dni5 && dni5.length >= 8) {
+        const found5 = findUserByDni(dni5, nombre5)
+        if (found5) {
+          if (found5.nombre) setNombre5(found5.nombre)
+          if (found5.email) setEmail5(found5.email)
+          const fTel = found5.telefono || found5.whatsapp
+          if (fTel) setTelefono5(fTel)
+        }
+      }
     }
     window.addEventListener('atap_data_updated', handleStorageSync)
     return () => window.removeEventListener('atap_data_updated', handleStorageSync)
-  }, [dni, nombre, email, telefono])
+  }, [dni, nombre, email, telefono, dni2, nombre2, email2, telefono2, dni3, nombre3, email3, telefono3, dni4, nombre4, email4, telefono4, dni5, nombre5, email5, telefono5])
 
   if (!tournament) return null
 
@@ -132,16 +185,57 @@ export default function TournamentRegisterModal({
   const precioDisplay = tournament.precio !== undefined ? (Number(tournament.precio) === 0 ? 'GRATIS' : ('S/ ' + tournament.precio + '.00')) : 'Por definir'
 
   function handleOpenRegisterInAtap(playerData = null) {
+    // Guardar borrador completo de todo el formulario para restaurarlo con todos los datos
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('atap_tournament_register_draft', JSON.stringify({
+          tournamentId: tournament?.id,
+          tournament: tournament,
+          nombreEquipo,
+          fotoEquipo,
+          nombre,
+          email,
+          dni,
+          telefono,
+          nombre2,
+          email2,
+          dni2,
+          telefono2,
+          nombre3,
+          email3,
+          dni3,
+          telefono3,
+          nombre4,
+          email4,
+          dni4,
+          telefono4,
+          nombre5,
+          email5,
+          dni5,
+          telefono5,
+          categoria,
+          metodoPago,
+          comprobanteRef,
+          aceptaPoliticas
+        }))
+      }
+    } catch (e) {
+      console.warn('Error al guardar borrador del torneo:', e)
+    }
+
     if (onClose) onClose()
-    const target = playerData || (unregisteredPlayerInfo?.user) || unregisteredPlayerInfo || null
+    const target = playerData || (unregisteredPlayerInfo?.user) || unregisteredPlayerInfo || {
+      dni,
+      nombre,
+      email,
+      telefono,
+      categoria
+    }
 
-    const targetDni = (target?.dniReal || target?.dni || target?.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
-    const isPlayer2 = isDobles && targetDni && targetDni === (dni2 || '').toString().trim().replace(/\s+/g, '')
-
-    const selectedDni = isPlayer2 ? dni2 : dni
-    const selectedNombre = isPlayer2 ? nombre2 : nombre
-    const selectedEmail = isPlayer2 ? email2 : email
-    const selectedPhone = isPlayer2 ? telefono2 : telefono
+    const selectedDni = (target?.dniReal || target?.dni || target?.documentoIdentidad || '').toString().trim().replace(/\s+/g, '')
+    const selectedNombre = (target?.nombre || target?.name || '').toString().trim()
+    const selectedEmail = (target?.email || '').toString().trim()
+    const selectedPhone = (target?.telefono || target?.whatsapp || '').toString().trim()
 
     // Priorizar exactamente el DNI real y sin máscara que el usuario está escribiendo en la inscripción del torneo
     const rawTypedDni = (selectedDni || '').toString().trim().replace(/\s+/g, '')
@@ -230,7 +324,7 @@ export default function TournamentRegisterModal({
     // 3. Validación obligatoria de registro oficial en ATAP:
     // Si la persona no está registrada o tiene perfil incompleto, NO se puede procesar la inscripción a estado pendiente.
     // Se muestra el error "Faltan datos de inscripción" y se le dirige a registrarse para crear su cuenta.
-    const existingUser1 = findUserByDni(cleanDni)
+    const existingUser1 = findUserByNameOrDni(cleanDni, cleanNombre)
     if (!existingUser1 || isUserProfileIncomplete(existingUser1)) {
       setValidationError('Faltan datos de inscripción para continuar. Tu perfil aún no está registrado oficialmente en ATAP. Debes registrarte y crear tu cuenta para poder formalizar tu inscripción.')
       setUnregisteredPlayerInfo({
@@ -259,7 +353,7 @@ export default function TournamentRegisterModal({
       const cleanNombre2 = nombre2.trim()
       const cleanEmail2 = email2.trim()
       const cleanPhone2 = telefono2.trim()
-      const existingUser2 = findUserByDni(cleanDni2)
+      const existingUser2 = findUserByNameOrDni(cleanDni2, cleanNombre2)
 
       if (!cleanNombre2 || !cleanDni2) {
         setValidationError('Por favor completa el nombre y DNI del Jugador 2 para la inscripción en Dúos.')
@@ -355,6 +449,114 @@ export default function TournamentRegisterModal({
         setValidationError('No puedes ingresar el mismo DNI para más de un integrante del equipo.')
         return
       }
+
+      // Validar registro en ATAP para Jugador 2 (Titular 2)
+      const existingUser2 = findUserByNameOrDni(cleanDni2, cleanNombre2)
+      if (!existingUser2 || isUserProfileIncomplete(existingUser2)) {
+        setValidationError(`Faltan datos de inscripción del Jugador 2 (${cleanNombre2 || cleanDni2}). Debe completar su registro oficial en ATAP antes de poder participar.`)
+        setUnregisteredPlayerInfo({
+          dni: cleanDni2,
+          nombre: cleanNombre2,
+          email: (email2 || '').trim(),
+          telefono: (telefono2 || '').trim(),
+          whatsapp: (telefono2 || '').trim(),
+          categoria: categoria,
+          incomplete: true,
+          user: {
+            ...(existingUser2 || {}),
+            dni: cleanDni2,
+            dniReal: cleanDni2,
+            nombre: cleanNombre2,
+            email: (email2 || '').trim() || existingUser2?.email || '',
+            telefono: (telefono2 || '').trim() || existingUser2?.telefono || '',
+            whatsapp: (telefono2 || '').trim() || existingUser2?.whatsapp || '',
+            categoria: categoria || existingUser2?.categoria || '4ta'
+          }
+        })
+        return
+      }
+
+      // Validar registro en ATAP para Jugador 3 (Titular 3)
+      const existingUser3 = findUserByNameOrDni(cleanDni3, cleanNombre3)
+      if (!existingUser3 || isUserProfileIncomplete(existingUser3)) {
+        setValidationError(`Faltan datos de inscripción del Jugador 3 (${cleanNombre3 || cleanDni3}). Debe completar su registro oficial en ATAP antes de poder participar.`)
+        setUnregisteredPlayerInfo({
+          dni: cleanDni3,
+          nombre: cleanNombre3,
+          email: (email3 || '').trim(),
+          telefono: (telefono3 || '').trim(),
+          whatsapp: (telefono3 || '').trim(),
+          categoria: categoria,
+          incomplete: true,
+          user: {
+            ...(existingUser3 || {}),
+            dni: cleanDni3,
+            dniReal: cleanDni3,
+            nombre: cleanNombre3,
+            email: (email3 || '').trim() || existingUser3?.email || '',
+            telefono: (telefono3 || '').trim() || existingUser3?.telefono || '',
+            whatsapp: (telefono3 || '').trim() || existingUser3?.whatsapp || '',
+            categoria: categoria || existingUser3?.categoria || '4ta'
+          }
+        })
+        return
+      }
+
+      // Validar registro en ATAP para Jugador 4 (si se ingresó)
+      if (cleanNombre4 && cleanDni4) {
+        const existingUser4 = findUserByNameOrDni(cleanDni4, cleanNombre4)
+        if (!existingUser4 || isUserProfileIncomplete(existingUser4)) {
+          setValidationError(`Faltan datos de inscripción del Jugador 4 (${cleanNombre4 || cleanDni4}). Debe completar su registro oficial en ATAP antes de poder participar.`)
+          setUnregisteredPlayerInfo({
+            dni: cleanDni4,
+            nombre: cleanNombre4,
+            email: (email4 || '').trim(),
+            telefono: (telefono4 || '').trim(),
+            whatsapp: (telefono4 || '').trim(),
+            categoria: categoria,
+            incomplete: true,
+            user: {
+              ...(existingUser4 || {}),
+              dni: cleanDni4,
+              dniReal: cleanDni4,
+              nombre: cleanNombre4,
+              email: (email4 || '').trim() || existingUser4?.email || '',
+              telefono: (telefono4 || '').trim() || existingUser4?.telefono || '',
+              whatsapp: (telefono4 || '').trim() || existingUser4?.whatsapp || '',
+              categoria: categoria || existingUser4?.categoria || '4ta'
+            }
+          })
+          return
+        }
+      }
+
+      // Validar registro en ATAP para Jugador 5 (si se ingresó)
+      if (cleanNombre5 && cleanDni5) {
+        const existingUser5 = findUserByNameOrDni(cleanDni5, cleanNombre5)
+        if (!existingUser5 || isUserProfileIncomplete(existingUser5)) {
+          setValidationError(`Faltan datos de inscripción del Jugador 5 (${cleanNombre5 || cleanDni5}). Debe completar su registro oficial en ATAP antes de poder participar.`)
+          setUnregisteredPlayerInfo({
+            dni: cleanDni5,
+            nombre: cleanNombre5,
+            email: (email5 || '').trim(),
+            telefono: (telefono5 || '').trim(),
+            whatsapp: (telefono5 || '').trim(),
+            categoria: categoria,
+            incomplete: true,
+            user: {
+              ...(existingUser5 || {}),
+              dni: cleanDni5,
+              dniReal: cleanDni5,
+              nombre: cleanNombre5,
+              email: (email5 || '').trim() || existingUser5?.email || '',
+              telefono: (telefono5 || '').trim() || existingUser5?.telefono || '',
+              whatsapp: (telefono5 || '').trim() || existingUser5?.whatsapp || '',
+              categoria: categoria || existingUser5?.categoria || '4ta'
+            }
+          })
+          return
+        }
+      }
     }
 
     // 4. Aceptación obligatoria de Políticas & Reglas
@@ -395,6 +597,12 @@ export default function TournamentRegisterModal({
       fechaAceptacionPoliticas: new Date().toISOString()
     })
 
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('atap_tournament_register_draft')
+      }
+    } catch {}
+
     setEnviado(true)
     if (onSuccess) {
       onSuccess()
@@ -433,23 +641,47 @@ export default function TournamentRegisterModal({
 
   const whatsappLink = 'https://wa.me/51977884423?text=' + whatsappMessage
 
-  // Active verified status hints
-  const user1Verified = dni && findUserByDni(dni)
-  const user2Verified = dni2 && findUserByDni(dni2)
-  const user3Verified = dni3 && findUserByDni(dni3)
-  const user4Verified = dni4 && findUserByDni(dni4)
-  const user5Verified = dni5 && findUserByDni(dni5)
+  // Helper de validación de DNI (8 dígitos o enmascarado válido)
+  const isDniValid = (d) => {
+    if (!d) return false
+    const str = d.toString().trim()
+    const digitsOnly = str.replace(/\D/g, '')
+    return digitsOnly.length === 8 || ((str.startsWith('*') || str.startsWith('•')) && str.length >= 8)
+  }
+
+  // Active verified status hints - SOLO si el DNI está completo (8 dígitos) y registrado en ATAP
+  const user1Verified = isDniValid(dni) ? findUserByDni(dni) : null
+  const user2Verified = isDniValid(dni2) ? findUserByDni(dni2) : null
+  const user3Verified = isDniValid(dni3) ? findUserByDni(dni3) : null
+  const user4Verified = isDniValid(dni4) ? findUserByDni(dni4) : null
+  const user5Verified = isDniValid(dni5) ? findUserByDni(dni5) : null
 
   const isUser1Ready = user1Verified && (!isUserProfileIncomplete(user1Verified) || (email.trim().includes('@') && telefono.trim().length >= 6))
   const isUser2Ready = user2Verified && (!isUserProfileIncomplete(user2Verified) || (email2.trim().includes('@') && telefono2.trim().length >= 6))
   const isUser3Ready = user3Verified && (!isUserProfileIncomplete(user3Verified) || (email3.trim().includes('@') && telefono3.trim().length >= 6))
   const isUser4Ready = user4Verified && (!isUserProfileIncomplete(user4Verified) || (email4.trim().includes('@') && telefono4.trim().length >= 6))
   const isUser5Ready = user5Verified && (!isUserProfileIncomplete(user5Verified) || (email5.trim().includes('@') && telefono5.trim().length >= 6))
+ 
+  const handleBackdropMouseDown = (e) => {
+    backdropMouseDownRef.current = (e.target === e.currentTarget)
+  }
+
+  const handleBackdropClick = (e) => {
+    if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+      if (onClose) onClose()
+    }
+    backdropMouseDownRef.current = false
+  }
 
   return (
-    <div className='tourney-modal-backdrop' onClick={onClose}>
+    <div
+      className='tourney-modal-backdrop'
+      onMouseDown={handleBackdropMouseDown}
+      onClick={handleBackdropClick}
+    >
       <div
         className={'tourney-modal-card' + (isDobles || isGrupal ? ' tourney-modal-card-wide' : '')}
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         role='dialog'
         aria-modal='true'
@@ -589,18 +821,21 @@ export default function TournamentRegisterModal({
                             type='file'
                             accept='image/*'
                             style={{ display: 'none' }}
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files && e.target.files[0]
                               if (file) {
-                                if (file.size > 2 * 1024 * 1024) {
-                                  alert('La imagen debe ser menor a 2MB')
+                                if (file.size > 5 * 1024 * 1024) {
+                                  alert('La imagen debe ser menor a 5MB')
                                   return
                                 }
-                                const reader = new FileReader()
-                                reader.onloadend = () => {
-                                  setFotoEquipo(reader.result)
+                                try {
+                                  const compressed = await compressImageFile(file, 260, 260, 0.78)
+                                  if (compressed) {
+                                    setFotoEquipo(compressed)
+                                  }
+                                } catch (err) {
+                                  console.error('Error al comprimir imagen de equipo:', err)
                                 }
-                                reader.readAsDataURL(file)
                               }
                             }}
                           />
@@ -657,7 +892,7 @@ export default function TournamentRegisterModal({
                       <label htmlFor='t-dni'>
                         {(isDobles || isGrupal) ? 'DNI Jugador 1 *' : 'DNI / Documento *'}
                       </label>
-                      {user1Verified && (
+                      {dni && isDniValid(dni) && user1Verified && (
                         <span className={`verified-tag-micro ${!isUser1Ready ? 'incomplete-tag' : ''}`}>
                           {isUser1Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
                         </span>
@@ -671,15 +906,14 @@ export default function TournamentRegisterModal({
                         const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                         setDni(val)
                         if (validationError) setValidationError('')
-                        const found = findUserByDni(val)
-                        if (found && (!nombre || nombre === '')) {
-                          setNombre(found.nombre)
-                        }
-                        if (found && found.email && (!email || email === '')) {
-                          setEmail(found.email)
-                        }
-                        if (found && found.telefono && (!telefono || telefono === '')) {
-                          setTelefono(found.telefono)
+                        if (val.length === 8) {
+                          const found = findUserByDni(val)
+                          if (found) {
+                            setNombre(found.nombre || found.name || '')
+                            if (found.email) setEmail(found.email)
+                            const fTel = found.telefono || found.whatsapp
+                            if (fTel) setTelefono(fTel)
+                          }
                         }
                       }}
                       placeholder='Ej. 72345678'
@@ -730,7 +964,14 @@ export default function TournamentRegisterModal({
                       <button
                         type="button"
                         className="btn-complete-account-now"
-                        onClick={() => handleOpenRegisterInAtap({ ...user1Verified, dni: dni.trim() || user1Verified.dniReal || user1Verified.dni, dniReal: dni.trim() || user1Verified.dniReal })}
+                        onClick={() => handleOpenRegisterInAtap({
+                          ...user1Verified,
+                          nombre: nombre.trim() || user1Verified.nombre,
+                          dni: dni.trim() || user1Verified.dniReal || user1Verified.dni,
+                          dniReal: dni.trim() || user1Verified.dniReal,
+                          email: email.trim() || user1Verified.email,
+                          telefono: telefono.trim() || user1Verified.telefono || user1Verified.whatsapp
+                        })}
                       >
                         Crear mi cuenta en ATAP ahora →
                       </button>
@@ -770,7 +1011,7 @@ export default function TournamentRegisterModal({
                     <div className='form-group'>
                       <div className='label-with-hint'>
                         <label htmlFor='t-dni-2'>DNI Jugador 2 *</label>
-                        {user2Verified && (
+                        {dni2 && isDniValid(dni2) && user2Verified && (
                           <span className={`verified-tag-micro ${!isUser2Ready ? 'incomplete-tag' : ''}`}>
                             {isUser2Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
                           </span>
@@ -784,15 +1025,14 @@ export default function TournamentRegisterModal({
                           const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                           setDni2(val)
                           if (validationError) setValidationError('')
-                          const found = findUserByDni(val)
-                          if (found && (!nombre2 || nombre2 === '')) {
-                            setNombre2(found.nombre)
-                          }
-                          if (found && found.email && (!email2 || email2 === '')) {
-                            setEmail2(found.email)
-                          }
-                          if (found && found.telefono && (!telefono2 || telefono2 === '')) {
-                            setTelefono2(found.telefono)
+                          if (val.length === 8) {
+                            const found = findUserByDni(val)
+                            if (found) {
+                              setNombre2(found.nombre || found.name || '')
+                              if (found.email) setEmail2(found.email)
+                              const fTel = found.telefono || found.whatsapp
+                              if (fTel) setTelefono2(fTel)
+                            }
                           }
                         }}
                         placeholder='Ej. 71234567'
@@ -839,7 +1079,14 @@ export default function TournamentRegisterModal({
                         <button
                           type="button"
                           className="btn-complete-account-now"
-                          onClick={() => handleOpenRegisterInAtap({ ...user2Verified, dni: dni2.trim() || user2Verified.dniReal || user2Verified.dni, dniReal: dni2.trim() || user2Verified.dniReal })}
+                          onClick={() => handleOpenRegisterInAtap({
+                            ...user2Verified,
+                            nombre: nombre2.trim() || user2Verified.nombre,
+                            dni: dni2.trim() || user2Verified.dniReal || user2Verified.dni,
+                            dniReal: dni2.trim() || user2Verified.dniReal,
+                            email: email2.trim() || user2Verified.email,
+                            telefono: telefono2.trim() || user2Verified.telefono || user2Verified.whatsapp
+                          })}
                         >
                           Registrar Jugador 2 en ATAP →
                         </button>
@@ -880,7 +1127,7 @@ export default function TournamentRegisterModal({
                     <div className='form-group'>
                       <div className='label-with-hint'>
                         <label htmlFor='t-dni-3'>DNI Jugador 3 *</label>
-                        {user3Verified && (
+                        {dni3 && isDniValid(dni3) && user3Verified && (
                           <span className={`verified-tag-micro ${!isUser3Ready ? 'incomplete-tag' : ''}`}>
                             {isUser3Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
                           </span>
@@ -894,15 +1141,14 @@ export default function TournamentRegisterModal({
                           const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                           setDni3(val)
                           if (validationError) setValidationError('')
-                          const found = findUserByDni(val)
-                          if (found && (!nombre3 || nombre3 === '')) {
-                            setNombre3(found.nombre)
-                          }
-                          if (found && found.email && (!email3 || email3 === '')) {
-                            setEmail3(found.email)
-                          }
-                          if (found && found.telefono && (!telefono3 || telefono3 === '')) {
-                            setTelefono3(found.telefono)
+                          if (val.length === 8) {
+                            const found = findUserByDni(val)
+                            if (found) {
+                              setNombre3(found.nombre || found.name || '')
+                              if (found.email) setEmail3(found.email)
+                              const fTel = found.telefono || found.whatsapp
+                              if (fTel) setTelefono3(fTel)
+                            }
                           }
                         }}
                         placeholder='Ej. 73456789'
@@ -933,6 +1179,34 @@ export default function TournamentRegisterModal({
                       />
                     </div>
                   </div>
+
+                  {user3Verified && isUserProfileIncomplete(user3Verified) && (
+                    <div className="incomplete-player-helper-box">
+                      <div className="helper-icon-wrap">
+                        <AlertTriangle size={18} color="#D97706" />
+                      </div>
+                      <div className="helper-text-wrap">
+                        <strong>Faltan datos de inscripción del Jugador 3</strong>
+                        <p>
+                          El DNI figura precargado en el sistema ({user3Verified.nombre}), pero debe crear su cuenta oficial en ATAP para poder participar en el torneo.
+                        </p>
+                        <button
+                          type="button"
+                          className="btn-complete-account-now"
+                          onClick={() => handleOpenRegisterInAtap({
+                            ...user3Verified,
+                            nombre: nombre3.trim() || user3Verified.nombre,
+                            dni: dni3.trim() || user3Verified.dniReal || user3Verified.dni,
+                            dniReal: dni3.trim() || user3Verified.dniReal,
+                            email: email3.trim() || user3Verified.email,
+                            telefono: telefono3.trim() || user3Verified.telefono || user3Verified.whatsapp
+                          })}
+                        >
+                          Registrar Jugador 3 en ATAP →
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -972,7 +1246,7 @@ export default function TournamentRegisterModal({
                     <div className='form-group'>
                       <div className='label-with-hint'>
                         <label htmlFor='t-dni-4'>DNI Jugador 4 (Opcional)</label>
-                        {user4Verified && (
+                        {dni4 && isDniValid(dni4) && user4Verified && (
                           <span className={`verified-tag-micro ${!isUser4Ready ? 'incomplete-tag' : ''}`}>
                             {isUser4Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
                           </span>
@@ -986,15 +1260,14 @@ export default function TournamentRegisterModal({
                           const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                           setDni4(val)
                           if (validationError) setValidationError('')
-                          const found = findUserByDni(val)
-                          if (found && (!nombre4 || nombre4 === '')) {
-                            setNombre4(found.nombre)
-                          }
-                          if (found && found.email && (!email4 || email4 === '')) {
-                            setEmail4(found.email)
-                          }
-                          if (found && found.telefono && (!telefono4 || telefono4 === '')) {
-                            setTelefono4(found.telefono)
+                          if (val.length === 8) {
+                            const found = findUserByDni(val)
+                            if (found) {
+                              setNombre4(found.nombre || found.name || '')
+                              if (found.email) setEmail4(found.email)
+                              const fTel = found.telefono || found.whatsapp
+                              if (fTel) setTelefono4(fTel)
+                            }
                           }
                         }}
                         placeholder='Ej. 74567890 (Opcional)'
@@ -1063,7 +1336,7 @@ export default function TournamentRegisterModal({
                     <div className='form-group'>
                       <div className='label-with-hint'>
                         <label htmlFor='t-dni-5'>DNI Jugador 5 (Suplente)</label>
-                        {user5Verified && (
+                        {dni5 && isDniValid(dni5) && user5Verified && (
                           <span className={`verified-tag-micro ${!isUser5Ready ? 'incomplete-tag' : ''}`}>
                             {isUser5Ready ? '✓ ATAP Activo' : '⚠️ Faltan datos'}
                           </span>
@@ -1077,15 +1350,14 @@ export default function TournamentRegisterModal({
                           const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                           setDni5(val)
                           if (validationError) setValidationError('')
-                          const found = findUserByDni(val)
-                          if (found && (!nombre5 || nombre5 === '')) {
-                            setNombre5(found.nombre)
-                          }
-                          if (found && found.email && (!email5 || email5 === '')) {
-                            setEmail5(found.email)
-                          }
-                          if (found && found.telefono && (!telefono5 || telefono5 === '')) {
-                            setTelefono5(found.telefono)
+                          if (val.length === 8) {
+                            const found = findUserByDni(val)
+                            if (found) {
+                              setNombre5(found.nombre || found.name || '')
+                              if (found.email) setEmail5(found.email)
+                              const fTel = found.telefono || found.whatsapp
+                              if (fTel) setTelefono5(fTel)
+                            }
                           }
                         }}
                         placeholder='Ej. 75678901 (Opcional)'

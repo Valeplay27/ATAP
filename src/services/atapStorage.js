@@ -313,10 +313,12 @@ export function sanitizeStorageDnis() {
       let changed = false;
       for (const u of users) {
         if (u.dni && !String(u.dni).includes('*')) {
+          if (!u.dniReal) u.dniReal = u.dni;
           u.dni = maskDni(u.dni);
           changed = true;
         }
         if (u.documentoIdentidad && !String(u.documentoIdentidad).includes('*')) {
+          if (!u.dniReal) u.dniReal = u.documentoIdentidad;
           u.documentoIdentidad = maskDni(u.documentoIdentidad);
           changed = true;
         }
@@ -333,6 +335,7 @@ export function sanitizeStorageDnis() {
       let changed = false;
       for (const p of ranking) {
         if (p.dni && !String(p.dni).includes('*')) {
+          if (!p.dniReal) p.dniReal = p.dni;
           p.dni = maskDni(p.dni);
           changed = true;
         }
@@ -1974,12 +1977,48 @@ export function getTournaments() {
   }
 }
 
+export function sanitizeTournamentsForStorage(tournaments) {
+  if (!Array.isArray(tournaments)) return tournaments;
+  return tournaments.map((t) => {
+    const copy = { ...t };
+    // Normalizar imagen principal del torneo si excede 40KB
+    if (typeof copy.imagen === 'string' && copy.imagen.startsWith('data:image') && copy.imagen.length > 40000) {
+      copy.imagen = '/assets/evento.png';
+    }
+    // Normalizar fotos de equipos e inscripciones si exceden 35KB
+    if (Array.isArray(copy.inscripciones)) {
+      copy.inscripciones = copy.inscripciones.map((insc) => {
+        const inscCopy = { ...insc };
+        if (typeof inscCopy.fotoEquipo === 'string' && inscCopy.fotoEquipo.startsWith('data:image') && inscCopy.fotoEquipo.length > 35000) {
+          inscCopy.fotoEquipo = '/assets/logo.png';
+        }
+        if (typeof inscCopy.logo === 'string' && inscCopy.logo.startsWith('data:image') && inscCopy.logo.length > 35000) {
+          inscCopy.logo = '/assets/logo.png';
+        }
+        if (typeof inscCopy.comprobante === 'string' && inscCopy.comprobante.startsWith('data:image') && inscCopy.comprobante.length > 25000) {
+          inscCopy.comprobante = '';
+        }
+        return inscCopy;
+      });
+    }
+    return copy;
+  });
+}
+
 export function saveTournaments(tournaments) {
   try {
     localStorage.setItem(STORAGE_KEYS.TOURNEYS, JSON.stringify(tournaments));
     emitAtapUpdate(STORAGE_KEYS.TOURNEYS, tournaments);
   } catch (e) {
-    console.error('Error saving tournaments:', e);
+    console.warn('[ATAP] Error al guardar torneos en localStorage, intentando optimizar almacenamiento:', e);
+    try {
+      const sanitized = sanitizeTournamentsForStorage(tournaments);
+      localStorage.setItem(STORAGE_KEYS.TOURNEYS, JSON.stringify(sanitized));
+      emitAtapUpdate(STORAGE_KEYS.TOURNEYS, sanitized);
+      console.log('[ATAP] Torneos guardados exitosamente tras optimizar imágenes.');
+    } catch (retryErr) {
+      console.error('[ATAP] Error crítico de cuota de almacenamiento en localStorage:', retryErr);
+    }
   }
 }
 
@@ -2640,12 +2679,13 @@ export function registerPlayerToTournament(tournamentId, playerData) {
       esSuplente: true,
       esOpcional: true
     } : null,
+    logo: isGrupal ? (playerData.fotoEquipo || '').trim() : undefined,
     integrantes: isGrupal ? [
-      { rol: 'Capitán / Titular 1', nombre: playerData.nombre, dni: maskDni(playerData.dni), email: playerData.email || '', telefono: playerData.telefono || '' },
-      { rol: 'Titular 2', nombre: playerData.nombreJugador2 || '', dni: maskDni(playerData.dniJugador2), email: playerData.emailJugador2 || '', telefono: playerData.telefonoJugador2 || '' },
-      { rol: 'Titular 3', nombre: playerData.nombreJugador3 || '', dni: maskDni(playerData.dniJugador3), email: playerData.emailJugador3 || '', telefono: playerData.telefonoJugador3 || '' },
-      ...(playerData.nombreJugador4 ? [{ rol: 'Jugador 4 (Opcional)', nombre: playerData.nombreJugador4, dni: maskDni(playerData.dniJugador4), email: playerData.emailJugador4 || '', telefono: playerData.telefonoJugador4 || '' }] : []),
-      ...(playerData.nombreJugador5 ? [{ rol: 'Jugador 5 (Suplente / Opcional)', nombre: playerData.nombreJugador5, dni: maskDni(playerData.dniJugador5), email: playerData.emailJugador5 || '', telefono: playerData.telefonoJugador5 || '' }] : [])
+      { id: 'p1-' + Date.now(), rol: 'Capitán / Titular 1', nombre: playerData.nombre, dni: maskDni(playerData.dni), email: playerData.email || '', telefono: playerData.telefono || '', teamName: playerData.nombreEquipo || '' },
+      { id: 'p2-' + Date.now(), rol: 'Titular 2', nombre: playerData.nombreJugador2 || '', dni: maskDni(playerData.dniJugador2), email: playerData.emailJugador2 || '', telefono: playerData.telefonoJugador2 || '', teamName: playerData.nombreEquipo || '' },
+      { id: 'p3-' + Date.now(), rol: 'Titular 3', nombre: playerData.nombreJugador3 || '', dni: maskDni(playerData.dniJugador3), email: playerData.emailJugador3 || '', telefono: playerData.telefonoJugador3 || '', teamName: playerData.nombreEquipo || '' },
+      ...(playerData.nombreJugador4 ? [{ id: 'p4-' + Date.now(), rol: 'Jugador 4 (Opcional)', nombre: playerData.nombreJugador4, dni: maskDni(playerData.dniJugador4), email: playerData.emailJugador4 || '', telefono: playerData.telefonoJugador4 || '', teamName: playerData.nombreEquipo || '' }] : []),
+      ...(playerData.nombreJugador5 ? [{ id: 'p5-' + Date.now(), rol: 'Jugador 5 (Suplente / Opcional)', nombre: playerData.nombreJugador5, dni: maskDni(playerData.dniJugador5), email: playerData.emailJugador5 || '', telefono: playerData.telefonoJugador5 || '', teamName: playerData.nombreEquipo || '' }] : [])
     ] : undefined,
     estadoPago: Number(tournaments[index].precio) === 0 ? 'aprobado' : 'pendiente',
     fechaRegistro: new Date().toISOString().split('T')[0],
@@ -2700,15 +2740,22 @@ export function generateTournamentBracket(tournamentId) {
   if (index === -1) return { error: 'Torneo no encontrado.' };
 
   const tournament = tournaments[index];
+  const isGrupal = Boolean(
+    tournament.modalidad === 'grupal' ||
+    tournament.modalidad === 'equipos' ||
+    tournament.esGrupal
+  );
   const approved = (tournament.inscripciones || []).filter((i) => i.estadoPago === 'aprobado');
 
   if (approved.length < 2) {
     return {
-      error: 'Se necesitan al menos 2 jugadores con pago aprobado para realizar el sorteo.'
+      error: isGrupal
+        ? 'Se necesitan al menos 2 equipos con inscripción aprobada para realizar el sorteo.'
+        : 'Se necesitan al menos 2 jugadores con pago aprobado para realizar el sorteo.'
     };
   }
 
-  // Shuffle players randomly (Fisher-Yates)
+  // Shuffle teams/players randomly (Fisher-Yates)
   const pool = [...approved];
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -2731,35 +2778,85 @@ export function generateTournamentBracket(tournamentId) {
     bracketSize = 4;
   }
 
-  // Complete pool if needed with ranking players
+  // Complete pool if needed with ranking players (or dummy teams if grupal)
   const rankings = getRanking();
   let rankIdx = 0;
   while (pool.length < bracketSize) {
-    const rankP = rankings[rankIdx % rankings.length] || { name: `Jugador ${pool.length + 1}`, categoria: '4ta' };
-    rankIdx++;
-    pool.push({
-      id: 'seed-' + pool.length,
-      nombre: rankP.name,
-      categoria: rankP.categoria,
-      image: rankP.image
-    });
+    if (isGrupal) {
+      pool.push({
+        id: 'seed-team-' + pool.length,
+        name: `Equipo ${pool.length + 1}`,
+        nombre: `Equipo ${pool.length + 1}`,
+        nombreEquipo: `Equipo ${pool.length + 1}`,
+        categoria: '4ta Equipos',
+        esEquipo: true,
+        logo: '/assets/logo.png',
+        integrantes: []
+      });
+    } else {
+      const rankP = rankings[rankIdx % rankings.length] || { name: `Jugador ${pool.length + 1}`, categoria: '4ta' };
+      rankIdx++;
+      pool.push({
+        id: 'seed-' + pool.length,
+        nombre: rankP.name,
+        categoria: rankP.categoria,
+        image: rankP.image
+      });
+    }
   }
 
   const participants = pool.slice(0, bracketSize);
-  const rounds = generateKnockoutStructure(bracketSize);
+  const rounds = generateKnockoutStructure(bracketSize, isGrupal ? 'grupal' : (tournament.modalidad || 'singles'));
 
-  // Populate first round with participants
+  // Populate first round with participants (Teams if grupal)
   if (rounds.length > 0 && rounds[0].matches) {
     rounds[0].matches.forEach((m, i) => {
       const p1 = participants[i * 2];
       const p2 = participants[i * 2 + 1];
-      if (p1) m.player1 = { name: p1.nombre, categoria: p1.categoria };
-      if (p2) m.player2 = { name: p2.nombre, categoria: p2.categoria };
+      if (isGrupal) {
+        const team1Payload = p1 ? {
+          id: p1.id,
+          name: p1.nombreEquipo || p1.nombre,
+          nombre: p1.nombreEquipo || p1.nombre,
+          nombreEquipo: p1.nombreEquipo || p1.nombre,
+          logo: p1.fotoEquipo || p1.logo || '/assets/logo.png',
+          fotoEquipo: p1.fotoEquipo || p1.logo || '/assets/logo.png',
+          categoria: p1.categoria || '4ta',
+          esEquipo: true,
+          integrantes: p1.integrantes || []
+        } : null;
+        const team2Payload = p2 ? {
+          id: p2.id,
+          name: p2.nombreEquipo || p2.nombre,
+          nombre: p2.nombreEquipo || p2.nombre,
+          nombreEquipo: p2.nombreEquipo || p2.nombre,
+          logo: p2.fotoEquipo || p2.logo || '/assets/logo.png',
+          fotoEquipo: p2.fotoEquipo || p2.logo || '/assets/logo.png',
+          categoria: p2.categoria || '4ta',
+          esEquipo: true,
+          integrantes: p2.integrantes || []
+        } : null;
+
+        m.player1 = team1Payload;
+        m.player2 = team2Payload;
+        m.esGrupal = true;
+        m.esSerie = true;
+        m.team1 = team1Payload?.name || 'Equipo 1';
+        m.team2 = team2Payload?.name || 'Equipo 2';
+        if (team1Payload && team2Payload) {
+          m.partidos = createEliminatorySeriesMatches(m.id, rounds[0].name, m.matchNum, m.team1, m.team2, team1Payload, team2Payload);
+        }
+      } else {
+        if (p1) m.player1 = { name: p1.nombre, categoria: p1.categoria };
+        if (p2) m.player2 = { name: p2.nombre, categoria: p2.categoria };
+      }
     });
   }
 
   tournament.bracket = {
     size: bracketSize,
+    modalidad: isGrupal ? 'grupal' : (tournament.modalidad || 'singles'),
+    esGrupal: isGrupal,
     generatedAt: new Date().toISOString(),
     rounds: rounds,
     champion: null
@@ -2877,13 +2974,43 @@ export function saveRegisteredUser(userData) {
 
   if (!cleanDni) return null;
 
+  const norm = (str) => (str || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const userNomNorm = norm(userData.nombre || userData.name);
+
   const index = users.findIndex(
     (u) => {
+      // 1. Coincidencia por ID si ambos existen
+      if (u.id && userData.id && String(u.id) === String(userData.id)) return true;
+
+      // 2. Coincidencia por email exacto
+      if (u.email && userData.email && u.email.trim().toLowerCase() === userData.email.trim().toLowerCase()) return true;
+
       const uDni = (u.dni || u.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
-      const matchOrig = origDni && (uDni === origDni || uDni === origMasked || (origDni.length >= 3 && uDni.endsWith(origDni.slice(-3))));
-      const matchClean = uDni === cleanDni || uDni === maskedDni || (cleanDni.length >= 3 && uDni.endsWith(cleanDni.slice(-3)));
-      const matchEmail = u.email && userData.email && u.email.toLowerCase() === userData.email.toLowerCase();
-      return matchOrig || matchClean || matchEmail;
+      const uReal = (u.dniReal || '').toString().trim().replace(/\s+/g, '');
+
+      // 3. Coincidencia por DNI real exacto (sin máscaras)
+      if (cleanDni && !cleanDni.includes('*') && !cleanDni.includes('•')) {
+        if (uReal && uReal === cleanDni) return true;
+        if (uDni && !uDni.includes('*') && uDni === cleanDni) return true;
+      }
+
+      // 4. Coincidencia por origDni exacto si fue suministrado
+      if (origDni && !origDni.includes('*') && !origDni.includes('•')) {
+        if (uReal && uReal === origDni) return true;
+        if (uDni && !uDni.includes('*') && uDni === origDni) return true;
+      }
+
+      // 5. Coincidencia si el nombre completo coincide Y el DNI enmascarado coincide
+      if (userNomNorm) {
+        const uNomNorm = norm(u.nombre || u.name);
+        if (uNomNorm === userNomNorm) {
+          if (cleanDni.length >= 3 && (uDni.endsWith(cleanDni.slice(-3)) || (uReal && uReal.endsWith(cleanDni.slice(-3))))) {
+            return true;
+          }
+        }
+      }
+
+      return false;
     }
   );
 
@@ -2950,12 +3077,18 @@ export function saveRegisteredUser(userData) {
       let ranking = rawRank ? JSON.parse(rawRank) : INITIAL_RANKING;
       const rankIdx = ranking.findIndex(
         (p) => {
+          // 1. Coincidencia por email exacto
+          if (p.email && cleanUser.email && p.email.toLowerCase() === cleanUser.email.toLowerCase()) return true;
+          // 2. Coincidencia por nombre exacto
+          if (p.name && cleanUser.nombre && norm(p.name) === userNomNorm) return true;
+          // 3. Coincidencia por DNI real exacto si existe
           const pDni = (p.dni || '').toString().trim().replace(/\s+/g, '');
-          const matchOrig = origDni && (pDni === origDni || pDni === origMasked || (origDni.length >= 3 && pDni.endsWith(origDni.slice(-3))));
-          const matchClean = pDni === cleanDni || pDni === maskedDni || (cleanDni.length >= 3 && pDni.endsWith(cleanDni.slice(-3)));
-          const matchEmail = p.email && cleanUser.email && p.email.toLowerCase() === cleanUser.email.toLowerCase();
-          const matchName = p.name && p.name.trim().toLowerCase() === cleanUser.nombre.toLowerCase();
-          return matchOrig || matchClean || matchEmail || matchName;
+          const pReal = (p.dniReal || '').toString().trim().replace(/\s+/g, '');
+          if (cleanDni && !cleanDni.includes('*')) {
+            if (pReal && pReal === cleanDni) return true;
+            if (pDni && !pDni.includes('*') && pDni === cleanDni) return true;
+          }
+          return false;
         }
       );
 
@@ -3483,24 +3616,135 @@ export function quickCreateTournamentPlayer({ tournamentId, nombre, dni, categor
   return { success: true, user: registeredUser, tournament: updatedTournament };
 }
 
-export function findUserByDni(dni) {
+export function findUserByDni(dni, expectedName = null) {
   if (!dni) return null;
   const clean = dni.toString().trim().replace(/\s+/g, '');
   if (!clean) return null;
-  const masked = maskDni(clean);
-  const last3 = clean.length >= 3 ? clean.slice(-3) : clean;
+
   const users = getRegisteredUsers();
-  return (
-    users.find((u) => {
+
+  const normName = (str) =>
+    (str || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  const expNorm = expectedName ? normName(expectedName) : '';
+
+  // 1. Coincidencia directa por DNI exacto o DNI real sin enmascarar
+  const exact = users.find((u) => {
+    const uDni = (u.dni || u.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
+    const uReal = (u.dniReal || '').toString().trim().replace(/\s+/g, '');
+    if ((uDni && uDni === clean) || (uReal && uReal === clean)) {
+      if (expNorm) {
+        const uNorm = normName(u.nombre || u.name);
+        if (uNorm && !uNorm.includes(expNorm) && !expNorm.includes(uNorm)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  });
+  if (exact) return exact;
+
+  // 2. Coincidencia si se ingresó directamente con asteriscos (ej. '*****567')
+  if (clean.includes('*') || clean.includes('•')) {
+    return users.find((u) => {
       const uDni = (u.dni || u.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
-      if (!uDni) return false;
-      return (
-        uDni === clean ||
-        uDni === masked ||
-        (clean.length >= 3 && uDni.endsWith(last3))
-      );
-    }) || null
-  );
+      if (uDni === clean) {
+        if (expNorm) {
+          const uNorm = normName(u.nombre || u.name);
+          if (uNorm && !uNorm.includes(expNorm) && !expNorm.includes(uNorm)) return false;
+        }
+        return true;
+      }
+      return false;
+    }) || null;
+  }
+
+  // 3. Si clean tiene EXACTAMENTE 8 dígitos (DNI peruano completo) y en la base de datos el usuario
+  // solo tiene DNI enmascarado inicial (ej. '*****567'):
+  // Exigir obligatoriamente coincidencia de nombre esperado (expNorm) para no usurpar identidades de terceros.
+  if (/^\d{8}$/.test(clean) && expNorm) {
+    const last3 = clean.slice(-3);
+    const candidate = users.find((u) => {
+      const uDni = (u.dni || u.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
+      if (!uDni || !uDni.startsWith('*')) return false;
+      if (!uDni.endsWith(last3)) return false;
+
+      const uNorm = normName(u.nombre || u.name);
+      return uNorm && (uNorm.includes(expNorm) || expNorm.includes(uNorm));
+    });
+    if (candidate) return candidate;
+  }
+
+  return null;
+}
+
+export function findUserByName(name) {
+  if (!name) return null;
+  const normName = (str) =>
+    (str || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  const cleanName = normName(name);
+  if (cleanName.length < 3) return null;
+
+  const users = getRegisteredUsers();
+
+  // 1. Coincidencia exacta de nombre
+  const exact = users.find((u) => normName(u.nombre || u.name) === cleanName);
+  if (exact) return exact;
+
+  // 2. Coincidencia parcial si tiene al menos 4 caracteres
+  if (cleanName.length >= 4) {
+    const partial = users.find((u) => {
+      const uNorm = normName(u.nombre || u.name);
+      return uNorm && (uNorm === cleanName || uNorm.includes(cleanName) || cleanName.includes(uNorm));
+    });
+    if (partial) return partial;
+  }
+
+  return null;
+}
+
+export function findUserByNameOrDni(dni, name) {
+  const cleanDni = dni ? dni.toString().trim().replace(/\s+/g, '') : '';
+  const cleanName = name ? name.toString().trim() : '';
+
+  if (cleanDni && cleanName) {
+    const userByDni = findUserByDni(cleanDni, cleanName);
+    if (userByDni) return userByDni;
+
+    const userByName = findUserByName(cleanName);
+    if (userByName) {
+      const uReal = (userByName.dniReal || '').toString().trim().replace(/\s+/g, '');
+      const uDni = (userByName.dni || userByName.documentoIdentidad || '').toString().trim().replace(/\s+/g, '');
+      if (cleanDni.length === 8) {
+        if (uReal && uReal !== cleanDni) return null;
+        if (uDni && uDni.startsWith('*') && !uDni.endsWith(cleanDni.slice(-3))) return null;
+      }
+      return userByName;
+    }
+    return null;
+  }
+
+  if (cleanDni) {
+    return findUserByDni(cleanDni);
+  }
+
+  if (cleanName && cleanName.length >= 4) {
+    return findUserByName(cleanName);
+  }
+
+  return null;
 }
 
 // ----------------- MANUAL DRAW & GROUP STAGE METHODS -----------------
@@ -3538,7 +3782,7 @@ export function getGroupSelectablePlayers(grupo) {
         nombre: p.nombre,
         categoria: p.categoria || '',
         dni: p.dni || '',
-        teamName: p.nombreEquipo || '',
+        teamName: p.nombreEquipo || p.nombre || '',
         grupoId: grupo.id,
         grupoNombre: grupo.nombre
       });
@@ -3547,9 +3791,21 @@ export function getGroupSelectablePlayers(grupo) {
   return list;
 }
 
-export function createFechaMatches(grupoId, grupoNombre, fechaNum, matchStartIndex = 1, team1Name = 'Equipo 1', team2Name = 'Equipo 2') {
+export function createFechaMatches(grupoId, grupoNombre, fechaNum, matchStartIndex = 1, team1Name = 'Equipo 1', team2Name = 'Equipo 2', assignedData = null) {
   const serieTitulo = `${team1Name} vs ${team2Name}`;
   const uid = Math.random().toString(36).substring(2, 7);
+
+  const formatPlayer = (p, defaultTeam) => {
+    if (!p) return null;
+    return {
+      id: p.id,
+      name: p.name || p.nombre,
+      nombre: p.nombre || p.name,
+      categoria: p.categoria || '',
+      dni: p.dni || '',
+      teamName: p.teamName || defaultTeam || ''
+    };
+  };
 
   return [
     {
@@ -3565,8 +3821,8 @@ export function createFechaMatches(grupoId, grupoNombre, fechaNum, matchStartInd
       esGrupal: true,
       team1: team1Name,
       team2: team2Name,
-      player1: null,
-      player2: null,
+      player1: formatPlayer(assignedData?.s1_p1, team1Name),
+      player2: formatPlayer(assignedData?.s1_p2, team2Name),
       score: '',
       winnerSlot: null,
       winnerName: null,
@@ -3586,8 +3842,8 @@ export function createFechaMatches(grupoId, grupoNombre, fechaNum, matchStartInd
       esGrupal: true,
       team1: team1Name,
       team2: team2Name,
-      player1: null,
-      player2: null,
+      player1: formatPlayer(assignedData?.s2_p1, team1Name),
+      player2: formatPlayer(assignedData?.s2_p2, team2Name),
       score: '',
       winnerSlot: null,
       winnerName: null,
@@ -3607,15 +3863,77 @@ export function createFechaMatches(grupoId, grupoNombre, fechaNum, matchStartInd
       esGrupal: true,
       team1: team1Name,
       team2: team2Name,
+      player1: formatPlayer(assignedData?.d_p1a, team1Name),
+      player1b: formatPlayer(assignedData?.d_p1b, team1Name),
+      player2: formatPlayer(assignedData?.d_p2a, team2Name),
+      player2b: formatPlayer(assignedData?.d_p2b, team2Name),
+      score: '',
+      winnerSlot: null,
+      winnerName: null,
+      nextMatchId: null,
+      nextSlot: null
+    }
+  ];
+}
+
+export function createEliminatorySeriesMatches(bracketMatchId, roundName, matchNum, team1Name, team2Name, team1Data = null, team2Data = null) {
+  const uid = Math.random().toString(36).substring(2, 7);
+  return [
+    {
+      id: `bm-${bracketMatchId}-s1-${uid}`,
+      bracketMatchId: bracketMatchId,
+      round: `${roundName} - Singles 1`,
+      matchNum: `${matchNum}.1`,
+      subtipo: 'Singles 1',
+      modalidad: 'singles',
+      esGrupal: true,
+      team1: team1Name,
+      team2: team2Name,
+      team1Data: team1Data,
+      team2Data: team2Data,
+      player1: null,
+      player2: null,
+      score: '',
+      winnerSlot: null,
+      winnerName: null
+    },
+    {
+      id: `bm-${bracketMatchId}-s2-${uid}`,
+      bracketMatchId: bracketMatchId,
+      round: `${roundName} - Singles 2`,
+      matchNum: `${matchNum}.2`,
+      subtipo: 'Singles 2',
+      modalidad: 'singles',
+      esGrupal: true,
+      team1: team1Name,
+      team2: team2Name,
+      team1Data: team1Data,
+      team2Data: team2Data,
+      player1: null,
+      player2: null,
+      score: '',
+      winnerSlot: null,
+      winnerName: null
+    },
+    {
+      id: `bm-${bracketMatchId}-dobles-${uid}`,
+      bracketMatchId: bracketMatchId,
+      round: `${roundName} - Dobles`,
+      matchNum: `${matchNum}.3`,
+      subtipo: 'Dobles',
+      modalidad: 'dobles',
+      esGrupal: true,
+      team1: team1Name,
+      team2: team2Name,
+      team1Data: team1Data,
+      team2Data: team2Data,
       player1: null,
       player1b: null,
       player2: null,
       player2b: null,
       score: '',
       winnerSlot: null,
-      winnerName: null,
-      nextMatchId: null,
-      nextSlot: null
+      winnerName: null
     }
   ];
 }
@@ -3676,6 +3994,72 @@ export function generateGroupMatches(participantes, grupoId, grupoNombre, isGrup
   return matches;
 }
 
+export function addGroupEnfrentamiento(tournamentId, grupoId, fechaNum, team1Name, team2Name, assignedPlayers = null) {
+  const tournaments = getTournaments();
+  const tIndex = tournaments.findIndex((t) => t.id === tournamentId);
+  if (tIndex === -1) return { error: 'Torneo no encontrado.' };
+
+  const tourney = tournaments[tIndex];
+  const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
+  const grupo = grupos.find((g) => g.id === grupoId);
+  if (!grupo) return { error: 'Grupo no encontrado.' };
+
+  const t1 = (team1Name || '').trim();
+  const t2 = (team2Name || '').trim();
+  if (!t1 || !t2) return { error: 'Debes seleccionar ambos equipos para el enfrentamiento.' };
+  if (t1.toLowerCase() === t2.toLowerCase()) {
+    return { error: 'Un equipo no puede enfrentarse consigo mismo.' };
+  }
+
+  // Validar que ambos equipos pertenecen al grupo y están aprobados
+  const norm = (str) => (str || '').trim().toLowerCase();
+  const team1Exists = (grupo.participantes || []).some(
+    (p) => norm(p.nombreEquipo || p.nombre) === norm(t1)
+  );
+  const team2Exists = (grupo.participantes || []).some(
+    (p) => norm(p.nombreEquipo || p.nombre) === norm(t2)
+  );
+
+  if (!team1Exists || !team2Exists) {
+    return { error: 'Ambos equipos deben pertenecer a este grupo.' };
+  }
+
+  if (!grupo.partidos) grupo.partidos = [];
+
+  const fNum = Number(fechaNum) || 1;
+
+  // Validar que no se repita el mismo enfrentamiento dentro de la misma fecha
+  const alreadyScheduled = grupo.partidos.some((m) => {
+    if (Number(m.fechaNum) !== fNum) return false;
+    const matchT1 = norm(m.team1);
+    const matchT2 = norm(m.team2);
+    return (
+      (matchT1 === norm(t1) && matchT2 === norm(t2)) ||
+      (matchT1 === norm(t2) && matchT2 === norm(t1))
+    );
+  });
+
+  if (alreadyScheduled) {
+    return { error: `El enfrentamiento entre "${t1}" y "${t2}" ya está programado en la Fecha ${fNum}.` };
+  }
+
+  // Global matchNum across all groups
+  let allMatchesCount = 0;
+  grupos.forEach((g) => {
+    (g.partidos || []).forEach((m) => {
+      const num = Number(m.matchNum);
+      if (num && num > allMatchesCount) allMatchesCount = num;
+    });
+  });
+  const nextMatchNum = allMatchesCount + 1;
+
+  const newMatches = createFechaMatches(grupo.id, grupo.nombre, fNum, nextMatchNum, t1, t2, assignedPlayers);
+  grupo.partidos.push(...newMatches);
+
+  saveManualFixture(tournamentId, { faseGrupos: grupos });
+  return { success: true, newMatches, fechaNum: fNum, grupos };
+}
+
 export function addGroupFecha(tournamentId, grupoId) {
   const tournaments = getTournaments();
   const tIndex = tournaments.findIndex((t) => t.id === tournamentId);
@@ -3688,6 +4072,10 @@ export function addGroupFecha(tournamentId, grupoId) {
 
   if (!grupo.partidos) grupo.partidos = [];
 
+  if (!grupo.participantes || grupo.participantes.length < 2) {
+    return { error: 'Debes asignar al menos 2 equipos a este grupo antes de crear una fecha.' };
+  }
+
   const existingFechas = grupo.partidos.map((m) => Number(m.fechaNum) || 1);
   const nextFechaNum = existingFechas.length > 0 ? Math.max(...existingFechas) + 1 : 1;
 
@@ -3695,7 +4083,8 @@ export function addGroupFecha(tournamentId, grupoId) {
   let allMatchesCount = 0;
   grupos.forEach((g) => {
     (g.partidos || []).forEach((m) => {
-      if (m.matchNum && m.matchNum > allMatchesCount) allMatchesCount = m.matchNum;
+      const num = Number(m.matchNum);
+      if (num && num > allMatchesCount) allMatchesCount = num;
     });
   });
   const nextMatchNum = allMatchesCount + 1;
@@ -3734,10 +4123,48 @@ export function assignPlayerToGroupMatchSlot(tournamentId, grupoId, matchId, slo
 
   const tourney = tournaments[tIndex];
   const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
-  const grupo = grupos.find((g) => g.id === grupoId);
-  if (!grupo) return { error: 'Grupo no encontrado.' };
+  let grupo = null;
+  let match = null;
 
-  const match = (grupo.partidos || []).find((m) => m.id === matchId);
+  if (grupoId) {
+    grupo = grupos.find((g) => g.id === grupoId);
+    if (grupo) {
+      match = (grupo.partidos || []).find((m) => m.id === matchId);
+    }
+  }
+
+  // Si no se encuentra en el grupo especificado, buscar en todos los grupos
+  if (!match) {
+    for (const g of grupos) {
+      const found = (g.partidos || []).find((m) => m.id === matchId);
+      if (found) {
+        grupo = g;
+        match = found;
+        break;
+      }
+    }
+  }
+
+  // Si no se encuentra en grupos, buscar en el bracket eliminatorio o sus subpartidos
+  if (!match && tourney.bracket?.rounds) {
+    for (const r of tourney.bracket.rounds) {
+      for (const m of (r.matches || [])) {
+        if (m.id === matchId) {
+          match = m;
+          break;
+        }
+        if (m.partidos) {
+          const sub = m.partidos.find((sm) => sm.id === matchId);
+          if (sub) {
+            match = sub;
+            break;
+          }
+        }
+      }
+      if (match) break;
+    }
+  }
+
   if (!match) return { error: 'Partido no encontrado.' };
 
   const norm = (str) => (str || '').trim().toLowerCase();
@@ -3749,18 +4176,25 @@ export function assignPlayerToGroupMatchSlot(tournamentId, grupoId, matchId, slo
     return false;
   };
 
-  // Validar pertenencia al grupo
-  const selectable = getGroupSelectablePlayers(grupo);
-  const belongsToGroup = selectable.some((p) => isMatch(p));
-  if (!belongsToGroup) {
-    return { error: `⚠️ "${playerData.name}" no pertenece a los participantes del ${grupo.nombre}.` };
-  }
-
   const isDobles = match.modalidad === 'dobles' || match.subtipo === 'Dobles';
   const isSlot1a = slotNum === 1 || slotNum === '1' || slotNum === '1a';
   const isSlot1b = slotNum === '1b';
   const isSlot2a = slotNum === 2 || slotNum === '2' || slotNum === '2a';
   const isSlot2b = slotNum === '2b';
+
+  // REGLA CRÍTICA DE EQUIPOS: El jugador SOLO puede jugar por su equipo correspondiente
+  if (match.team1 && (isSlot1a || isSlot1b)) {
+    const pTeam = norm(playerData.teamName || playerData.nombreEquipo || '');
+    if (pTeam && pTeam !== norm(match.team1)) {
+      return { error: `⚠️ "${playerData.name}" pertenece a "${playerData.teamName}", no puede jugar por "${match.team1}".` };
+    }
+  }
+  if (match.team2 && (isSlot2a || isSlot2b)) {
+    const pTeam = norm(playerData.teamName || playerData.nombreEquipo || '');
+    if (pTeam && pTeam !== norm(match.team2)) {
+      return { error: `⚠️ "${playerData.name}" pertenece a "${playerData.teamName}", no puede jugar por "${match.team2}".` };
+    }
+  }
 
   if (!isDobles) {
     // Singles: Slot 1 vs Slot 2
@@ -3793,7 +4227,7 @@ export function assignPlayerToGroupMatchSlot(tournamentId, grupoId, matchId, slo
     else if (isSlot2b) match.player2b = playerData;
   }
 
-  saveManualFixture(tournamentId, { faseGrupos: grupos });
+  saveManualFixture(tournamentId, { faseGrupos: grupos, rounds: tourney.bracket?.rounds });
   return { success: true, match, grupos };
 }
 
@@ -3804,10 +4238,43 @@ export function clearGroupMatchSlot(tournamentId, grupoId, matchId, slotNum) {
 
   const tourney = tournaments[tIndex];
   const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
-  const grupo = grupos.find((g) => g.id === grupoId);
-  if (!grupo) return { error: 'Grupo no encontrado.' };
+  let grupo = grupos.find((g) => g.id === grupoId);
 
-  const match = (grupo.partidos || []).find((m) => m.id === matchId);
+  let match = null;
+  if (grupo) {
+    match = (grupo.partidos || []).find((m) => m.id === matchId);
+  }
+  if (!match) {
+    for (const g of grupos) {
+      const found = (g.partidos || []).find((m) => m.id === matchId);
+      if (found) {
+        grupo = g;
+        match = found;
+        break;
+      }
+    }
+  }
+
+  // Fallback to bracket rounds or series submatches
+  if (!match && tourney.bracket?.rounds) {
+    for (const r of tourney.bracket.rounds) {
+      for (const m of (r.matches || [])) {
+        if (m.id === matchId) {
+          match = m;
+          break;
+        }
+        if (m.partidos) {
+          const sub = m.partidos.find((sm) => sm.id === matchId);
+          if (sub) {
+            match = sub;
+            break;
+          }
+        }
+      }
+      if (match) break;
+    }
+  }
+
   if (!match) return { error: 'Partido no encontrado.' };
 
   if (slotNum === 1 || slotNum === '1' || slotNum === '1a') {
@@ -3824,7 +4291,7 @@ export function clearGroupMatchSlot(tournamentId, grupoId, matchId, slotNum) {
   match.winnerName = null;
   match.score = '';
 
-  saveManualFixture(tournamentId, { faseGrupos: grupos });
+  saveTournaments(tournaments);
   return { success: true, match, grupos };
 }
 
@@ -3928,15 +4395,25 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   const tournament = tournaments[index];
   let targetMatch = null;
   let allMatches = [];
+  let parentBracketMatch = null;
 
-  // Check in bracket knockout rounds
+  // Check in bracket knockout rounds (and any series submatches)
   const bracket = tournament.bracket;
   if (bracket && bracket.rounds) {
     bracket.rounds.forEach((r) => {
       if (r.matches) {
         allMatches.push(...r.matches);
-        const found = r.matches.find((m) => m.id === matchId);
-        if (found) targetMatch = found;
+        r.matches.forEach((m) => {
+          if (m.id === matchId) targetMatch = m;
+          if (m.partidos && Array.isArray(m.partidos)) {
+            allMatches.push(...m.partidos);
+            const foundSub = m.partidos.find((sm) => sm.id === matchId);
+            if (foundSub) {
+              targetMatch = foundSub;
+              parentBracketMatch = m;
+            }
+          }
+        });
       }
     });
   }
@@ -3976,6 +4453,8 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
   const winnerSlot = Number(matchData.winnerSlot);
   const winnerPlayer = winnerSlot === 1 ? targetMatch.player1 : targetMatch.player2;
   const winnerPartner = winnerSlot === 1 ? targetMatch.player1b : targetMatch.player2b;
+  const loserPlayer = winnerSlot === 1 ? targetMatch.player2 : targetMatch.player1;
+  const loserPartner = winnerSlot === 1 ? targetMatch.player2b : targetMatch.player1b;
   let pointsAward = Number(matchData.pointsAward) || 0;
 
   targetMatch.score = matchData.score || '';
@@ -3984,8 +4463,101 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
     ? `${winnerPlayer?.name || ''} & ${winnerPartner.name}`
     : (winnerPlayer?.name || '');
 
-  // Advance winner if next match exists (knockout bracket)
-  if (targetMatch.nextMatchId) {
+  // Modalidad exacta del partido
+  const isMatchDobles = Boolean(targetMatch.modalidad === 'dobles' || targetMatch.subtipo === 'Dobles');
+  const matchModality = isMatchDobles ? 'dobles' : 'singles';
+
+  // 1. ACTUALIZAR RANKINGS E HISTORIALES DE FORMA ESTRICTA POR MODALIDAD
+  if (winnerPlayer && winnerPlayer.name && !winnerPlayer.isBye && winnerPlayer.name.toUpperCase() !== 'BYE') {
+    if (pointsAward > 0) awardPointsToPlayer(winnerPlayer.name, pointsAward, matchModality);
+    recordMatchStatToPlayer(winnerPlayer.name, true, matchModality);
+  }
+  if (winnerPartner && winnerPartner.name && !winnerPartner.isBye && winnerPartner.name.toUpperCase() !== 'BYE') {
+    if (pointsAward > 0) awardPointsToPlayer(winnerPartner.name, pointsAward, matchModality);
+    recordMatchStatToPlayer(winnerPartner.name, true, matchModality);
+  }
+  if (loserPlayer && loserPlayer.name && !loserPlayer.isBye && loserPlayer.name.toUpperCase() !== 'BYE') {
+    recordMatchStatToPlayer(loserPlayer.name, false, matchModality);
+  }
+  if (loserPartner && loserPartner.name && !loserPartner.isBye && loserPartner.name.toUpperCase() !== 'BYE') {
+    recordMatchStatToPlayer(loserPartner.name, false, matchModality);
+  }
+
+  // 2. EN TORNEOS GRUPALES / POR EQUIPOS: EVALUAR AVANCE DE LA SERIE ELIMINATORIA
+  const isTourneyGrupal = Boolean(
+    tournament.modalidad === 'grupal' ||
+    tournament.modalidad === 'equipos' ||
+    tournament.esGrupal ||
+    targetMatch.esGrupal
+  );
+
+  if (parentBracketMatch && parentBracketMatch.partidos) {
+    const smIdx = parentBracketMatch.partidos.findIndex((sm) => sm.id === targetMatch.id);
+    if (smIdx !== -1) {
+      parentBracketMatch.partidos[smIdx] = { ...targetMatch };
+    }
+    const wins1 = parentBracketMatch.partidos.filter((sm) => sm.winnerSlot === 1).length;
+    const wins2 = parentBracketMatch.partidos.filter((sm) => sm.winnerSlot === 2).length;
+    parentBracketMatch.score = `${wins1} - ${wins2}`;
+
+    if (wins1 >= 2 || wins2 >= 2 || (wins1 + wins2 === parentBracketMatch.partidos.length)) {
+      const winningSlot = wins1 > wins2 ? 1 : 2;
+      const winningTeam = winningSlot === 1 ? parentBracketMatch.player1 : parentBracketMatch.player2;
+      parentBracketMatch.winnerSlot = winningSlot;
+      parentBracketMatch.winnerName = winningTeam?.name || (winningSlot === 1 ? parentBracketMatch.team1 : parentBracketMatch.team2);
+
+      // SOLAMENTE EL EQUIPO GANADOR AVANZA AL SIGUIENTE ENFRENTAMIENTO
+      if (parentBracketMatch.nextMatchId) {
+        const nextMatch = allMatches.find((m) => m.id === parentBracketMatch.nextMatchId);
+        if (nextMatch && winningTeam) {
+          const teamPayload = {
+            id: winningTeam.id || 'team-' + Date.now(),
+            name: winningTeam.name || winningTeam.nombreEquipo || winningTeam.nombre,
+            nombre: winningTeam.name || winningTeam.nombreEquipo || winningTeam.nombre,
+            nombreEquipo: winningTeam.nombreEquipo || winningTeam.name || winningTeam.nombre,
+            logo: winningTeam.logo || winningTeam.fotoEquipo || '/assets/logo.png',
+            fotoEquipo: winningTeam.fotoEquipo || winningTeam.logo || '/assets/logo.png',
+            esEquipo: true,
+            integrantes: winningTeam.integrantes || []
+          };
+          if (parentBracketMatch.nextSlot === 1) {
+            nextMatch.player1 = teamPayload;
+            nextMatch.team1 = teamPayload.name;
+          } else {
+            nextMatch.player2 = teamPayload;
+            nextMatch.team2 = teamPayload.name;
+          }
+          if (nextMatch.player1 && nextMatch.player2 && (!nextMatch.partidos || nextMatch.partidos.length === 0)) {
+            nextMatch.partidos = createEliminatorySeriesMatches(
+              nextMatch.id,
+              nextMatch.round || 'Playoffs',
+              nextMatch.matchNum,
+              nextMatch.team1,
+              nextMatch.team2,
+              nextMatch.player1,
+              nextMatch.player2
+            );
+          }
+        }
+      } else if (parentBracketMatch.round && parentBracketMatch.round.toLowerCase().includes('final')) {
+        // Gran Final: Campeón por equipos
+        if (tournament.bracket && winningTeam) {
+          tournament.bracket.champion = {
+            id: winningTeam.id,
+            name: winningTeam.name || winningTeam.nombreEquipo,
+            nombre: winningTeam.name || winningTeam.nombreEquipo,
+            nombreEquipo: winningTeam.nombreEquipo || winningTeam.name,
+            logo: winningTeam.logo || winningTeam.fotoEquipo,
+            fotoEquipo: winningTeam.fotoEquipo || winningTeam.logo,
+            esEquipo: true,
+            integrantes: winningTeam.integrantes || []
+          };
+        }
+        tournament.estado = 'finalizado';
+      }
+    }
+  } else if (targetMatch.nextMatchId) {
+    // Avance estándar en cuadro de singles / dobles regulares
     const nextMatch = allMatches.find((m) => m.id === targetMatch.nextMatchId);
     if (nextMatch) {
       if (targetMatch.nextSlot === 1) {
@@ -4000,7 +4572,7 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
       }
     }
   } else if (targetMatch.round && targetMatch.round.toLowerCase().includes('final') && !targetMatch.grupoId) {
-    // This was the Gran Final!
+    // Gran Final estándar
     if (tournament.bracket) {
       tournament.bracket.champion = winnerPartner
         ? {
@@ -4013,14 +4585,6 @@ export function updateMatchScore(tournamentId, matchId, matchData) {
     }
     tournament.estado = 'finalizado';
     pointsAward = Math.max(pointsAward, 250); // Champion bonus
-  }
-
-  // Award points to winner and update live ranking
-  if (winnerPlayer && winnerPlayer.name && !winnerPlayer.isBye && winnerPlayer.name.toUpperCase() !== 'BYE' && pointsAward > 0) {
-    awardPointsToPlayer(winnerPlayer.name, pointsAward);
-  }
-  if (winnerPartner && winnerPartner.name && !winnerPartner.isBye && winnerPartner.name.toUpperCase() !== 'BYE' && pointsAward > 0) {
-    awardPointsToPlayer(winnerPartner.name, pointsAward);
   }
 
   saveTournaments(tournaments);
@@ -4707,6 +5271,62 @@ export function autoCheckAnnualRollover() {
   }
 }
 
+export function recordMatchStatToPlayer(playerName, isWinner, modality = 'singles') {
+  if (!playerName || playerName.trim().toUpperCase() === 'BYE') return;
+  const isDobles = modality === 'dobles';
+  if (isDobles) {
+    const list = getDoublesRanking();
+    let p = list.find((x) => x.name.toLowerCase() === playerName.toLowerCase());
+    if (!p) {
+      p = {
+        id: 'd-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+        name: playerName,
+        country: 'PER',
+        puntosNum: 0,
+        points: '0 pts',
+        categoria: '4ta',
+        partidosGanados: isWinner ? 1 : 0,
+        partidosPerdidos: isWinner ? 0 : 1,
+        efectividad: isWinner ? '100%' : '0%',
+        image: '/assets/logo.png'
+      };
+      list.push(p);
+    } else {
+      if (isWinner) p.partidosGanados = (p.partidosGanados || 0) + 1;
+      else p.partidosPerdidos = (p.partidosPerdidos || 0) + 1;
+      const total = (p.partidosGanados || 0) + (p.partidosPerdidos || 0);
+      p.efectividad = total > 0 ? Math.round(((p.partidosGanados || 0) / total) * 100) + '%' : '0%';
+    }
+    saveDoublesRanking(list);
+    emitAtapUpdate(STORAGE_KEYS.DOUBLES_RANKING, list);
+  } else {
+    const list = getRanking();
+    let p = list.find((x) => x.name.toLowerCase() === playerName.toLowerCase());
+    if (!p) {
+      p = {
+        id: 'p-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+        name: playerName,
+        country: 'PER',
+        puntosNum: 0,
+        points: '0 pts',
+        categoria: '4ta',
+        partidosGanados: isWinner ? 1 : 0,
+        partidosPerdidos: isWinner ? 0 : 1,
+        efectividad: isWinner ? '100%' : '0%',
+        image: '/assets/logo.png'
+      };
+      list.push(p);
+    } else {
+      if (isWinner) p.partidosGanados = (p.partidosGanados || 0) + 1;
+      else p.partidosPerdidos = (p.partidosPerdidos || 0) + 1;
+      const total = (p.partidosGanados || 0) + (p.partidosPerdidos || 0);
+      p.efectividad = total > 0 ? Math.round(((p.partidosGanados || 0) / total) * 100) + '%' : '0%';
+    }
+    saveRanking(list);
+    emitAtapUpdate(STORAGE_KEYS.RANKING, list);
+  }
+}
+
 export function awardPointsToPlayer(playerName, pointsToAdd, modality = 'singles') {
   if (!playerName || playerName.trim().toUpperCase() === 'BYE') return null;
   const numPoints = Number(pointsToAdd) || 0;
@@ -4715,11 +5335,27 @@ export function awardPointsToPlayer(playerName, pointsToAdd, modality = 'singles
   if (modality === 'dobles') {
     const doublesRank = getDoublesRanking();
     let dPlayer = doublesRank.find((p) => p.name.toLowerCase() === playerName.toLowerCase());
-    if (dPlayer) {
-      dPlayer.puntosNum = (dPlayer.puntosNum || 0) + Number(pointsToAdd);
-      saveDoublesRanking(doublesRank);
-      return dPlayer;
+    if (!dPlayer) {
+      dPlayer = {
+        id: 'd-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+        name: playerName,
+        country: 'PER',
+        puntosNum: numPoints,
+        points: numPoints.toLocaleString() + ' pts',
+        categoria: '4ta',
+        partidosGanados: 1,
+        partidosPerdidos: 0,
+        efectividad: '100%',
+        image: '/assets/logo.png'
+      };
+      doublesRank.push(dPlayer);
+    } else {
+      dPlayer.puntosNum = (dPlayer.puntosNum || 0) + numPoints;
+      dPlayer.points = dPlayer.puntosNum.toLocaleString() + ' pts';
     }
+    saveDoublesRanking(doublesRank);
+    emitAtapUpdate(STORAGE_KEYS.DOUBLES_RANKING, doublesRank);
+    return dPlayer;
   }
 
   const ranking = getRanking();
@@ -4730,8 +5366,8 @@ export function awardPointsToPlayer(playerName, pointsToAdd, modality = 'singles
       id: 'p-' + Date.now(),
       name: playerName,
       country: 'PER',
-      puntosNum: Number(pointsToAdd),
-      points: Number(pointsToAdd).toLocaleString() + ' pts',
+      puntosNum: numPoints,
+      points: numPoints.toLocaleString() + ' pts',
       categoria: '4ta',
       titulos: 1,
       golpe: 'Drive cruzado',
@@ -4741,7 +5377,7 @@ export function awardPointsToPlayer(playerName, pointsToAdd, modality = 'singles
     };
     ranking.push(player);
   } else {
-    player.puntosNum = (player.puntosNum || 0) + Number(pointsToAdd);
+    player.puntosNum = (player.puntosNum || 0) + numPoints;
     player.points = player.puntosNum.toLocaleString() + ' pts';
   }
 
@@ -5549,6 +6185,101 @@ export function getPlayerMatchHistory(playerNameOrId) {
                 resultado: isWinner ? 'victoria' : 'derrota',
                 puntosGanados: Number(pts) || 0,
                 detalle: res.observaciones || `${res.ronda || 'Partido'} en ${t.title || 'Torneo ATAP'}`
+              });
+            }
+          });
+        }
+
+        // Partidos de fase de grupos
+        if (Array.isArray(t.faseGrupos)) {
+          t.faseGrupos.forEach((g) => {
+            if (Array.isArray(g.partidos)) {
+              g.partidos.forEach((m) => {
+                if (!m.score || !m.winnerSlot) return;
+                const isDobles = m.modalidad === 'dobles' || m.subtipo === 'Dobles';
+                const name1a = (m.player1?.name || '').toLowerCase().trim();
+                const name1b = (m.player1b?.name || '').toLowerCase().trim();
+                const name2a = (m.player2?.name || '').toLowerCase().trim();
+                const name2b = (m.player2b?.name || '').toLowerCase().trim();
+
+                const inTeam1 = (name1a && (name1a.includes(cleanName) || cleanName.includes(name1a))) ||
+                                (name1b && (name1b.includes(cleanName) || cleanName.includes(name1b)));
+                const inTeam2 = (name2a && (name2a.includes(cleanName) || cleanName.includes(name2a))) ||
+                                (name2b && (name2b.includes(cleanName) || cleanName.includes(name2b)));
+
+                if (inTeam1 || inTeam2) {
+                  const isWinner = (inTeam1 && m.winnerSlot === 1) || (inTeam2 && m.winnerSlot === 2);
+                  const isPlayer1a = name1a && (name1a.includes(cleanName) || cleanName.includes(name1a));
+                  const isPlayer2a = name2a && (name2a.includes(cleanName) || cleanName.includes(name2a));
+                  const partnerName = inTeam1 ? (isPlayer1a ? m.player1b?.name : m.player1?.name) : (isPlayer2a ? m.player2b?.name : m.player2?.name);
+                  const rivals = inTeam1
+                    ? (isDobles ? `${m.player2?.name || ''} & ${m.player2b?.name || ''}` : (m.player2?.name || 'Rival'))
+                    : (isDobles ? `${m.player1?.name || ''} & ${m.player1b?.name || ''}` : (m.player1?.name || 'Rival'));
+
+                  liveMatches.push({
+                    id: m.id || `live-gp-${g.id}-${m.matchNum}`,
+                    torneo: t.title || 'Torneo Oficial ATAP',
+                    fecha: m.fecha || (m.fechaNum ? `Fecha ${m.fechaNum}` : 'Fase de Grupos'),
+                    categoria: m.player1?.categoria || t.categoria || cat,
+                    modalidad: isDobles ? 'dobles' : 'singles',
+                    ronda: m.subtipo || m.round || `${g.nombre} (Fecha ${m.fechaNum || 1})`,
+                    pareja: isDobles ? (partnerName || partner) : undefined,
+                    rivales: rivals,
+                    marcador: m.score,
+                    resultado: isWinner ? 'victoria' : 'derrota',
+                    puntosGanados: isWinner ? 100 : 0,
+                    detalle: `${m.subtipo || 'Partido'} · ${m.serieNombre || (m.team1 + ' vs ' + m.team2 || g.nombre)}`
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // Partidos del cuadro eliminatorio (playoffs)
+        if (t.bracket && Array.isArray(t.bracket.rounds)) {
+          t.bracket.rounds.forEach((r) => {
+            if (Array.isArray(r.matches)) {
+              r.matches.forEach((m) => {
+                const sublist = (m.partidos && Array.isArray(m.partidos) && m.partidos.length > 0) ? m.partidos : [m];
+                sublist.forEach((subM) => {
+                  if (!subM.score || !subM.winnerSlot) return;
+                  const isDobles = subM.modalidad === 'dobles' || subM.subtipo === 'Dobles';
+                  const name1a = (subM.player1?.name || '').toLowerCase().trim();
+                  const name1b = (subM.player1b?.name || '').toLowerCase().trim();
+                  const name2a = (subM.player2?.name || '').toLowerCase().trim();
+                  const name2b = (subM.player2b?.name || '').toLowerCase().trim();
+
+                  const inTeam1 = (name1a && (name1a.includes(cleanName) || cleanName.includes(name1a))) ||
+                                  (name1b && (name1b.includes(cleanName) || cleanName.includes(name1b)));
+                  const inTeam2 = (name2a && (name2a.includes(cleanName) || cleanName.includes(name2a))) ||
+                                  (name2b && (name2b.includes(cleanName) || cleanName.includes(name2b)));
+
+                  if (inTeam1 || inTeam2) {
+                    const isWinner = (inTeam1 && subM.winnerSlot === 1) || (inTeam2 && subM.winnerSlot === 2);
+                    const isPlayer1a = name1a && (name1a.includes(cleanName) || cleanName.includes(name1a));
+                    const isPlayer2a = name2a && (name2a.includes(cleanName) || cleanName.includes(name2a));
+                    const partnerName = inTeam1 ? (isPlayer1a ? subM.player1b?.name : subM.player1?.name) : (isPlayer2a ? subM.player2b?.name : subM.player2?.name);
+                    const rivals = inTeam1
+                      ? (isDobles ? `${subM.player2?.name || ''} & ${subM.player2b?.name || ''}` : (subM.player2?.name || 'Rival'))
+                      : (isDobles ? `${subM.player1?.name || ''} & ${subM.player1b?.name || ''}` : (subM.player1?.name || 'Rival'));
+
+                    liveMatches.push({
+                      id: subM.id || `live-bm-${r.name}-${subM.matchNum}`,
+                      torneo: t.title || 'Torneo Oficial ATAP',
+                      fecha: subM.fecha || r.name || 'Cuadro Eliminatorio',
+                      categoria: subM.player1?.categoria || t.categoria || cat,
+                      modalidad: isDobles ? 'dobles' : 'singles',
+                      ronda: `${r.name} (${subM.subtipo || 'Playoff'})`,
+                      pareja: isDobles ? (partnerName || partner) : undefined,
+                      rivales: rivals,
+                      marcador: subM.score,
+                      resultado: isWinner ? 'victoria' : 'derrota',
+                      puntosGanados: isWinner ? 150 : 0,
+                      detalle: `${r.name} · ${subM.subtipo || 'Partido'} (${subM.team1 || m.player1?.name || 'Eq 1'} vs ${subM.team2 || m.player2?.name || 'Eq 2'})`
+                    });
+                  }
+                });
               });
             }
           });

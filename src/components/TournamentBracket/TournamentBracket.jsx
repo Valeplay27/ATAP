@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Trophy, Check, Flame, Users, Calendar, Zap, Plus, Trash2 } from 'lucide-react'
+import { createEliminatorySeriesMatches } from '../../services/atapStorage'
 import './TournamentBracket.css'
 
 export default function TournamentBracket({
@@ -20,7 +22,9 @@ export default function TournamentBracket({
   onAddGroupFecha,
   onRemoveGroupFecha,
   onAssignGroupPlayer,
-  onClearGroupSlot
+  onClearGroupSlot,
+  onAddGroupEnfrentamiento,
+  tournamentInscripciones = []
 }) {
   const hasRounds = Boolean(bracket && bracket.rounds && bracket.rounds.length > 0)
   const hasGroups = Boolean(bracket && bracket.faseGrupos && bracket.faseGrupos.length > 0)
@@ -33,6 +37,21 @@ export default function TournamentBracket({
     bracketModality === 'grupal' ||
     bracketModality === 'equipos'
   )
+
+  const [enfrentamientoFormGroupId, setEnfrentamientoFormGroupId] = useState(null)
+  const [formFechaNum, setFormFechaNum] = useState(1)
+  const [formTeam1, setFormTeam1] = useState('')
+  const [formTeam2, setFormTeam2] = useState('')
+  const [formAssignments, setFormAssignments] = useState({
+    s1_p1: null,
+    s1_p2: null,
+    s2_p1: null,
+    s2_p2: null,
+    d_p1a: null,
+    d_p1b: null,
+    d_p2a: null,
+    d_p2b: null
+  })
 
   const norm = (str) => (str || '').trim().toLowerCase()
 
@@ -69,6 +88,124 @@ export default function TournamentBracket({
     return null
   }
 
+  // Obtener la lista exhaustiva de jugadores pertenecientes a un equipo específico dentro del grupo
+  const getTeamPlayers = (teamName, grupo) => {
+    if (!teamName) return []
+    const normTeam = norm(teamName)
+    const list = []
+    const seenKeys = new Set()
+
+    const addPlayer = (pObj) => {
+      const k = (pObj.id || pObj.dni || pObj.nombre || pObj.name || '').toString().trim().toLowerCase()
+      if (!k || seenKeys.has(k)) return
+      seenKeys.add(k)
+      list.push(pObj)
+    }
+
+    // 1. Buscar en grupo.participantes
+    const participant = (grupo?.participantes || []).find((p) =>
+      norm(p.nombreEquipo || p.nombre) === normTeam || norm(p.id) === normTeam
+    )
+    if (participant) {
+      if (participant.integrantes && Array.isArray(participant.integrantes) && participant.integrantes.length > 0) {
+        participant.integrantes.forEach((subP, subIdx) => {
+          addPlayer({
+            id: subP.id || `${participant.id}-sub-${subIdx}`,
+            name: subP.nombre || subP.name,
+            nombre: subP.nombre || subP.name,
+            categoria: subP.categoria || participant.categoria || '',
+            dni: subP.dni || '',
+            rol: subP.rol || '',
+            teamName: participant.nombreEquipo || participant.nombre || teamName
+          })
+        })
+      } else {
+        const pFields = [
+          { name: participant.nombre, dni: participant.dni, rol: 'Capitán / Titular 1' },
+          { name: participant.nombreJugador2, dni: participant.dniJugador2, rol: 'Titular 2' },
+          { name: participant.nombreJugador3, dni: participant.dniJugador3, rol: 'Titular 3' },
+          { name: participant.nombreJugador4, dni: participant.dniJugador4, rol: 'Jugador 4' },
+          { name: participant.nombreJugador5, dni: participant.dniJugador5, rol: 'Jugador 5' }
+        ].filter(f => Boolean(f.name && f.name.trim()))
+
+        if (pFields.length > 0) {
+          pFields.forEach((f, idx) => {
+            addPlayer({
+              id: `${participant.id}-f-${idx}`,
+              name: f.name.trim(),
+              nombre: f.name.trim(),
+              categoria: participant.categoria || '',
+              dni: f.dni || '',
+              rol: f.rol,
+              teamName: participant.nombreEquipo || participant.nombre || teamName
+            })
+          })
+        } else {
+          addPlayer({
+            id: participant.id,
+            name: participant.nombre,
+            nombre: participant.nombre,
+            categoria: participant.categoria || '',
+            dni: participant.dni || '',
+            teamName: participant.nombreEquipo || participant.nombre || teamName
+          })
+        }
+      }
+    }
+
+    // 2. Buscar en tournamentInscripciones
+    if (list.length <= 1 && tournamentInscripciones && tournamentInscripciones.length > 0) {
+      const insc = tournamentInscripciones.find((i) => norm(i.nombreEquipo || i.nombre) === normTeam)
+      if (insc && insc.integrantes && Array.isArray(insc.integrantes) && insc.integrantes.length > 0) {
+        list.length = 0
+        seenKeys.clear()
+        insc.integrantes.forEach((subP, subIdx) => {
+          addPlayer({
+            id: subP.id || `${insc.id}-sub-${subIdx}`,
+            name: subP.nombre || subP.name,
+            nombre: subP.nombre || subP.name,
+            categoria: subP.categoria || insc.categoria || '',
+            dni: subP.dni || '',
+            rol: subP.rol || '',
+            teamName: insc.nombreEquipo || insc.nombre || teamName
+          })
+        })
+      }
+    }
+
+    // 3. Fallback: buscar en availableGroupPlayers
+    if (list.length === 0 && availableGroupPlayers && availableGroupPlayers.length > 0) {
+      availableGroupPlayers.forEach((p) => {
+        if (norm(p.teamName || p.nombreEquipo || p.nombre) === normTeam) {
+          if (p.integrantes && Array.isArray(p.integrantes)) {
+            p.integrantes.forEach((subP, subIdx) => {
+              addPlayer({
+                id: subP.id || `${p.id}-sub-${subIdx}`,
+                name: subP.nombre || subP.name,
+                nombre: subP.nombre || subP.name,
+                categoria: subP.categoria || p.categoria || '',
+                dni: subP.dni || '',
+                rol: subP.rol || '',
+                teamName: p.nombreEquipo || p.nombre || teamName
+              })
+            })
+          } else {
+            addPlayer({
+              id: p.id,
+              name: p.nombre,
+              nombre: p.nombre,
+              categoria: p.categoria || '',
+              dni: p.dni || '',
+              teamName: p.nombreEquipo || p.nombre || teamName
+            })
+          }
+        }
+      })
+    }
+
+    return list
+  }
+
   const getSelectablePlayersForGroup = (g) => {
     if (!g || !g.participantes) return []
     const list = []
@@ -93,7 +230,7 @@ export default function TournamentBracket({
           nombre: p.nombre,
           categoria: p.categoria || '',
           dni: p.dni || '',
-          teamName: p.nombreEquipo || '',
+          teamName: p.nombreEquipo || p.nombre || '',
           grupoId: g.id,
           grupoNombre: g.nombre
         })
@@ -342,9 +479,22 @@ export default function TournamentBracket({
                       const hasP1b = Boolean(m.player1b && m.player1b.name)
                       const hasP2b = Boolean(m.player2b && m.player2b.name)
 
+                      // REGLA 10: No permitir registrar resultados sin todos los jugadores asignados
                       const canScore = isMatchDobles
-                        ? isAdmin && (hasP1 || hasP1b) && (hasP2 || hasP2b) && !m.winnerSlot
+                        ? isAdmin && hasP1 && hasP1b && hasP2 && hasP2b && !m.winnerSlot
                         : isAdmin && hasP1 && hasP2 && !m.winnerSlot
+
+                      // REGLAS 7 y 8: Casilla Equipo 1 solo jugadores de Equipo 1, Casilla Equipo 2 solo de Equipo 2
+                      const t1Explicit = getTeamPlayers(m.team1, grupo)
+                      const t2Explicit = getTeamPlayers(m.team2, grupo)
+                      const team1Players = t1Explicit.length > 0 ? t1Explicit : selectablePlayers.filter((p) => {
+                        if (!m.team1) return true
+                        return norm(p.teamName) === norm(m.team1)
+                      })
+                      const team2Players = t2Explicit.length > 0 ? t2Explicit : selectablePlayers.filter((p) => {
+                        if (!m.team2) return true
+                        return norm(p.teamName) === norm(m.team2)
+                      })
 
                       return (
                         <div className={'group-match-card-grupal' + (m.winnerSlot ? ' completed' : '')} key={m.id}>
@@ -397,9 +547,9 @@ export default function TournamentBracket({
                                             if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '1a', e.target.value)
                                           }}
                                         >
-                                          <option value="">+ Asignar jugador de grupo (J1)...</option>
-                                          {selectablePlayers.map((p) => {
-                                            const isTaken = arePlayersMatching(p, m.player1b) || arePlayersMatching(p, m.player2) || arePlayersMatching(p, m.player2b)
+                                          <option value="">+ Asignar jugador ({m.team1 || 'Equipo 1'})...</option>
+                                          {team1Players.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player1b)
                                             return (
                                               <option key={p.id} value={p.id} disabled={isTaken}>
                                                 {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
@@ -441,9 +591,9 @@ export default function TournamentBracket({
                                             if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '1b', e.target.value)
                                           }}
                                         >
-                                          <option value="">+ Asignar jugador de grupo (J2)...</option>
-                                          {selectablePlayers.map((p) => {
-                                            const isTaken = arePlayersMatching(p, m.player1) || arePlayersMatching(p, m.player2) || arePlayersMatching(p, m.player2b)
+                                          <option value="">+ Asignar jugador ({m.team1 || 'Equipo 1'})...</option>
+                                          {team1Players.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player1)
                                             return (
                                               <option key={p.id} value={p.id} disabled={isTaken}>
                                                 {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
@@ -496,9 +646,9 @@ export default function TournamentBracket({
                                             if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '2a', e.target.value)
                                           }}
                                         >
-                                          <option value="">+ Asignar jugador de grupo (J1)...</option>
-                                          {selectablePlayers.map((p) => {
-                                            const isTaken = arePlayersMatching(p, m.player1) || arePlayersMatching(p, m.player1b) || arePlayersMatching(p, m.player2b)
+                                          <option value="">+ Asignar jugador ({m.team2 || 'Equipo 2'})...</option>
+                                          {team2Players.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player2b)
                                             return (
                                               <option key={p.id} value={p.id} disabled={isTaken}>
                                                 {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
@@ -540,9 +690,9 @@ export default function TournamentBracket({
                                             if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, '2b', e.target.value)
                                           }}
                                         >
-                                          <option value="">+ Asignar jugador de grupo (J2)...</option>
-                                          {selectablePlayers.map((p) => {
-                                            const isTaken = arePlayersMatching(p, m.player1) || arePlayersMatching(p, m.player1b) || arePlayersMatching(p, m.player2)
+                                          <option value="">+ Asignar jugador ({m.team2 || 'Equipo 2'})...</option>
+                                          {team2Players.map((p) => {
+                                            const isTaken = arePlayersMatching(p, m.player2)
                                             return (
                                               <option key={p.id} value={p.id} disabled={isTaken}>
                                                 {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya asignado)' : ''}
@@ -591,15 +741,12 @@ export default function TournamentBracket({
                                         if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, 1, e.target.value)
                                       }}
                                     >
-                                      <option value="">+ Asignar jugador de grupo...</option>
-                                      {selectablePlayers.map((p) => {
-                                        const isRival = arePlayersMatching(p, m.player2)
-                                        return (
-                                          <option key={p.id} value={p.id} disabled={isRival}>
-                                            {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isRival ? '⚠️ (Rival ya asignado)' : ''}
-                                          </option>
-                                        )
-                                      })}
+                                      <option value="">+ Asignar jugador ({m.team1 || 'Equipo 1'})...</option>
+                                      {team1Players.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {p.nombre} {p.categoria ? `(${p.categoria})` : ''}
+                                        </option>
+                                      ))}
                                     </select>
                                   ) : (
                                     <span className="slot-unassigned-label">Por definir</span>
@@ -639,15 +786,12 @@ export default function TournamentBracket({
                                         if (e.target.value) onAssignGroupPlayer(grupo.id, m.id, 2, e.target.value)
                                       }}
                                     >
-                                      <option value="">+ Asignar jugador de grupo...</option>
-                                      {selectablePlayers.map((p) => {
-                                        const isRival = arePlayersMatching(p, m.player1)
-                                        return (
-                                          <option key={p.id} value={p.id} disabled={isRival}>
-                                            {p.nombre} {p.categoria ? `(${p.categoria})` : ''} {isRival ? '⚠️ (Rival ya asignado)' : ''}
-                                          </option>
-                                        )
-                                      })}
+                                      <option value="">+ Asignar jugador ({m.team2 || 'Equipo 2'})...</option>
+                                      {team2Players.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {p.nombre} {p.categoria ? `(${p.categoria})` : ''}
+                                        </option>
+                                      ))}
                                     </select>
                                   ) : (
                                     <span className="slot-unassigned-label">Por definir</span>
@@ -759,16 +903,570 @@ export default function TournamentBracket({
                             })
                           )}
 
-                          {isAdmin && isInteractive && onAddGroupFecha && (
-                            <button
-                              type="button"
-                              className="btn-add-group-fecha-full"
-                              onClick={() => onAddGroupFecha(grupo.id)}
-                              title="Agregar una nueva fecha con 2 partidos de Singles y 1 de Dobles"
-                            >
-                              <Plus size={14} />
-                              <span>+ Agregar Nueva Fecha (2 Singles + 1 Dobles)</span>
-                            </button>
+                          {isAdmin && isInteractive && onAddGroupEnfrentamiento && (
+                            enfrentamientoFormGroupId === grupo.id ? (() => {
+                              const formTeam1Players = getTeamPlayers(formTeam1, grupo)
+                              const formTeam2Players = getTeamPlayers(formTeam2, grupo)
+                              const bothTeamsSelected = Boolean(formTeam1 && formTeam2 && norm(formTeam1) !== norm(formTeam2))
+
+                              return (
+                                <div className="enfrentamiento-inline-card">
+                                  <div className="enfrentamiento-inline-header">
+                                    <strong>⚔️ Nuevo Enfrentamiento — {grupo.nombre}</strong>
+                                    <button
+                                      type="button"
+                                      className="btn-close-enfrentamiento"
+                                      onClick={() => {
+                                        setEnfrentamientoFormGroupId(null)
+                                        setFormAssignments({
+                                          s1_p1: null,
+                                          s1_p2: null,
+                                          s2_p1: null,
+                                          s2_p2: null,
+                                          d_p1a: null,
+                                          d_p1b: null,
+                                          d_p2a: null,
+                                          d_p2b: null
+                                        })
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+
+                                  <div className="enfrentamiento-config-block">
+                                    <div className="enfrentamiento-fecha-row">
+                                      <div className="enfrentamiento-fecha-badge">
+                                        <span>📅 Programar Fecha</span>
+                                      </div>
+                                      <div className="enfrentamiento-fecha-input-wrap">
+                                        <label htmlFor={`fecha-num-${grupo.id}`}>Fecha #</label>
+                                        <input
+                                          id={`fecha-num-${grupo.id}`}
+                                          type="number"
+                                          min="1"
+                                          className="enfrentamiento-fecha-input"
+                                          value={formFechaNum}
+                                          onChange={(e) => setFormFechaNum(Number(e.target.value) || 1)}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="enfrentamiento-teams-selector-grid">
+                                      <div className="enfrentamiento-team-pick">
+                                        <label>Equipo 1</label>
+                                        <select
+                                          value={formTeam1}
+                                          onChange={(e) => {
+                                            setFormTeam1(e.target.value)
+                                            setFormAssignments((prev) => ({
+                                              ...prev,
+                                              s1_p1: null,
+                                              s2_p1: null,
+                                              d_p1a: null,
+                                              d_p1b: null
+                                            }))
+                                          }}
+                                        >
+                                          <option value="">Selecciona Equipo 1...</option>
+                                          {(grupo.participantes || []).map((t) => {
+                                            const name = t.nombreEquipo || t.nombre
+                                            return <option key={t.id || name} value={name}>{name}</option>
+                                          })}
+                                        </select>
+                                      </div>
+
+                                      <div className="enfrentamiento-vs-circle">VS</div>
+
+                                      <div className="enfrentamiento-team-pick">
+                                        <label>Equipo 2</label>
+                                        <select
+                                          value={formTeam2}
+                                          onChange={(e) => {
+                                            setFormTeam2(e.target.value)
+                                            setFormAssignments((prev) => ({
+                                              ...prev,
+                                              s1_p2: null,
+                                              s2_p2: null,
+                                              d_p2a: null,
+                                              d_p2b: null
+                                            }))
+                                          }}
+                                        >
+                                          <option value="">Selecciona Equipo 2...</option>
+                                          {(grupo.participantes || []).map((t) => {
+                                            const name = t.nombreEquipo || t.nombre
+                                            const isSame = norm(name) === norm(formTeam1)
+                                            return (
+                                              <option key={t.id || name} value={name} disabled={isSame}>
+                                                {name} {isSame ? '(Mismo equipo)' : ''}
+                                              </option>
+                                            )
+                                          })}
+                                        </select>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* COMBINACIÓN: GENERACIÓN AUTOMÁTICA DE LOS 3 PARTIDOS CON SELECTORES FILTRADOS */}
+                                  {bothTeamsSelected ? (
+                                    <div className="enfrentamiento-matches-preview">
+                                      <div className="enfrentamiento-preview-badge-row">
+                                        <span className="enfrentamiento-preview-badge">🏆 Partidos de la Serie: 2 Singles + 1 Dobles</span>
+                                        <span className="enfrentamiento-preview-sub">Asigna jugadores de cada equipo para esta serie</span>
+                                      </div>
+
+                                      {/* MATCH #1: SINGLES 1 */}
+                                      <div className="group-match-card-grupal preview-match-card">
+                                        <div className="group-match-header-row">
+                                          <div className="match-header-tags">
+                                            <small className="match-num-tag">Match #1</small>
+                                            <span className="match-subtipo-pill pill-singles">🎾 Singles 1</span>
+                                          </div>
+                                        </div>
+                                        <div className="group-match-singles-wrap">
+                                          {/* Lado 1 (Equipo 1) */}
+                                          <div className="group-single-slot">
+                                            <div className="slot-header-tag">🎾 {formTeam1}</div>
+                                            {formAssignments.s1_p1 ? (
+                                              <div className="group-assigned-slot">
+                                                <div className="slot-player-meta">
+                                                  <span className="slot-assigned-name">{formAssignments.s1_p1.nombre}</span>
+                                                  {formAssignments.s1_p1.categoria && <small className="slot-assigned-cat">{formAssignments.s1_p1.categoria}</small>}
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  className="btn-clear-group-slot"
+                                                  onClick={() => setFormAssignments((prev) => ({ ...prev, s1_p1: null }))}
+                                                  title="Quitar jugador"
+                                                >
+                                                  ✕
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <select
+                                                className="group-slot-select"
+                                                value=""
+                                                onChange={(e) => {
+                                                  const pl = formTeam1Players.find((p) => (p.id + '') === e.target.value)
+                                                  if (pl) setFormAssignments((prev) => ({ ...prev, s1_p1: pl }))
+                                                }}
+                                              >
+                                                <option value="">+ Asignar jugador ({formTeam1})...</option>
+                                                {formTeam1Players.map((p) => (
+                                                  <option key={p.id} value={p.id}>
+                                                    {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            )}
+                                          </div>
+
+                                          <div className="group-vs-badge">VS</div>
+
+                                          {/* Lado 2 (Equipo 2) */}
+                                          <div className="group-single-slot">
+                                            <div className="slot-header-tag">🎾 {formTeam2}</div>
+                                            {formAssignments.s1_p2 ? (
+                                              <div className="group-assigned-slot">
+                                                <div className="slot-player-meta">
+                                                  <span className="slot-assigned-name">{formAssignments.s1_p2.nombre}</span>
+                                                  {formAssignments.s1_p2.categoria && <small className="slot-assigned-cat">{formAssignments.s1_p2.categoria}</small>}
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  className="btn-clear-group-slot"
+                                                  onClick={() => setFormAssignments((prev) => ({ ...prev, s1_p2: null }))}
+                                                  title="Quitar jugador"
+                                                >
+                                                  ✕
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <select
+                                                className="group-slot-select"
+                                                value=""
+                                                onChange={(e) => {
+                                                  const pl = formTeam2Players.find((p) => (p.id + '') === e.target.value)
+                                                  if (pl) setFormAssignments((prev) => ({ ...prev, s1_p2: pl }))
+                                                }}
+                                              >
+                                                <option value="">+ Asignar jugador ({formTeam2})...</option>
+                                                {formTeam2Players.map((p) => (
+                                                  <option key={p.id} value={p.id}>
+                                                    {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* MATCH #2: SINGLES 2 */}
+                                      <div className="group-match-card-grupal preview-match-card">
+                                        <div className="group-match-header-row">
+                                          <div className="match-header-tags">
+                                            <small className="match-num-tag">Match #2</small>
+                                            <span className="match-subtipo-pill pill-singles">🎾 Singles 2</span>
+                                          </div>
+                                        </div>
+                                        <div className="group-match-singles-wrap">
+                                          {/* Lado 1 (Equipo 1) */}
+                                          <div className="group-single-slot">
+                                            <div className="slot-header-tag">🎾 {formTeam1}</div>
+                                            {formAssignments.s2_p1 ? (
+                                              <div className="group-assigned-slot">
+                                                <div className="slot-player-meta">
+                                                  <span className="slot-assigned-name">{formAssignments.s2_p1.nombre}</span>
+                                                  {formAssignments.s2_p1.categoria && <small className="slot-assigned-cat">{formAssignments.s2_p1.categoria}</small>}
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  className="btn-clear-group-slot"
+                                                  onClick={() => setFormAssignments((prev) => ({ ...prev, s2_p1: null }))}
+                                                  title="Quitar jugador"
+                                                >
+                                                  ✕
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <select
+                                                className="group-slot-select"
+                                                value=""
+                                                onChange={(e) => {
+                                                  const pl = formTeam1Players.find((p) => (p.id + '') === e.target.value)
+                                                  if (pl) setFormAssignments((prev) => ({ ...prev, s2_p1: pl }))
+                                                }}
+                                              >
+                                                <option value="">+ Asignar jugador ({formTeam1})...</option>
+                                                {formTeam1Players.map((p) => {
+                                                  const isTaken = formAssignments.s1_p1 && arePlayersMatching(p, formAssignments.s1_p1)
+                                                  return (
+                                                    <option key={p.id} value={p.id}>
+                                                      {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '(Jugó Singles 1)' : ''}
+                                                    </option>
+                                                  )
+                                                })}
+                                              </select>
+                                            )}
+                                          </div>
+
+                                          <div className="group-vs-badge">VS</div>
+
+                                          {/* Lado 2 (Equipo 2) */}
+                                          <div className="group-single-slot">
+                                            <div className="slot-header-tag">🎾 {formTeam2}</div>
+                                            {formAssignments.s2_p2 ? (
+                                              <div className="group-assigned-slot">
+                                                <div className="slot-player-meta">
+                                                  <span className="slot-assigned-name">{formAssignments.s2_p2.nombre}</span>
+                                                  {formAssignments.s2_p2.categoria && <small className="slot-assigned-cat">{formAssignments.s2_p2.categoria}</small>}
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  className="btn-clear-group-slot"
+                                                  onClick={() => setFormAssignments((prev) => ({ ...prev, s2_p2: null }))}
+                                                  title="Quitar jugador"
+                                                >
+                                                  ✕
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <select
+                                                className="group-slot-select"
+                                                value=""
+                                                onChange={(e) => {
+                                                  const pl = formTeam2Players.find((p) => (p.id + '') === e.target.value)
+                                                  if (pl) setFormAssignments((prev) => ({ ...prev, s2_p2: pl }))
+                                                }}
+                                              >
+                                                <option value="">+ Asignar jugador ({formTeam2})...</option>
+                                                {formTeam2Players.map((p) => {
+                                                  const isTaken = formAssignments.s1_p2 && arePlayersMatching(p, formAssignments.s1_p2)
+                                                  return (
+                                                    <option key={p.id} value={p.id}>
+                                                      {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '(Jugó Singles 1)' : ''}
+                                                    </option>
+                                                  )
+                                                })}
+                                              </select>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* MATCH #3: DOBLES */}
+                                      <div className="group-match-card-grupal preview-match-card">
+                                        <div className="group-match-header-row">
+                                          <div className="match-header-tags">
+                                            <small className="match-num-tag">Match #3</small>
+                                            <span className="match-subtipo-pill pill-dobles">👥 Dobles</span>
+                                          </div>
+                                        </div>
+                                        <div className="group-match-doubles-wrap">
+                                          {/* DUPLA 1 (Equipo 1) */}
+                                          <div className="group-duo-team-box">
+                                            <div className="group-duo-team-title">
+                                              <span>👥 Dupla 1 ({formTeam1})</span>
+                                            </div>
+                                            <div className="group-duo-slots">
+                                              {/* Slot 1a */}
+                                              <div className="group-player-slot">
+                                                {formAssignments.d_p1a ? (
+                                                  <div className="group-assigned-slot">
+                                                    <div className="slot-player-meta">
+                                                      <span className="slot-assigned-name">{formAssignments.d_p1a.nombre}</span>
+                                                      {formAssignments.d_p1a.categoria && <small className="slot-assigned-cat">{formAssignments.d_p1a.categoria}</small>}
+                                                    </div>
+                                                    <button
+                                                      type="button"
+                                                      className="btn-clear-group-slot"
+                                                      onClick={() => setFormAssignments((prev) => ({ ...prev, d_p1a: null }))}
+                                                      title="Quitar de Dupla 1"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <select
+                                                    className="group-slot-select"
+                                                    value=""
+                                                    onChange={(e) => {
+                                                      const pl = formTeam1Players.find((p) => (p.id + '') === e.target.value)
+                                                      if (pl) setFormAssignments((prev) => ({ ...prev, d_p1a: pl }))
+                                                    }}
+                                                  >
+                                                    <option value="">+ Asignar jugador ({formTeam1})...</option>
+                                                    {formTeam1Players.map((p) => {
+                                                      const isTaken = formAssignments.d_p1b && arePlayersMatching(p, formAssignments.d_p1b)
+                                                      return (
+                                                        <option key={p.id} value={p.id} disabled={isTaken}>
+                                                          {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya en dupla)' : ''}
+                                                        </option>
+                                                      )
+                                                    })}
+                                                  </select>
+                                                )}
+                                              </div>
+
+                                              {/* Slot 1b */}
+                                              <div className="group-player-slot">
+                                                {formAssignments.d_p1b ? (
+                                                  <div className="group-assigned-slot">
+                                                    <div className="slot-player-meta">
+                                                      <span className="slot-assigned-name">{formAssignments.d_p1b.nombre}</span>
+                                                      {formAssignments.d_p1b.categoria && <small className="slot-assigned-cat">{formAssignments.d_p1b.categoria}</small>}
+                                                    </div>
+                                                    <button
+                                                      type="button"
+                                                      className="btn-clear-group-slot"
+                                                      onClick={() => setFormAssignments((prev) => ({ ...prev, d_p1b: null }))}
+                                                      title="Quitar de Dupla 1"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <select
+                                                    className="group-slot-select"
+                                                    value=""
+                                                    onChange={(e) => {
+                                                      const pl = formTeam1Players.find((p) => (p.id + '') === e.target.value)
+                                                      if (pl) setFormAssignments((prev) => ({ ...prev, d_p1b: pl }))
+                                                    }}
+                                                  >
+                                                    <option value="">+ Asignar jugador ({formTeam1})...</option>
+                                                    {formTeam1Players.map((p) => {
+                                                      const isTaken = formAssignments.d_p1a && arePlayersMatching(p, formAssignments.d_p1a)
+                                                      return (
+                                                        <option key={p.id} value={p.id} disabled={isTaken}>
+                                                          {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya en dupla)' : ''}
+                                                        </option>
+                                                      )
+                                                    })}
+                                                  </select>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="group-vs-badge">VS</div>
+
+                                          {/* DUPLA 2 (Equipo 2) */}
+                                          <div className="group-duo-team-box">
+                                            <div className="group-duo-team-title">
+                                              <span>👥 Dupla 2 ({formTeam2})</span>
+                                            </div>
+                                            <div className="group-duo-slots">
+                                              {/* Slot 2a */}
+                                              <div className="group-player-slot">
+                                                {formAssignments.d_p2a ? (
+                                                  <div className="group-assigned-slot">
+                                                    <div className="slot-player-meta">
+                                                      <span className="slot-assigned-name">{formAssignments.d_p2a.nombre}</span>
+                                                      {formAssignments.d_p2a.categoria && <small className="slot-assigned-cat">{formAssignments.d_p2a.categoria}</small>}
+                                                    </div>
+                                                    <button
+                                                      type="button"
+                                                      className="btn-clear-group-slot"
+                                                      onClick={() => setFormAssignments((prev) => ({ ...prev, d_p2a: null }))}
+                                                      title="Quitar de Dupla 2"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <select
+                                                    className="group-slot-select"
+                                                    value=""
+                                                    onChange={(e) => {
+                                                      const pl = formTeam2Players.find((p) => (p.id + '') === e.target.value)
+                                                      if (pl) setFormAssignments((prev) => ({ ...prev, d_p2a: pl }))
+                                                    }}
+                                                  >
+                                                    <option value="">+ Asignar jugador ({formTeam2})...</option>
+                                                    {formTeam2Players.map((p) => {
+                                                      const isTaken = formAssignments.d_p2b && arePlayersMatching(p, formAssignments.d_p2b)
+                                                      return (
+                                                        <option key={p.id} value={p.id} disabled={isTaken}>
+                                                          {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya en dupla)' : ''}
+                                                        </option>
+                                                      )
+                                                    })}
+                                                  </select>
+                                                )}
+                                              </div>
+
+                                              {/* Slot 2b */}
+                                              <div className="group-player-slot">
+                                                {formAssignments.d_p2b ? (
+                                                  <div className="group-assigned-slot">
+                                                    <div className="slot-player-meta">
+                                                      <span className="slot-assigned-name">{formAssignments.d_p2b.nombre}</span>
+                                                      {formAssignments.d_p2b.categoria && <small className="slot-assigned-cat">{formAssignments.d_p2b.categoria}</small>}
+                                                    </div>
+                                                    <button
+                                                      type="button"
+                                                      className="btn-clear-group-slot"
+                                                      onClick={() => setFormAssignments((prev) => ({ ...prev, d_p2b: null }))}
+                                                      title="Quitar de Dupla 2"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <select
+                                                    className="group-slot-select"
+                                                    value=""
+                                                    onChange={(e) => {
+                                                      const pl = formTeam2Players.find((p) => (p.id + '') === e.target.value)
+                                                      if (pl) setFormAssignments((prev) => ({ ...prev, d_p2b: pl }))
+                                                    }}
+                                                  >
+                                                    <option value="">+ Asignar jugador ({formTeam2})...</option>
+                                                    {formTeam2Players.map((p) => {
+                                                      const isTaken = formAssignments.d_p2a && arePlayersMatching(p, formAssignments.d_p2a)
+                                                      return (
+                                                        <option key={p.id} value={p.id} disabled={isTaken}>
+                                                          {p.nombre} {p.rol ? `• ${p.rol}` : ''} {p.categoria ? `(${p.categoria})` : ''} {isTaken ? '⚠️ (Ya en dupla)' : ''}
+                                                        </option>
+                                                      )
+                                                    })}
+                                                  </select>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="enfrentamiento-empty-hint">
+                                      👉 Selecciona Equipo 1 y Equipo 2 arriba para generar automáticamente los partidos de Singles y Dobles y asignar jugadores.
+                                    </div>
+                                  )}
+
+                                  <div className="enfrentamiento-actions-row">
+                                    <button
+                                      type="button"
+                                      className="btn-confirm-enfrentamiento"
+                                      onClick={() => {
+                                        if (!formTeam1 || !formTeam2) {
+                                          alert('Debes seleccionar ambos equipos.')
+                                          return
+                                        }
+                                        if (norm(formTeam1) === norm(formTeam2)) {
+                                          alert('Un equipo no puede jugar contra sí mismo.')
+                                          return
+                                        }
+                                        onAddGroupEnfrentamiento(grupo.id, formFechaNum, formTeam1, formTeam2, formAssignments)
+                                        setEnfrentamientoFormGroupId(null)
+                                        setFormAssignments({
+                                          s1_p1: null,
+                                          s1_p2: null,
+                                          s2_p1: null,
+                                          s2_p2: null,
+                                          d_p1a: null,
+                                          d_p1b: null,
+                                          d_p2a: null,
+                                          d_p2b: null
+                                        })
+                                      }}
+                                    >
+                                      ✓ Crear Serie (2 Singles + 1 Dobles)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn-cancel-enfrentamiento"
+                                      onClick={() => {
+                                        setEnfrentamientoFormGroupId(null)
+                                        setFormAssignments({
+                                          s1_p1: null,
+                                          s1_p2: null,
+                                          s2_p1: null,
+                                          s2_p2: null,
+                                          d_p1a: null,
+                                          d_p1b: null,
+                                          d_p2a: null,
+                                          d_p2b: null
+                                        })
+                                      }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })() : (
+                              <button
+                                type="button"
+                                className="btn-add-group-fecha-full"
+                                onClick={() => {
+                                  setEnfrentamientoFormGroupId(grupo.id)
+                                  const p = grupo.participantes || []
+                                  setFormTeam1(p[0]?.nombreEquipo || p[0]?.nombre || '')
+                                  setFormTeam2(p[1]?.nombreEquipo || p[1]?.nombre || '')
+                                  const existing = (grupo.partidos || []).map((m) => Number(m.fechaNum) || 1)
+                                  const nextF = existing.length > 0 ? Math.max(...existing) + 1 : 1
+                                  setFormFechaNum(nextF)
+                                  setFormAssignments({
+                                    s1_p1: null,
+                                    s1_p2: null,
+                                    s2_p1: null,
+                                    s2_p2: null,
+                                    d_p1a: null,
+                                    d_p1b: null,
+                                    d_p2a: null,
+                                    d_p2b: null
+                                  })
+                                }}
+                                title="Crear nuevo enfrentamiento seleccionando Equipos y Fecha (2 Singles + 1 Dobles)"
+                              >
+                                <Plus size={14} />
+                                <span>+ Crear Nuevo Enfrentamiento (2 Singles + 1 Dobles)</span>
+                              </button>
+                            )
                           )}
                         </div>
                       </div>
@@ -792,20 +1490,245 @@ export default function TournamentBracket({
           )}
 
           <div className="bracket-rounds-wrapper">
-            {bracket.rounds.map((round, rIndex) => {
-              const isFirstRound = rIndex === 0
-              const isFinalRound = (round.name || '').toLowerCase().includes('final') && (round.matches?.length === 1 || rIndex === bracket.rounds.length - 1)
-              return (
-                <div className="bracket-round-column" key={round.name || rIndex}>
-                  <div className="round-column-header">
-                    <span className="round-badge">{round.name}</span>
-                    <small className="round-matches-count">
-                      {round.matches.length} {round.matches.length === 1 ? 'partido' : 'partidos'}
-                    </small>
-                  </div>
+            {(() => {
+              const renderTeamSeriesBracketNode = (match, round, rIndex, isFirstRound, isFinalRound) => {
+                const team1 = match.player1
+                const team2 = match.player2
+                const team1Name = team1?.name || team1?.nombreEquipo || match.team1 || (isFirstRound ? 'Por definir' : 'Ganador Serie Anterior')
+                const team2Name = team2?.name || team2?.nombreEquipo || match.team2 || (isFirstRound ? 'Por definir' : 'Ganador Serie Anterior')
+                const team1Logo = team1?.logo || team1?.fotoEquipo || '/assets/logo.png'
+                const team2Logo = team2?.logo || team2?.fotoEquipo || '/assets/logo.png'
 
-                  <div className="round-matches-list">
-                    {round.matches.map((match) => {
+                let submatches = match.partidos
+                if ((!submatches || submatches.length === 0) && (team1 || team2)) {
+                  submatches = createEliminatorySeriesMatches(
+                    match.id,
+                    round.name || 'Playoffs',
+                    match.matchNum,
+                    team1Name,
+                    team2Name,
+                    team1,
+                    team2
+                  )
+                }
+
+                const wins1 = (submatches || []).filter((sm) => sm.winnerSlot === 1).length
+                const wins2 = (submatches || []).filter((sm) => sm.winnerSlot === 2).length
+                const isSeriesDone = match.winnerSlot || wins1 >= 2 || wins2 >= 2
+                const winningTeamName = match.winnerSlot === 1 ? team1Name : match.winnerSlot === 2 ? team2Name : (wins1 >= 2 ? team1Name : wins2 >= 2 ? team2Name : null)
+
+                const team1Members = team1?.integrantes || []
+                const team2Members = team2?.integrantes || []
+
+                return (
+                  <div
+                    key={match.id}
+                    className={
+                      'match-node-card team-series-node' +
+                      (isSeriesDone ? ' match-completed' : '') +
+                      (match.isLive ? ' match-is-live' : '') +
+                      (isFinalRound ? ' is-final-node' : '')
+                    }
+                  >
+                    <div className="match-node-header">
+                      <div className="match-node-header-left">
+                        <span>Serie #{match.matchNum}</span>
+                        {isFinalRound && <span className="match-final-trophy-pill">🏆 Gran Final por Equipos</span>}
+                        {match.hora && <span className="match-time-chip">🕒 {match.hora}</span>}
+                      </div>
+                      <div className="series-score-badge">
+                        <span className={`fecha-serie-score-pill ${isSeriesDone ? 'completed' : ''}`}>
+                          Serie: {wins1} - {wins2}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* REGLA 18: CASILLA DEL EQUIPO 1 (LOGO + NOMBRE DEL EQUIPO) */}
+                    <div className={'team-bracket-row' + (match.winnerSlot === 1 ? ' is-winner-team' : match.winnerSlot === 2 ? ' is-loser-team' : '')}>
+                      {team1 ? (
+                        <>
+                          <div className="team-bracket-logo-wrap">
+                            <img
+                              src={team1Logo}
+                              alt={team1Name}
+                              className="team-bracket-logo-img"
+                              onError={(e) => { e.target.src = '/assets/logo.png' }}
+                            />
+                          </div>
+                          <div className="team-bracket-info">
+                            <span className="team-bracket-name">{team1Name}</span>
+                            {team1Members.length > 0 && (
+                              <small className="team-bracket-members-count">👥 {team1Members.length} integrantes</small>
+                            )}
+                          </div>
+                          {isFirstRound && isAdmin && isInteractive && !match.winnerSlot && onClearMatchSlot && (
+                            <button
+                              type="button"
+                              className="btn-clear-slot"
+                              title="Quitar equipo de la casilla"
+                              onClick={() => onClearMatchSlot(match.id, 1)}
+                            >
+                              ✕
+                            </button>
+                          )}
+                          {match.winnerSlot === 1 && (
+                            <span className="team-winner-tag">
+                              <Check size={12} /> Ganador
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        isFirstRound && isAdmin && isInteractive && onAssignPlayerToSlot ? (
+                          <select
+                            className="slot-interactive-picker"
+                            value=""
+                            onChange={(e) => {
+                              if (e.target.value) onAssignPlayerToSlot(match.id, 1, e.target.value)
+                            }}
+                          >
+                            <option value="">+ Seleccionar Equipo 1...</option>
+                            {groupsList.map((g) => (
+                              <optgroup key={g.id} label={g.nombre}>
+                                {(g.participantes || []).map((t, tIdx) => {
+                                  const val = t.id || t.nombreEquipo || t.nombre || `t-${tIdx}`
+                                  const isSelf = team2 && (team2.id === t.id || team2.name === (t.nombreEquipo || t.nombre))
+                                  return (
+                                    <option key={val} value={val} disabled={isSelf}>
+                                      {t.nombreEquipo || t.nombre} ({g.nombre}){isSelf ? ' (Ya en Casilla 2)' : ''}
+                                    </option>
+                                  )
+                                })}
+                              </optgroup>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="player-slot-name" style={{ color: '#94A3B8' }}>
+                            {isFirstRound ? 'Por definir' : 'Ganador Serie Anterior'}
+                          </span>
+                        )
+                      )}
+                    </div>
+
+                    {/* REGLA 18: CASILLA DEL EQUIPO 2 (LOGO + NOMBRE DEL EQUIPO) */}
+                    <div className={'team-bracket-row' + (match.winnerSlot === 2 ? ' is-winner-team' : match.winnerSlot === 1 ? ' is-loser-team' : '')}>
+                      {team2 ? (
+                        <>
+                          <div className="team-bracket-logo-wrap">
+                            <img
+                              src={team2Logo}
+                              alt={team2Name}
+                              className="team-bracket-logo-img"
+                              onError={(e) => { e.target.src = '/assets/logo.png' }}
+                            />
+                          </div>
+                          <div className="team-bracket-info">
+                            <span className="team-bracket-name">{team2Name}</span>
+                            {team2Members.length > 0 && (
+                              <small className="team-bracket-members-count">👥 {team2Members.length} integrantes</small>
+                            )}
+                          </div>
+                          {isFirstRound && isAdmin && isInteractive && !match.winnerSlot && onClearMatchSlot && (
+                            <button
+                              type="button"
+                              className="btn-clear-slot"
+                              title="Quitar equipo de la casilla"
+                              onClick={() => onClearMatchSlot(match.id, 2)}
+                            >
+                              ✕
+                            </button>
+                          )}
+                          {match.winnerSlot === 2 && (
+                            <span className="team-winner-tag">
+                              <Check size={12} /> Ganador
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        isFirstRound && isAdmin && isInteractive && onAssignPlayerToSlot ? (
+                          <select
+                            className="slot-interactive-picker"
+                            value=""
+                            onChange={(e) => {
+                              if (e.target.value) onAssignPlayerToSlot(match.id, 2, e.target.value)
+                            }}
+                          >
+                            <option value="">+ Seleccionar Equipo 2...</option>
+                            {groupsList.map((g) => (
+                              <optgroup key={g.id} label={g.nombre}>
+                                {(g.participantes || []).map((t, tIdx) => {
+                                  const val = t.id || t.nombreEquipo || t.nombre || `t-${tIdx}`
+                                  const isSelf = team1 && (team1.id === t.id || team1.name === (t.nombreEquipo || t.nombre))
+                                  return (
+                                    <option key={val} value={val} disabled={isSelf}>
+                                      {t.nombreEquipo || t.nombre} ({g.nombre}){isSelf ? ' (Ya en Casilla 1)' : ''}
+                                    </option>
+                                  )
+                                })}
+                              </optgroup>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="player-slot-name" style={{ color: '#94A3B8' }}>
+                            {isFirstRound ? 'Por definir' : 'Ganador Serie Anterior'}
+                          </span>
+                        )
+                      )}
+                    </div>
+
+                    {/* ENFRENTAMIENTO Y ESTADO DE GANADOR */}
+                    {isSeriesDone && winningTeamName && (
+                      <div className="series-winner-concluded-banner">
+                        <span>🏆 Ganador: <strong>{winningTeamName}</strong> {match.score ? `(${match.score})` : (wins1 + wins2 > 0 ? `(${wins1} - ${wins2})` : '')}</span>
+                      </div>
+                    )}
+
+                    {/* BOTÓN PARA CARGAR / EDITAR MARCADOR DEL ENFRENTAMIENTO */}
+                    {isAdmin && team1 && team2 && onOpenScoreModal && (
+                      <div className="team-series-action-row" style={{ marginTop: '8px' }}>
+                        {!isSeriesDone ? (
+                          <button
+                            type="button"
+                            className="btn-enter-score-mini"
+                            onClick={() => onOpenScoreModal(match)}
+                            style={{ width: '100%', justifyContent: 'center' }}
+                            title="Cargar marcador del enfrentamiento y definir ganador"
+                          >
+                            <Flame size={12} /> Cargar Marcador
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-edit-score-mini"
+                            onClick={() => onOpenScoreModal(match)}
+                            style={{ width: '100%', textAlign: 'center' }}
+                            title="Modificar marcador del enfrentamiento"
+                          >
+                            Editar Marcador
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              return bracket.rounds.map((round, rIndex) => {
+                const isFirstRound = rIndex === 0
+                const isFinalRound = (round.name || '').toLowerCase().includes('final') && (round.matches?.length === 1 || rIndex === bracket.rounds.length - 1)
+                return (
+                  <div className="bracket-round-column" key={round.name || rIndex}>
+                    <div className="round-column-header">
+                      <span className="round-badge">{round.name}</span>
+                      <small className="round-matches-count">
+                        {round.matches.length} {round.matches.length === 1 ? 'partido' : 'partidos'}
+                      </small>
+                    </div>
+
+                    <div className="round-matches-list">
+                      {round.matches.map((match) => {
+                        if (isTournamentGrupal || match.esGrupal || match.esSerie) {
+                          return renderTeamSeriesBracketNode(match, round, rIndex, isFirstRound, isFinalRound)
+                        }
                       const isMatchDobles = match.modalidad ? match.modalidad === 'dobles' : isTournamentDobles
 
                       const hasPlayer1 = Boolean(match.player1 && match.player1.name)
@@ -1722,7 +2645,8 @@ export default function TournamentBracket({
                   </div>
                 </div>
               )
-            })}
+            })
+            })()}
           </div>
         </div>
       )}

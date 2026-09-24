@@ -231,10 +231,38 @@ function SiteLayout() {
         <LoginModal
           initialRegister={modalAuth.isRegister}
           prefillData={modalAuth.prefill}
-          onClose={() => setModalAuth({ open: false, isRegister: false, prefill: null })}
+          onClose={() => {
+            setModalAuth({ open: false, isRegister: false, prefill: null })
+            try {
+              if (typeof sessionStorage !== 'undefined') {
+                const rawDraft = sessionStorage.getItem('atap_tournament_register_draft')
+                if (rawDraft) {
+                  const draft = JSON.parse(rawDraft)
+                  if (draft?.tournamentId) {
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('atap_open_tournament_register', { detail: { tournamentId: draft.tournamentId, tournament: draft.tournament } }))
+                    }, 120)
+                  }
+                }
+              }
+            } catch {}
+          }}
           onLogin={(user) => {
             handleLogin(user)
             setModalAuth({ open: false, isRegister: false, prefill: null })
+            try {
+              if (typeof sessionStorage !== 'undefined') {
+                const rawDraft = sessionStorage.getItem('atap_tournament_register_draft')
+                if (rawDraft) {
+                  const draft = JSON.parse(rawDraft)
+                  if (draft?.tournamentId) {
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('atap_open_tournament_register', { detail: { tournamentId: draft.tournamentId, tournament: draft.tournament } }))
+                    }, 120)
+                  }
+                }
+              }
+            } catch {}
           }}
           onStartOnboarding={(newUser) => {
             setModalAuth({ open: false, isRegister: false, prefill: null })
@@ -246,10 +274,38 @@ function SiteLayout() {
       {onboardingUser && (
         <PlayerOnboardingModal
           initialUserData={onboardingUser}
-          onClose={() => setOnboardingUser(null)}
+          onClose={() => {
+            setOnboardingUser(null)
+            try {
+              if (typeof sessionStorage !== 'undefined') {
+                const rawDraft = sessionStorage.getItem('atap_tournament_register_draft')
+                if (rawDraft) {
+                  const draft = JSON.parse(rawDraft)
+                  if (draft?.tournamentId) {
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('atap_open_tournament_register', { detail: { tournamentId: draft.tournamentId, tournament: draft.tournament } }))
+                    }, 120)
+                  }
+                }
+              }
+            } catch {}
+          }}
           onComplete={(fullProfile) => {
             handleLogin(fullProfile)
             setOnboardingUser(null)
+            try {
+              if (typeof sessionStorage !== 'undefined') {
+                const rawDraft = sessionStorage.getItem('atap_tournament_register_draft')
+                if (rawDraft) {
+                  const draft = JSON.parse(rawDraft)
+                  if (draft?.tournamentId) {
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('atap_open_tournament_register', { detail: { tournamentId: draft.tournamentId, tournament: draft.tournament } }))
+                    }, 120)
+                  }
+                }
+              }
+            } catch {}
           }}
         />
       )}

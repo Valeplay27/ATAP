@@ -33,13 +33,15 @@ export default function Tournaments({ usuario }) {
       loadTournaments()
     }
     function handleOpenTournamentRegister(e) {
-      const tourneyId = e.detail?.tournamentId
+      const tourneyId = e.detail?.tournamentId || e.detail?.id || e.detail?.tournament?.id
       if (tourneyId) {
         const allTourneys = getTournaments()
-        const found = allTourneys.find((t) => t.id === tourneyId)
+        const found = allTourneys.find((t) => t.id === tourneyId) || e.detail?.tournament
         if (found) {
           setRegisterTourney(found)
         }
+      } else if (e.detail?.tournament) {
+        setRegisterTourney(e.detail.tournament)
       }
     }
     window.addEventListener('atap_data_updated', handleUpdate)

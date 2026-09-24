@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Star, X, Trophy, Calendar, Award, Flame, User, Users, ChevronDown, ChevronUp } from 'lucide-react'
 import { getPlayerMatchHistory, getPlayerTournamentBreakdown, getPlayerBothProfiles, getAssetUrl, handleImageFallback, getZonaDistritos, isPlayerFollowed, getAvailableSeasons, getActiveSeasonYear } from '../../services/atapStorage'
 import './PlayerHeroModal.css'
@@ -98,6 +98,10 @@ export default function PlayerHeroModal({
   const [matches, setMatches] = useState([])
   const [profiles, setProfiles] = useState(() => getPlayerBothProfiles(player?.name || player?.id))
   const [authNotice, setAuthNotice] = useState('')
+  const [matchFilter, setMatchFilter] = useState('todos') // 'todos' | 'victorias' | 'derrotas'
+  const [selectedSeason, setSelectedSeason] = useState('2026')
+  const [expandedTourneyId, setExpandedTourneyId] = useState(null)
+  const backdropMouseDownRef = useRef(false)
 
   const playerInstagram = getPlayerInstagramHandle(player)
 
@@ -126,6 +130,18 @@ export default function PlayerHeroModal({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
+  useEffect(() => {
+    if (authNotice) {
+      const t = setTimeout(() => setAuthNotice(''), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [authNotice])
+
+  // Reset matchFilter when modality or player changes
+  useEffect(() => {
+    setMatchFilter('todos')
+  }, [selectedModality, player])
+
   if (!player) return null
 
   const activeProfile = (showDobles && selectedModality === 'dobles')
@@ -134,25 +150,9 @@ export default function PlayerHeroModal({
 
   const isFav = isPlayerFollowed(favorites, player) || favorites.includes(player.position) || favorites.includes(player.id)
 
-  useEffect(() => {
-    if (authNotice) {
-      const t = setTimeout(() => setAuthNotice(''), 4000)
-      return () => clearTimeout(t)
-    }
-  }, [authNotice])
-
-  const [matchFilter, setMatchFilter] = useState('todos') // 'todos' | 'victorias' | 'derrotas'
-  const [selectedSeason, setSelectedSeason] = useState('2026')
-  const [expandedTourneyId, setExpandedTourneyId] = useState(null)
-
   const tournamentBreakdown = player
     ? getPlayerTournamentBreakdown(player.name || player.id, selectedModality, selectedSeason)
     : { season: selectedSeason, totalPuntos: 0, totalTorneos: 0, titulos: 0, finales: 0, victorias: 0, derrotas: 0, torneos: [] }
-
-  // Reset matchFilter when modality or player changes
-  useEffect(() => {
-    setMatchFilter('todos')
-  }, [selectedModality, player])
 
   // Filter matches specifically by the chosen modality (Singles shows singles matches, Dobles shows dobles matches)
   const currentMatches = matches.filter((m) => {
@@ -175,9 +175,28 @@ export default function PlayerHeroModal({
     return true
   })
 
+  const handleBackdropMouseDown = (e) => {
+    backdropMouseDownRef.current = (e.target === e.currentTarget)
+  }
+
+  const handleBackdropClick = (e) => {
+    if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+      if (onClose) onClose()
+    }
+    backdropMouseDownRef.current = false
+  }
+
   return (
-    <div className="player-hero-modal-backdrop" onClick={onClose}>
-      <div className="player-hero-modal-dialog" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="player-hero-modal-backdrop"
+      onMouseDown={handleBackdropMouseDown}
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="player-hero-modal-dialog"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Barra superior del modal */}
         <div className="p-hero-topbar">
           <div className="p-hero-badge-tag">

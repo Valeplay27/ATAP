@@ -54,7 +54,7 @@ export default function LoginModal({
       return users.find((u) => {
         const uDni = (u.dni || '').toString().trim()
         const uReal = (u.dniReal || '').toString().trim()
-        return uDni === pDni || uReal === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3)))
+        return uDni === pDni || uReal === pDni || uDni === maskDni(pDni) || (pDni.length === 8 && uDni.startsWith('*') && uDni.endsWith(pDni.slice(-3)))
       }) || null
     }
     return null
@@ -79,7 +79,7 @@ export default function LoginModal({
         const found = users.find((u) => {
           const uDni = (u.dni || '').toString().trim()
           const uReal = (u.dniReal || '').toString().trim()
-          return pDni && (uDni === pDni || uReal === pDni || uDni === maskDni(pDni) || (pDni.length >= 3 && uDni.endsWith(pDni.slice(-3))))
+          return pDni && (uDni === pDni || uReal === pDni || uDni === maskDni(pDni) || (pDni.length === 8 && uDni.startsWith('*') && uDni.endsWith(pDni.slice(-3))))
         })
         if (found) setRegDniMatch(found)
       }
@@ -89,11 +89,11 @@ export default function LoginModal({
   function handleDniChange(e) {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 8)
     setRegDni(raw)
-    if (raw.length >= 5) {
+    if (raw.length >= 8) {
       const users = getRegisteredUsers()
       const found = users.find((u) => {
         const uDni = (u.dni || '').toString().trim().replace(/\s+/g, '')
-        return uDni === raw || uDni === maskDni(raw) || (raw.length >= 3 && uDni.endsWith(raw.slice(-3)))
+        return uDni === raw || uDni === maskDni(raw) || (raw.length === 8 && uDni.startsWith('*') && uDni.endsWith(raw.slice(-3)))
       })
       if (found) {
         setRegDniMatch(found)
@@ -217,7 +217,8 @@ export default function LoginModal({
           ...usuarioGuardado,
           dniReal: cleanDni,
           documentoIdentidad: cleanDni || usuarioGuardado?.dniReal || usuarioGuardado?.documentoIdentidad || '',
-          dni: cleanDni || usuarioGuardado?.dniReal || usuarioGuardado?.dni || ''
+          dni: cleanDni || usuarioGuardado?.dniReal || usuarioGuardado?.dni || '',
+          tournamentId: prefillData?.tournamentId
         })
       } else if (onLogin) {
         onLogin(usuarioGuardado)

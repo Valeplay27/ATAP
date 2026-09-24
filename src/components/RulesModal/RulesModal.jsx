@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, ScrollText, CheckCircle2 } from 'lucide-react'
 import { getPoliciesAndRules } from '../../services/atapStorage'
 import './RulesModal.css'
@@ -6,6 +6,18 @@ import './RulesModal.css'
 export default function RulesModal({ isOpen, onClose }) {
   const [sections, setSections] = useState(() => getPoliciesAndRules())
   const [activeSectionId, setActiveSectionId] = useState('')
+  const backdropMouseDownRef = useRef(false)
+
+  const handleBackdropMouseDown = (e) => {
+    backdropMouseDownRef.current = (e.target === e.currentTarget)
+  }
+
+  const handleBackdropClick = (e) => {
+    if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+      if (onClose) onClose()
+    }
+    backdropMouseDownRef.current = false
+  }
 
   useEffect(() => {
     function handleUpdate() {
@@ -37,9 +49,14 @@ export default function RulesModal({ isOpen, onClose }) {
   }
 
   return (
-    <div className="rules-modal-backdrop" onClick={onClose}>
+    <div
+      className="rules-modal-backdrop"
+      onMouseDown={handleBackdropMouseDown}
+      onClick={handleBackdropClick}
+    >
       <div
         className="rules-modal-card"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

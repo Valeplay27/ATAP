@@ -46,6 +46,7 @@ import {
   MapPin,
   Mail,
   Zap,
+  UserX,
   Smartphone,
   RotateCcw
 } from 'lucide-react'
@@ -77,12 +78,14 @@ import {
   createDefaultGroups,
   generateGroupMatches,
   createFechaMatches,
+  addGroupEnfrentamiento,
   addGroupFecha,
   removeGroupFecha,
   assignPlayerToGroupMatchSlot,
   clearGroupMatchSlot,
   getGroupSelectablePlayers,
   generateKnockoutStructure,
+  createEliminatorySeriesMatches,
   saveManualFixture,
   OFFICIAL_CATEGORIES,
   ALL_OFFICIAL_CATEGORIES,
@@ -195,6 +198,23 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   const [pointsAwardInput, setPointsAwardInput] = useState(100)
   const [matchHoraInput, setMatchHoraInput] = useState('')
   const [isLiveMatchInput, setIsLiveMatchInput] = useState(false)
+
+  // Determina si el partido del modal de marcador es una Gran Final oficial
+  const isFinalScoreModalMatch = Boolean(
+    scoreModalMatch && (
+      scoreModalMatch.isFinal ||
+      scoreModalMatch.esFinal ||
+      (!scoreModalMatch.grupoId && !scoreModalMatch.fechaNum && (
+        scoreModalMatch.nextMatchId === null ||
+        ((scoreModalMatch.round || '').toLowerCase().includes('final') &&
+         !(scoreModalMatch.round || '').toLowerCase().includes('semi') &&
+         !(scoreModalMatch.round || '').toLowerCase().includes('cuarto') &&
+         !(scoreModalMatch.round || '').toLowerCase().includes('octavo') &&
+         !(scoreModalMatch.round || '').toLowerCase().includes('16') &&
+         !(scoreModalMatch.round || '').toLowerCase().includes('32'))
+      ))
+    )
+  )
 
   // Player Avatar Modal
   const [avatarModalPlayer, setAvatarModalPlayer] = useState(null)
@@ -834,6 +854,22 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
   }
 
+  function handleAddGroupEnfrentamiento(groupId, fechaNum, team1Name, team2Name, assignedPlayers = null) {
+    if (!currentTourney) return
+    const res = addGroupEnfrentamiento(currentTourney.id, groupId, fechaNum, team1Name, team2Name, assignedPlayers)
+    if (res.error) {
+      showToast(res.error)
+      return
+    }
+    const fresh = getTournaments()
+    setTournaments(fresh)
+    const freshTourney = fresh.find((t) => t.id === currentTourney.id)
+    if (freshTourney?.faseGrupos) {
+      setManualGroups(freshTourney.faseGrupos)
+    }
+    showToast(`¡Enfrentamiento "${team1Name} vs ${team2Name}" creado con éxito en Fecha ${res.fechaNum}! (2 Singles + 1 Dobles)`)
+  }
+
   function handleAddGroupFecha(groupId) {
     if (!currentTourney) return
     const res = addGroupFecha(currentTourney.id, groupId)
@@ -869,10 +905,55 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
   function handleAssignGroupPlayer(groupId, matchId, slotNum, playerId) {
     if (!currentTourney) return
-    const grupo = manualGroups.find((g) => g.id === groupId)
-    if (!grupo) return
-    const selectable = getGroupSelectablePlayers(grupo)
-    const player = selectable.find((p) => p.id === playerId)
+    let player = null
+    let groupName = ''
+    if (groupId) {
+      const grupo = manualGroups.find((g) => g.id === groupId)
+      if (grupo) {
+        const selectable = getGroupSelectablePlayers(grupo)
+        player = selectable.find((p) => p.id === playerId)
+        groupName = grupo.nombre
+      }
+    }
+    if (!player) {
+      for (const g of (manualGroups || currentTourney.faseGrupos || [])) {
+        const selectable = getGroupSelectablePlayers(g)
+        const found = selectable.find((p) => p.id === playerId || p.nombre === playerId)
+        if (found) {
+          player = found
+          groupName = g.nombre
+          break
+        }
+      }
+    }
+    if (!player && currentTourney.bracket?.rounds) {
+      for (const r of currentTourney.bracket.rounds) {
+        for (const m of (r.matches || [])) {
+          const t1Members = m.player1?.integrantes || []
+          const t2Members = m.player2?.integrantes || []
+          const found = [...t1Members, ...t2Members].find((p) => (p.id && p.id === playerId) || p.nombre === playerId)
+          if (found) {
+            player = found
+            break
+          }
+        }
+        if (player) break
+      }
+    }
+    if (!player && currentTourney?.inscripciones) {
+      for (const insc of currentTourney.inscripciones) {
+        if (insc.integrantes && Array.isArray(insc.integrantes)) {
+          const found = insc.integrantes.find((p) => (p.id && (p.id + '') === (playerId + '')) || p.nombre === playerId)
+          if (found) {
+            player = {
+              ...found,
+              teamName: insc.nombreEquipo || insc.nombre || found.teamName || groupName || ''
+            }
+            break
+          }
+        }
+      }
+    }
     if (!player) return
 
     const playerData = {
@@ -881,7 +962,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       nombre: player.nombre || player.name,
       categoria: player.categoria || '',
       dni: player.dni || '',
-      teamName: player.teamName || grupo.nombre
+      teamName: player.teamName || player.nombreEquipo || groupName || ''
     }
 
     const res = assignPlayerToGroupMatchSlot(currentTourney.id, groupId, matchId, slotNum, playerData)
@@ -896,7 +977,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     if (freshTourney?.faseGrupos) {
       setManualGroups(freshTourney.faseGrupos)
     }
-    showToast(`🎾 ${playerData.name} asignado al partido de ${grupo.nombre}.`)
+    showToast(`🎾 ${playerData.name} asignado al partido.`)
   }
 
   function handleClearGroupSlot(groupId, matchId, slotNum) {
@@ -1101,15 +1182,23 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     let foundPlayer = null
     let foundGroup = null
-    for (const g of manualGroups) {
+
+    // Buscar en manualGroups, en el bracket guardado, o en la faseGrupos del torneo
+    const candidateGroups = (manualGroups && manualGroups.length > 0)
+      ? manualGroups
+      : (currentTourney.bracket?.faseGrupos?.length > 0
+        ? currentTourney.bracket.faseGrupos
+        : (currentTourney.faseGrupos || []))
+
+    for (const g of candidateGroups) {
       for (const p of (g.participantes || [])) {
-        if (p.id === playerId) {
+        if (p.id === playerId || p.nombreEquipo === playerId || p.nombre === playerId) {
           foundPlayer = p
           foundGroup = g
           break
         }
         if (p.integrantes && Array.isArray(p.integrantes)) {
-          const sub = p.integrantes.find((s, idx) => s.id === playerId || `${p.id}-sub-${idx}` === playerId)
+          const sub = p.integrantes.find((s, idx) => s.id === playerId || `${p.id}-sub-${idx}` === playerId || s.nombre === playerId)
           if (sub) {
             foundPlayer = {
               ...sub,
@@ -1123,11 +1212,20 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       }
       if (foundPlayer) break
     }
+
+    // Si aún no se encuentra en grupos, buscar en inscripciones aprobadas
+    if (!foundPlayer) {
+      const insc = (currentTourney.inscripciones || []).find((i) => i.id === playerId || i.nombreEquipo === playerId || i.nombre === playerId)
+      if (insc) {
+        foundPlayer = insc
+      }
+    }
+
     if (!foundPlayer) return
 
     const norm = (str) => (str || '').trim().toLowerCase()
     const pId = foundPlayer.id
-    const pName = norm(foundPlayer.nombre)
+    const pName = norm(foundPlayer.nombreEquipo || foundPlayer.nombre)
     const pDni = (foundPlayer.dni || '').toString().trim()
 
     const isMatch = (target) => {
@@ -1135,11 +1233,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       if (target.isBye || target.id === 'bye' || target.name === 'BYE') return false
       if (pId && target.id && pId === target.id) return true
       if (pDni && target.dni && pDni === (target.dni || '').toString().trim()) return true
-      if (pName && target.name && pName === norm(target.name)) return true
+      const targetName = norm(target.nombreEquipo || target.name || target.nombre)
+      if (pName && targetName && pName === targetName) return true
       return false
     }
 
-    // REGLA 1: No permitir escoger el mismo jugador en el mismo partido (en cualquiera de las 4 casillas)
+    // REGLA 1: No permitir escoger el mismo jugador/equipo en el mismo partido (en cualquiera de las 4 casillas)
     const otherPlayersInMatch = []
     if (!isSlot1a && targetMatch.player1) otherPlayersInMatch.push(targetMatch.player1)
     if (!isSlot1b && targetMatch.player1b) otherPlayersInMatch.push(targetMatch.player1b)
@@ -1148,7 +1247,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     for (const op of otherPlayersInMatch) {
       if (isMatch(op)) {
-        showToast(`⚠️ No puedes asignar a "${foundPlayer.nombre}" más de una vez en el Match #${targetMatch.matchNum}.`)
+        showToast(`⚠️ No puedes asignar a "${foundPlayer.nombreEquipo || foundPlayer.nombre}" más de una vez en el Match #${targetMatch.matchNum}.`)
         return
       }
     }
@@ -1159,30 +1258,56 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       if (isMatch(m.player1) || isMatch(m.player1b) || isMatch(m.player2) || isMatch(m.player2b)) {
         if (m.winnerSlot != null) {
-          showToast(`⚠️ "${foundPlayer.nombre}" ya jugó en el Match #${m.matchNum} de esta ronda y no puede reingresar.`)
+          showToast(`⚠️ "${foundPlayer.nombreEquipo || foundPlayer.nombre}" ya jugó en el Match #${m.matchNum} de esta ronda y no puede reingresar.`)
         } else {
-          showToast(`⚠️ "${foundPlayer.nombre}" ya está asignado en el Match #${m.matchNum}. Quítalo de esa casilla si deseas moverlo.`)
+          showToast(`⚠️ "${foundPlayer.nombreEquipo || foundPlayer.nombre}" ya está asignado en el Match #${m.matchNum}. Quítalo de esa casilla si deseas moverlo.`)
         }
         return
       }
     }
 
+    const isGrupal = currentTourney.modalidad === 'grupal' || currentTourney.modalidad === 'equipos' || foundPlayer.esEquipo || Boolean(foundPlayer.integrantes?.length)
+    const resolvedTeamName = isGrupal ? (foundPlayer.nombreEquipo || foundPlayer.nombre) : foundPlayer.nombre
     const playerData = {
       id: foundPlayer.id,
-      name: foundPlayer.nombre,
-      categoria: foundPlayer.categoria,
-      dni: foundPlayer.dni,
+      name: resolvedTeamName,
+      nombre: resolvedTeamName,
+      nombreEquipo: foundPlayer.nombreEquipo || foundPlayer.nombre || '',
+      logo: foundPlayer.logo || foundPlayer.fotoEquipo || '/assets/logo.png',
+      fotoEquipo: foundPlayer.fotoEquipo || foundPlayer.logo || '/assets/logo.png',
+      esEquipo: isGrupal,
+      integrantes: foundPlayer.integrantes || [],
+      categoria: foundPlayer.categoria || '',
+      dni: foundPlayer.dni || '',
       grupoNombre: foundGroup?.nombre || ''
     }
 
     if (isSlot1a) {
       targetMatch.player1 = playerData
+      if (isGrupal) targetMatch.team1 = playerData.name
     } else if (isSlot1b) {
       targetMatch.player1b = playerData
     } else if (isSlot2a) {
       targetMatch.player2 = playerData
+      if (isGrupal) targetMatch.team2 = playerData.name
     } else if (isSlot2b) {
       targetMatch.player2b = playerData
+    }
+
+    if (isGrupal && targetMatch.player1 && targetMatch.player2) {
+      try {
+        targetMatch.partidos = createEliminatorySeriesMatches(
+          targetMatch.id,
+          firstRound.name || 'Playoffs',
+          targetMatch.matchNum,
+          targetMatch.team1 || targetMatch.player1?.name || targetMatch.player1?.nombreEquipo,
+          targetMatch.team2 || targetMatch.player2?.name || targetMatch.player2?.nombreEquipo,
+          targetMatch.player1,
+          targetMatch.player2
+        )
+      } catch (err) {
+        console.warn('Error creating eliminatory series matches:', err)
+      }
     }
 
     // Si la casilla contraria ya es BYE, abrir modal para confirmar puntos y victoria por BYE!
@@ -1207,18 +1332,20 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     targetMatch.winnerName = null
 
     const res = saveManualFixture(currentTourney.id, {
-      faseGrupos: manualGroups,
+      faseGrupos: (manualGroups && manualGroups.length > 0)
+        ? manualGroups
+        : (currentTourney.bracket?.faseGrupos?.length > 0 ? currentTourney.bracket.faseGrupos : (currentTourney.faseGrupos || [])),
       rounds: currentRounds,
       size: playoffSize,
       bracket: {
         ...(currentTourney.bracket || {}),
-        modalidad: playoffModality
+        modalidad: playoffModality || currentTourney.modalidad || 'singles'
       }
     })
     if (!res.error) {
       setTournaments(getTournaments())
       handleSelectTourney(currentTourney.id)
-      showToast(`🎾 ${foundPlayer.nombre} (${foundGroup?.nombre || 'Grupo'}) asignado al Match #${targetMatch.matchNum}.`)
+      showToast(`🎾 ${foundPlayer.nombreEquipo || foundPlayer.nombre} (${foundGroup?.nombre || 'Grupo'}) asignado al Match #${targetMatch.matchNum}.`)
     }
   }
 
@@ -1750,6 +1877,8 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     }
 
     const isByeMode = set1Score === 'BYE' || scoreModalMatch.isBye || p1?.isBye || p2?.isBye
+    const isWalkoverMode = set1Score === 'W.O.' || set1Score === 'Walkover'
+
     if (isByeMode) {
       const winner = winnerSlot === 1 ? p1 : p2
       const res = recordByeMatch(
@@ -1768,6 +1897,27 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       return
     }
 
+    if (isWalkoverMode) {
+      const winner = winnerSlot === 1 ? p1 : p2
+      const loser = winnerSlot === 1 ? p2 : p1
+      const res = recordMatchResult(
+        currentTourney.id,
+        scoreModalMatch.id,
+        winnerSlot,
+        'W.O.',
+        Number(pointsAwardInput) || 100,
+        isFinalScoreModalMatch ? matchHoraInput : undefined
+      )
+      if (res.error) {
+        showToast(res.error)
+      } else {
+        setTournaments(getTournaments())
+        showToast(`¡Victoria por Walkover (W.O.) registrada para ${winner?.name || 'el ganador'} por no presentación de ${loser?.name || 'el rival'}! (+${pointsAwardInput} pts)`)
+        setScoreModalMatch(null)
+      }
+      return
+    }
+
     const parts = [set1Score, set2Score, set3Score].filter(Boolean)
     const scoreStr = parts.join(', ') || '6-4, 6-3'
 
@@ -1777,7 +1927,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       winnerSlot,
       scoreStr,
       Number(pointsAwardInput) || 100,
-      matchHoraInput
+      isFinalScoreModalMatch ? matchHoraInput : undefined
     )
 
     if (res.error) {
@@ -1798,7 +1948,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
     const res = updateLiveMatchScore(currentTourney.id, scoreModalMatch.id, {
       score: scoreStr,
-      hora: matchHoraInput,
+      hora: isFinalScoreModalMatch ? matchHoraInput : '',
       isLive: true
     })
 
@@ -1843,6 +1993,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     } else if (match.score === 'BYE' || match.isBye) {
       setWinnerSlot(match.winnerSlot || 1)
       setSet1Score('BYE')
+      setSet2Score('')
+      setSet3Score('')
+    } else if (match.score === 'W.O.' || match.score === 'Walkover') {
+      setWinnerSlot(match.winnerSlot || 1)
+      setSet1Score('W.O.')
       setSet2Score('')
       setSet3Score('')
     } else if (match.score) {
@@ -4525,14 +4680,40 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                             </div>
 
                             <div className="player-card-details">
-                              <div className="player-card-top">
-                                <strong className="player-name-text">🎾 {player.nombre}</strong>
-                                <span className="player-cat-chip">{player.categoria || '4ta'}</span>
-                              </div>
-                              <div className="player-card-sub">
-                                <span className="player-dni-text">DNI: {maskDni(player.dni) || 'N/A'}</span>
-                                {player.esDobles && <span className="player-dobles-tag">👥 Dúo</span>}
-                              </div>
+                              {Boolean(
+                                player.esEquipo ||
+                                (player.integrantes && player.integrantes.length > 0) ||
+                                currentTourney.modalidad === 'grupal' ||
+                                currentTourney.modalidad === 'equipos'
+                              ) ? (
+                                <>
+                                  <div className="player-card-top" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <img
+                                      src={player.logo || player.fotoEquipo || '/assets/logo.png'}
+                                      alt={player.nombreEquipo || player.nombre}
+                                      style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }}
+                                      onError={(e) => { e.target.src = '/assets/logo.png' }}
+                                    />
+                                    <strong className="player-name-text">{player.nombreEquipo || player.nombre}</strong>
+                                    <span className="player-cat-chip" style={{ background: 'rgba(0,207,160,0.15)', color: '#00CFA0' }}>Equipo</span>
+                                  </div>
+                                  <div className="player-card-sub">
+                                    <span style={{ fontSize: '11px', color: '#00CFA0', fontWeight: 600 }}>👥 {player.integrantes?.length || 0} integrantes</span>
+                                    <span style={{ fontSize: '10.5px', color: '#888', marginLeft: '6px' }}>• Aprobado</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="player-card-top">
+                                    <strong className="player-name-text">🎾 {player.nombre}</strong>
+                                    <span className="player-cat-chip">{player.categoria || '4ta'}</span>
+                                  </div>
+                                  <div className="player-card-sub">
+                                    <span className="player-dni-text">DNI: {maskDni(player.dni) || 'N/A'}</span>
+                                    {player.esDobles && <span className="player-dobles-tag">👥 Dúo</span>}
+                                  </div>
+                                </>
+                              )}
                             </div>
 
                             <div className="player-card-actions">
@@ -4639,21 +4820,63 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                               </div>
                             ) : (
                               <div className="group-assigned-players-list">
-                                {groupPlayers.map((p, idx) => (
-                                  <div className="assigned-player-row" key={p.id}>
-                                    <span className="slot-order-num">#{idx + 1}</span>
-                                    <span className="slot-player-name">{p.nombre}</span>
-                                    <span className="slot-player-cat">{p.categoria}</span>
-                                    <button
-                                      type="button"
-                                      className="btn-remove-from-slot"
-                                      onClick={() => handleRemovePlayerFromGroup(p.id, grupo.id)}
-                                      title="Quitar jugador"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ))}
+                                {groupPlayers.map((p, idx) => {
+                                  const isTeam = Boolean(
+                                    p.esEquipo ||
+                                    (p.integrantes && p.integrantes.length > 0) ||
+                                    currentTourney.modalidad === 'grupal' ||
+                                    currentTourney.modalidad === 'equipos'
+                                  )
+                                  if (isTeam) {
+                                    const teamName = p.nombreEquipo || p.nombre || 'Equipo'
+                                    const teamLogo = p.logo || p.fotoEquipo || '/assets/logo.png'
+                                    const membersCount = p.integrantes?.length || 0
+                                    return (
+                                      <div className="assigned-player-row team-assigned-row" key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', marginBottom: '4px' }}>
+                                        <span className="slot-order-num" style={{ fontSize: '11px', color: '#94A3B8' }}>#{idx + 1}</span>
+                                        <img
+                                          src={teamLogo}
+                                          alt={teamName}
+                                          style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }}
+                                          onError={(e) => { e.target.src = '/assets/logo.png' }}
+                                        />
+                                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                                          <span className="slot-player-name" style={{ fontWeight: 700, fontSize: '12.5px', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{teamName}</span>
+                                          <div style={{ display: 'flex', gap: '6px', fontSize: '10.5px', color: '#00CFA0' }}>
+                                            <span>👥 {membersCount} integrantes</span>
+                                            <span>• Grupo {grupo.nombre}</span>
+                                          </div>
+                                        </div>
+                                        <span style={{ fontSize: '10px', fontWeight: 700, background: 'rgba(0, 207, 160, 0.15)', color: '#00CFA0', padding: '2px 6px', borderRadius: '4px' }}>
+                                          ✓ Aprobado
+                                        </span>
+                                        <button
+                                          type="button"
+                                          className="btn-remove-from-slot"
+                                          onClick={() => handleRemovePlayerFromGroup(p.id, grupo.id)}
+                                          title="Quitar equipo del grupo"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    )
+                                  }
+                                  return (
+                                    <div className="assigned-player-row" key={p.id}>
+                                      <span className="slot-order-num">#{idx + 1}</span>
+                                      <span className="slot-player-name">{p.nombre}</span>
+                                      <span className="slot-player-cat">{p.categoria}</span>
+                                      <button
+                                        type="button"
+                                        className="btn-remove-from-slot"
+                                        onClick={() => handleRemovePlayerFromGroup(p.id, grupo.id)}
+                                        title="Quitar jugador"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  )
+                                })}
                               </div>
                             )}
                           </div>
@@ -4839,10 +5062,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 onToggleMatchLive={handleToggleMatchLive}
                 onUpdateMatchModality={handleUpdateMatchModality}
                 isGrupalTournament={currentTourney?.modalidad === 'grupal' || currentTourney?.modalidad === 'equipos'}
+                onAddGroupEnfrentamiento={handleAddGroupEnfrentamiento}
                 onAddGroupFecha={handleAddGroupFecha}
                 onRemoveGroupFecha={handleRemoveGroupFecha}
                 onAssignGroupPlayer={handleAssignGroupPlayer}
                 onClearGroupSlot={handleClearGroupSlot}
+                tournamentInscripciones={currentTourney?.inscripciones || []}
               />
             </div>
           </div>
@@ -5510,10 +5735,17 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     onToggleMatchLive={handleToggleMatchLive}
                     onUpdateMatchModality={handleUpdateMatchModality}
                     isGrupalTournament={currentTourney?.modalidad === 'grupal' || currentTourney?.modalidad === 'equipos'}
+                    isInteractive={true}
+                    manualGroups={manualGroups}
+                    availableGroupPlayers={allGroupPlayers}
+                    onAssignPlayerToSlot={handleAssignPlayerToMatchSlot}
+                    onClearMatchSlot={handleClearMatchSlot}
+                    onAddGroupEnfrentamiento={handleAddGroupEnfrentamiento}
                     onAddGroupFecha={handleAddGroupFecha}
                     onRemoveGroupFecha={handleRemoveGroupFecha}
                     onAssignGroupPlayer={handleAssignGroupPlayer}
                     onClearGroupSlot={handleClearGroupSlot}
+                    tournamentInscripciones={currentTourney?.inscripciones || []}
                   />
                 </div>
               )}
@@ -7462,47 +7694,33 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 </label>
               </div>
 
-              {/* CONFIGURACIÓN DE HORA Y MODO EN VIVO */}
-              <div className="score-live-schedule-panel">
-                <div className="score-field-group">
-                  <label htmlFor="modal-match-hora">
-                    🕒 Hora del Partido (como la requiera el Administrador):
-                  </label>
-                  <input
-                    id="modal-match-hora"
-                    type="text"
-                    value={matchHoraInput}
-                    onChange={(e) => setMatchHoraInput(e.target.value)}
-                    placeholder="Escribe la hora deseada (ej: 4:00 PM, 16:30)"
-                    className="modal-hora-input"
-                  />
-                  <small className="score-field-hint">
-                    Déjalo vacío si aún no está programado. Se mostrará en el cuadro tal como lo escribas.
-                  </small>
+              {/* CONFIGURACIÓN DE HORA (ÚNICAMENTE EN FINALES) */}
+              {isFinalScoreModalMatch && (
+                <div className="score-final-schedule-panel">
+                  <div className="score-field-group">
+                    <label htmlFor="modal-match-hora">
+                      🕒 Hora de la Gran Final (Programación oficial):
+                    </label>
+                    <input
+                      id="modal-match-hora"
+                      type="text"
+                      value={matchHoraInput}
+                      onChange={(e) => setMatchHoraInput(e.target.value)}
+                      placeholder="Escribe la hora deseada (ej: 4:00 PM, 16:30)"
+                      className="modal-hora-input"
+                    />
+                    <small className="score-field-hint">
+                      Horario programado para la final. Se mostrará en el cuadro de llaves.
+                    </small>
+                  </div>
                 </div>
+              )}
 
-                <div className="score-field-group">
-                  <label>🔴 Transmisión Oficial:</label>
-                  <button
-                    type="button"
-                    className={`btn-toggle-modal-live ${isLiveMatchInput ? 'is-live-active' : ''}`}
-                    onClick={() => setIsLiveMatchInput(!isLiveMatchInput)}
-                  >
-                    <span className={isLiveMatchInput ? 'live-dot-pulse' : 'live-dot-off'} />
-                    <span>{isLiveMatchInput ? '🔴 Modo EN VIVO Activado' : '⚪ Modo Regular (Sin distintivo en vivo)'}</span>
-                  </button>
-                  <small className="score-field-hint">
-                    {isLiveMatchInput
-                      ? 'El partido exhibirá el distintivo "🔴 EN VIVO" con actualización de marcadores en tiempo real.'
-                      : 'Activa esta opción para transmitir los resultados en directo.'}
-                  </small>
-                </div>
-              </div>
-
-              <div className="bye-quick-toggle-wrap">
+              {/* OPCIONES ESPECIALES: BYE Y WALKOVER */}
+              <div className="score-special-win-grid">
                 <button
                   type="button"
-                  className={`btn-toggle-bye-mode ${set1Score === 'BYE' ? 'active' : ''}`}
+                  className={`btn-toggle-special-win ${set1Score === 'BYE' ? 'bye-active' : ''}`}
                   onClick={() => {
                     if (set1Score === 'BYE') {
                       setSet1Score('6-4')
@@ -7515,8 +7733,27 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                     }
                   }}
                 >
-                  <Zap size={14} />
-                  <span>{set1Score === 'BYE' ? '✓ Modo Victoria por BYE Activado' : '⚡ Declarar Victoria por BYE (Pase Libre)'}</span>
+                  <Zap size={15} />
+                  <span>{set1Score === 'BYE' ? '✓ Modo BYE Activado' : '⚡ Victoria por BYE (Pase Libre)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`btn-toggle-special-win ${set1Score === 'W.O.' ? 'wo-active' : ''}`}
+                  onClick={() => {
+                    if (set1Score === 'W.O.') {
+                      setSet1Score('6-4')
+                      setSet2Score('6-3')
+                      setSet3Score('')
+                    } else {
+                      setSet1Score('W.O.')
+                      setSet2Score('')
+                      setSet3Score('')
+                    }
+                  }}
+                >
+                  <UserX size={15} />
+                  <span>{set1Score === 'W.O.' ? '✓ Modo Walkover Activado' : '🚶‍♂️ Victoria por Walkover (W.O.)'}</span>
                 </button>
               </div>
 
@@ -7526,6 +7763,14 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                   <div>
                     <strong>Victoria por Pase Libre (BYE)</strong>
                     <p>El contrincante será registrado como BYE y el jugador seleccionado avanzará directamente sin sets jugados.</p>
+                  </div>
+                </div>
+              ) : set1Score === 'W.O.' ? (
+                <div className="wo-mode-active-alert">
+                  <UserX size={18} />
+                  <div>
+                    <strong>Victoria por Walkover (W.O. / No Presentación)</strong>
+                    <p>Gana el jugador seleccionado debido a que el rival no se presentó al encuentro. Se registrará con marcador oficial W.O. y avanzará a la siguiente ronda con sus puntos.</p>
                   </div>
                 </div>
               ) : (
@@ -7588,16 +7833,6 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 >
                   Cancelar
                 </button>
-                {isLiveMatchInput && (
-                  <button
-                    type="button"
-                    className="button btn-save-live-score-modal"
-                    onClick={handleSaveLiveScore}
-                    title="Guarda el marcador parcial en tiempo real sin cerrar el partido"
-                  >
-                    <span className="live-dot-pulse" /> 🔴 Guardar Marcador En Vivo
-                  </button>
-                )}
                 <button type="submit" className="button button-lime">
                   {scoreModalMatch?.round?.toLowerCase().includes('final')
                     ? '🏆 Finalizar Partido y Coronar Campeón'

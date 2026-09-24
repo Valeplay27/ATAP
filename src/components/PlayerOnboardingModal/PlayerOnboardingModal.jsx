@@ -3,6 +3,7 @@ import { ArrowLeft, Edit3, Plus, X } from 'lucide-react'
 import { saveRegisteredUser, maskDni, ATAP_ZONAS_DISTRITOS, getZonaDistritos } from '../../services/atapStorage'
 import { api, authApi } from '../../services/api'
 import { getAssetUrl } from '../../utils/assetHelper'
+import { compressImageFile } from '../../utils/imageCompressor'
 import './PlayerOnboardingModal.css'
 
 export default function PlayerOnboardingModal({
@@ -35,7 +36,7 @@ export default function PlayerOnboardingModal({
     anioNacimiento: initialUserData.anioNacimiento || '',
     categoria: initialUserData.categoria || '', 
     documentoIdentidad: getCleanDni(initialUserData),
-    avatar: initialUserData.avatar || '',
+    avatar: (initialUserData.avatar && !initialUserData.avatar.includes('unsplash.com') && (initialUserData.avatar.startsWith('data:image') || initialUserData.avatar.startsWith('blob:'))) ? initialUserData.avatar : '',
     
     // Paso 4: Tu Trayectoria
     titulosGanados: initialUserData.titulosGanados || '0',
@@ -110,14 +111,17 @@ export default function PlayerOnboardingModal({
           return
         }
       } catch (err) {
-        console.warn('Subida al servidor falló, usando lector local:', err)
+        console.warn('Subida al servidor falló, usando compresión local:', err)
       }
 
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        updateField('avatar', e.target?.result || '')
+      try {
+        const compressed = await compressImageFile(file, 260, 260, 0.78)
+        if (compressed) {
+          updateField('avatar', compressed)
+        }
+      } catch (err) {
+        console.error('Error al comprimir avatar:', err)
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -277,8 +281,8 @@ export default function PlayerOnboardingModal({
       fechaNacimiento,
       telefono: formData.whatsapp || initialUserData.telefono || '',
       whatsapp: formData.whatsapp || initialUserData.whatsapp || '',
-      avatar: formData.avatar || initialUserData.avatar || '/assets/logo.png',
-      image: formData.avatar || initialUserData.image || '/assets/logo.png',
+      avatar: (formData.avatar && !formData.avatar.includes('unsplash.com')) ? formData.avatar : '/assets/logo.png',
+      image: (formData.avatar && !formData.avatar.includes('unsplash.com')) ? formData.avatar : '/assets/logo.png',
       perfilIncompleto: false,
       rol: 'Jugador ATAP',
       iniciales: iniciales,
@@ -309,12 +313,21 @@ export default function PlayerOnboardingModal({
     }
 
     // Si venía de inscripción de un torneo, reabrir el torneo con sus datos listos
-    if (initialUserData?.tournamentId) {
-      window.dispatchEvent(
-        new CustomEvent('atap_open_tournament_register', {
-          detail: { tournamentId: initialUserData.tournamentId }
-        })
-      )
+    let targetTourneyId = initialUserData?.tournamentId
+    if (!targetTourneyId && typeof sessionStorage !== 'undefined') {
+      try {
+        const draft = JSON.parse(sessionStorage.getItem('atap_tournament_register_draft') || '{}')
+        targetTourneyId = draft.tournamentId
+      } catch {}
+    }
+    if (targetTourneyId) {
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent('atap_open_tournament_register', {
+            detail: { tournamentId: targetTourneyId }
+          })
+        )
+      }, 120)
     }
   }
 
@@ -670,11 +683,11 @@ export default function PlayerOnboardingModal({
                 onClick={() => fileInputRef.current?.click()}
                 title="Subir foto de perfil"
               >
-                {formData.avatar ? (
+                {formData.avatar && !formData.avatar.includes('unsplash.com') && (formData.avatar.startsWith('data:image') || formData.avatar.startsWith('blob:')) ? (
                   <img src={formData.avatar} alt="Foto de perfil" className="avatar-preview-img" />
                 ) : (
                   <div className="avatar-placeholder-content">
-                    <img src={getAssetUrl('/assets/logo.png')} alt="" className="avatar-placeholder-logo" />
+                    <img src={getAssetUrl('/assets/logo.png')} alt="Logo ATAP" className="avatar-placeholder-logo" />
                   </div>
                 )}
                 <button

@@ -765,22 +765,31 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #00304A;
-  color: #FFFFFF;
-  padding: 0 14px;
+  background: #00CFA0;
+  color: #002538;
+  border: 1px solid #00B388;
+  padding: 0 16px;
   height: 42px;
   border-radius: 10px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 207, 160, 0.2);
 }
 
 .btn-upload-team-photo:hover {
-  background: #00CFA0;
+  background: #14E0B0;
+  border-color: #00CFA0;
   color: #001827;
   transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 207, 160, 0.35);
+}
+
+.btn-upload-team-photo svg {
+  stroke: #002538;
+  color: #002538;
 }
 
 .team-photo-preview-bar {
