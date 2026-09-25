@@ -3167,8 +3167,8 @@
 /* 2-COLUMN WORKSPACE */
 .manual-draw-workspace-grid {
   display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 22px;
+  grid-template-columns: 375px 1fr;
+  gap: 20px;
   align-items: start;
 }
 
@@ -3183,7 +3183,7 @@
   background: #FFFFFF;
   border: 1.5px solid #E8EEEE;
   border-radius: 16px;
-  padding: 18px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -3239,6 +3239,7 @@
   gap: 10px;
   max-height: 520px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
 }
 
@@ -3257,14 +3258,17 @@
 .bank-player-item-card {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: #FFFFFF;
   border: 1.5px solid #E8EEEE;
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  width: 100%;
   cursor: grab;
   transition: all 0.2s ease;
   user-select: none;
+  overflow: hidden;
 }
 
 .bank-player-item-card:hover {
@@ -3280,33 +3284,41 @@
 .bank-player-item-card.is-assigned {
   background: #F8FAFB;
   border-color: #DDE2E5;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .player-card-grip {
   color: #A0B0B8;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .player-card-details {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  overflow: hidden;
 }
 
 .player-card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 5px;
+  min-width: 0;
 }
 
 .player-name-text {
   font-size: 13px;
   color: #001827;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .player-cat-chip {
@@ -3314,19 +3326,24 @@
   font-weight: 600;
   color: #00304A;
   background: #E8EEEE;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .player-card-sub {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .player-dni-text {
   font-size: 11px;
   color: #64727A;
+  white-space: nowrap;
 }
 
 .player-dobles-tag {
@@ -3336,42 +3353,50 @@
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .player-card-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .assigned-status-box {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  background: rgba(0, 48, 74, 0.06);
+  border: 1px solid rgba(0, 48, 74, 0.12);
+  padding: 2px 6px;
+  border-radius: 6px;
 }
 
 .assigned-group-badge {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  color: #FFFFFF;
-  background: #00304A;
-  padding: 2px 8px;
-  border-radius: 6px;
+  color: #00304A;
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
 }
 
 .btn-unassign-micro {
   background: #FFEBEE;
   color: #D32F2F;
   border: none;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   cursor: pointer;
   display: grid;
   place-items: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   transition: background 0.15s;
+  flex-shrink: 0;
 }
 
 .btn-unassign-micro:hover {
@@ -3380,8 +3405,9 @@
 }
 
 .quick-assign-select {
-  height: 28px;
-  padding: 0 6px;
+  height: 26px;
+  max-width: 95px;
+  padding: 0 4px;
   font-size: 11px;
   font-weight: 600;
   border: 1px solid #00CFA0;
@@ -3396,8 +3422,8 @@
   background: #FFF1F0;
   color: #E02424;
   border: 1px solid #FFD8D6;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;

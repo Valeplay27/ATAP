@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Newspaper,
   Search,
@@ -22,6 +22,17 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState('')
   const [readingArticle, setReadingArticle] = useState(null)
   const [copySuccess, setCopySuccess] = useState(false)
+
+  const backdropMouseDownRef = useRef(false)
+  const handleBackdropMouseDown = (e) => {
+    backdropMouseDownRef.current = (e.target === e.currentTarget)
+  }
+  const handleBackdropClose = (e, closeFn) => {
+    if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+      closeFn()
+    }
+    backdropMouseDownRef.current = false
+  }
 
   // Cargar noticias desde el storage sincronizado
   useEffect(() => {
@@ -323,7 +334,11 @@ export default function Community() {
 
       {/* MODAL LECTOR DE ARTÍCULO COMPLETO */}
       {readingArticle && (
-        <div className="article-modal-backdrop" onClick={() => setReadingArticle(null)}>
+        <div
+          className="article-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setReadingArticle(null))}
+        >
           <div
             className="article-modal-card"
             onClick={(e) => e.stopPropagation()}

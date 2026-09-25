@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   LayoutDashboard,
   Trophy,
@@ -359,6 +359,20 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setConfirmModal((prev) => ({ ...prev, isOpen: false, onConfirm: null }))
   }
 
+  // Previene que resaltar o seleccionar texto dentro de un modal lo cierre accidentalmente
+  const backdropMouseDownRef = useRef(false)
+
+  function handleBackdropMouseDown(e) {
+    backdropMouseDownRef.current = (e.target === e.currentTarget)
+  }
+
+  function handleBackdropClose(e, closeFn) {
+    if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+      closeFn()
+    }
+    backdropMouseDownRef.current = false
+  }
+
   function showToast(msg) {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(''), 3500)
@@ -710,13 +724,85 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setPlayoffModality(tourneyMod)
   }, [selectedTourneyId, currentTourney?.id])
 
-  // Approved players for the active tournament
-  const approvedPlayers = (currentTourney?.inscripciones || []).filter((i) => i.estadoPago === 'aprobado')
+  // Approved players / teams for the active tournament
+  const approvedPlayers = useMemo(() => {
+    const list = []
+    const seenIds = new Set()
+    const seenNames = new Set()
+    const norm = (s) => (s || '').toString().trim().toLowerCase()
+
+    const rawInscripciones = currentTourney?.inscripciones || []
+    const groupParticipants = manualGroups.flatMap((g) => g.participantes || [])
+
+    // 1. Inscripciones aprobadas o ya asignadas en un grupo
+    rawInscripciones.forEach((insc) => {
+      const name = norm(insc.nombreEquipo || insc.nombre)
+      const isAssigned = groupParticipants.some((gp) => {
+        const gpName = norm(gp.nombreEquipo || gp.nombre)
+        return (gp.id && gp.id === insc.id) || (gpName && name && gpName === name)
+      })
+
+      if (insc.estadoPago === 'aprobado' || isAssigned) {
+        list.push({
+          ...insc,
+          id: insc.id || `insc-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+          estadoPago: 'aprobado',
+          esEquipo: Boolean(
+            insc.esEquipo ||
+            (insc.integrantes && insc.integrantes.length > 0) ||
+            currentTourney?.modalidad === 'grupal' ||
+            currentTourney?.modalidad === 'equipos'
+          )
+        })
+        if (insc.id) seenIds.add(insc.id)
+        if (name) seenNames.add(name)
+      }
+    })
+
+    // 2. Participantes / equipos que ya están en manualGroups
+    // (Asegura que si un equipo como Escuadrón está en un grupo, JAMÁS falte en el banco)
+    groupParticipants.forEach((gp) => {
+      const name = norm(gp.nombreEquipo || gp.nombre)
+      const hasId = gp.id && seenIds.has(gp.id)
+      const hasName = name && seenNames.has(name)
+
+      if (!hasId && !hasName) {
+        const newPlayerItem = {
+          ...gp,
+          id: gp.id || `gp-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+          estadoPago: 'aprobado',
+          esEquipo: Boolean(
+            gp.esEquipo ||
+            (gp.integrantes && gp.integrantes.length > 0) ||
+            currentTourney?.modalidad === 'grupal' ||
+            currentTourney?.modalidad === 'equipos'
+          )
+        }
+        list.push(newPlayerItem)
+        if (newPlayerItem.id) seenIds.add(newPlayerItem.id)
+        if (name) seenNames.add(name)
+      }
+    })
+
+    return list
+  }, [currentTourney?.inscripciones, manualGroups, currentTourney?.modalidad])
 
   // Helper: Find which group a player is in
   function getPlayerAssignedGroup(playerId) {
+    if (!playerId) return null
+    const playerObj = approvedPlayers.find((p) => p.id === playerId)
+    const norm = (s) => (s || '').toString().trim().toLowerCase()
+    const pName = norm(playerObj?.nombreEquipo || playerObj?.nombre)
+
     for (const g of manualGroups) {
-      if ((g.participantes || []).some((p) => p.id === playerId)) {
+      if ((g.participantes || []).some((p) => {
+        if (p.id === playerId) return true
+        if (pName) {
+          const gName = norm(p.nombreEquipo || p.nombre)
+          if (gName === pName) return true
+        }
+        return false
+      })) {
         return g
       }
     }
@@ -739,17 +825,29 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
   function assignPlayerToGroup(playerId, targetGroupId) {
     const player = approvedPlayers.find((p) => p.id === playerId)
     if (!player) return
+    const norm = (s) => (s || '').toString().trim().toLowerCase()
+    const pName = norm(player.nombreEquipo || player.nombre)
 
     setManualGroups((prev) => {
       // Remove player from any existing group
       const cleaned = prev.map((g) => ({
         ...g,
-        participantes: (g.participantes || []).filter((p) => p.id !== playerId)
+        participantes: (g.participantes || []).filter((p) => {
+          if (p.id === playerId) return false
+          if (pName && norm(p.nombreEquipo || p.nombre) === pName) return false
+          return true
+        })
       }))
 
       // Add to target group
       return cleaned.map((g) => {
         if (g.id === targetGroupId) {
+          const isTeam = Boolean(
+            player.esEquipo ||
+            (player.integrantes && player.integrantes.length > 0) ||
+            currentTourney?.modalidad === 'grupal' ||
+            currentTourney?.modalidad === 'equipos'
+          )
           return {
             ...g,
             participantes: [
@@ -758,9 +856,12 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                 id: player.id,
                 nombre: player.nombreEquipo || player.nombre,
                 nombreEquipo: player.nombreEquipo,
-                categoria: player.categoria,
-                dni: player.dni,
-                esGrupal: Boolean(player.esGrupal || player.modalidad === 'grupal' || currentTourney?.modalidad === 'grupal' || currentTourney?.modalidad === 'equipos'),
+                logo: player.logo || player.fotoEquipo || '/assets/logo.png',
+                fotoEquipo: player.fotoEquipo || player.logo || '/assets/logo.png',
+                categoria: player.categoria || '4ta',
+                dni: player.dni || '',
+                esGrupal: isTeam,
+                esEquipo: isTeam,
                 integrantes: player.integrantes || []
               }
             ]
@@ -771,22 +872,32 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     })
 
     const targetGroup = manualGroups.find((g) => g.id === targetGroupId)
-    showToast(`🎾 ${player.nombre} asignado a ${targetGroup?.nombre || 'grupo'}.`)
+    const displayName = player.nombreEquipo || player.nombre || 'Participante'
+    showToast(`🎾 ${displayName} asignado a ${targetGroup?.nombre || 'grupo'}.`)
   }
 
   function handleRemovePlayerFromGroup(playerId, groupId) {
+    const player = approvedPlayers.find((p) => p.id === playerId)
+    const norm = (s) => (s || '').toString().trim().toLowerCase()
+    const pName = norm(player?.nombreEquipo || player?.nombre)
+
     setManualGroups((prev) =>
       prev.map((g) => {
         if (g.id === groupId) {
           return {
             ...g,
-            participantes: (g.participantes || []).filter((p) => p.id !== playerId)
+            participantes: (g.participantes || []).filter((p) => {
+              if (p.id === playerId) return false
+              if (pName && norm(p.nombreEquipo || p.nombre) === pName) return false
+              return true
+            })
           }
         }
         return g
       })
     )
-    showToast('Jugador retirado del grupo y devuelto al banco de aprobados.')
+    const displayName = player?.nombreEquipo || player?.nombre || 'Participante'
+    showToast(`${displayName} retirado del grupo y devuelto al banco de aprobados.`)
   }
 
   function handleRenameGroup(groupId, newName) {
@@ -991,8 +1102,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
     setTournaments(fresh)
     handleSelectTourney(currentTourney.id)
     const freshTourney = fresh.find((t) => t.id === currentTourney.id)
-    if (freshTourney?.faseGrupos) {
-      setManualGroups(freshTourney.faseGrupos)
+    const freshGrupos = freshTourney?.bracket?.faseGrupos?.length > 0
+      ? freshTourney.bracket.faseGrupos
+      : freshTourney?.faseGrupos
+    if (freshGrupos) {
+      setManualGroups(JSON.parse(JSON.stringify(freshGrupos)))
     }
     showToast('Jugador removido de la casilla.')
   }
@@ -4687,30 +4801,30 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                 currentTourney.modalidad === 'equipos'
                               ) ? (
                                 <>
-                                  <div className="player-card-top" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <div className="player-card-top" style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
                                     <img
                                       src={player.logo || player.fotoEquipo || '/assets/logo.png'}
                                       alt={player.nombreEquipo || player.nombre}
-                                      style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }}
+                                      style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }}
                                       onError={(e) => { e.target.src = '/assets/logo.png' }}
                                     />
                                     <strong className="player-name-text">{player.nombreEquipo || player.nombre}</strong>
-                                    <span className="player-cat-chip" style={{ background: 'rgba(0,207,160,0.15)', color: '#00CFA0' }}>Equipo</span>
+                                    <span className="player-cat-chip" style={{ background: 'rgba(0,207,160,0.15)', color: '#00CFA0', flexShrink: 0 }}>Equipo</span>
                                   </div>
-                                  <div className="player-card-sub">
-                                    <span style={{ fontSize: '11px', color: '#00CFA0', fontWeight: 600 }}>👥 {player.integrantes?.length || 0} integrantes</span>
-                                    <span style={{ fontSize: '10.5px', color: '#888', marginLeft: '6px' }}>• Aprobado</span>
+                                  <div className="player-card-sub" style={{ minWidth: 0, overflow: 'hidden' }}>
+                                    <span style={{ fontSize: '11px', color: '#00CFA0', fontWeight: 600, whiteSpace: 'nowrap' }}>👥 {player.integrantes?.length || 0} integrantes</span>
+                                    <span style={{ fontSize: '10.5px', color: '#888', marginLeft: '6px', whiteSpace: 'nowrap' }}>• Aprobado</span>
                                   </div>
                                 </>
                               ) : (
                                 <>
-                                  <div className="player-card-top">
+                                  <div className="player-card-top" style={{ minWidth: 0, overflow: 'hidden' }}>
                                     <strong className="player-name-text">🎾 {player.nombre}</strong>
-                                    <span className="player-cat-chip">{player.categoria || '4ta'}</span>
+                                    <span className="player-cat-chip" style={{ flexShrink: 0 }}>{player.categoria || '4ta'}</span>
                                   </div>
-                                  <div className="player-card-sub">
-                                    <span className="player-dni-text">DNI: {maskDni(player.dni) || 'N/A'}</span>
-                                    {player.esDobles && <span className="player-dobles-tag">👥 Dúo</span>}
+                                  <div className="player-card-sub" style={{ minWidth: 0, overflow: 'hidden' }}>
+                                    <span className="player-dni-text" style={{ whiteSpace: 'nowrap' }}>DNI: {maskDni(player.dni) || 'N/A'}</span>
+                                    {player.esDobles && <span className="player-dobles-tag" style={{ flexShrink: 0 }}>👥 Dúo</span>}
                                   </div>
                                 </>
                               )}
@@ -4788,7 +4902,7 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                 title="Haz clic para editar el nombre del grupo"
                               />
                               <span className="group-count-badge">
-                                {groupPlayers.length} {groupPlayers.length === 1 ? 'jugador' : 'jugadores'}
+                                {groupPlayers.length} {currentTourney.modalidad === 'grupal' || currentTourney.modalidad === 'equipos' ? (groupPlayers.length === 1 ? 'equipo' : 'equipos') : (groupPlayers.length === 1 ? 'jugador' : 'jugadores')}
                               </span>
                             </div>
                             {manualGroups.length > 1 && (
@@ -4831,23 +4945,26 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
                                     const teamName = p.nombreEquipo || p.nombre || 'Equipo'
                                     const teamLogo = p.logo || p.fotoEquipo || '/assets/logo.png'
                                     const membersCount = p.integrantes?.length || 0
+                                    const cleanGroupName = (grupo.nombre || '').toLowerCase().startsWith('grupo')
+                                      ? grupo.nombre
+                                      : `Grupo ${grupo.nombre}`
                                     return (
-                                      <div className="assigned-player-row team-assigned-row" key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', marginBottom: '4px' }}>
-                                        <span className="slot-order-num" style={{ fontSize: '11px', color: '#94A3B8' }}>#{idx + 1}</span>
+                                      <div className="assigned-player-row team-assigned-row" key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', marginBottom: '5px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                        <span className="slot-order-num" style={{ fontSize: '12px', fontWeight: 800, color: '#00CFA0' }}>#{idx + 1}</span>
                                         <img
                                           src={teamLogo}
                                           alt={teamName}
-                                          style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }}
+                                          style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #E2E8F0' }}
                                           onError={(e) => { e.target.src = '/assets/logo.png' }}
                                         />
                                         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                                          <span className="slot-player-name" style={{ fontWeight: 700, fontSize: '12.5px', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{teamName}</span>
-                                          <div style={{ display: 'flex', gap: '6px', fontSize: '10.5px', color: '#00CFA0' }}>
+                                          <span className="slot-player-name" style={{ fontWeight: 800, fontSize: '13px', color: '#001827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{teamName}</span>
+                                          <div style={{ display: 'flex', gap: '6px', fontSize: '10.5px', color: '#008764', fontWeight: 600 }}>
                                             <span>👥 {membersCount} integrantes</span>
-                                            <span>• Grupo {grupo.nombre}</span>
+                                            <span>• {cleanGroupName}</span>
                                           </div>
                                         </div>
-                                        <span style={{ fontSize: '10px', fontWeight: 700, background: 'rgba(0, 207, 160, 0.15)', color: '#00CFA0', padding: '2px 6px', borderRadius: '4px' }}>
+                                        <span style={{ fontSize: '10.5px', fontWeight: 800, background: '#DCFCE7', color: '#15803D', padding: '2px 8px', borderRadius: '4px', border: '1px solid #86EFAC' }}>
                                           ✓ Aprobado
                                         </span>
                                         <button
@@ -7604,7 +7721,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL PARA CARGAR MARCADOR */}
       {scoreModalMatch && (
-        <div className="admin-modal-backdrop" onClick={() => setScoreModalMatch(null)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setScoreModalMatch(null))}
+        >
           <div
             className="admin-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -7846,7 +7967,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL PARA CONFIRMAR VICTORIA POR BYE */}
       {byeModalData && (
-        <div className="admin-modal-backdrop" onClick={() => setByeModalData(null)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setByeModalData(null))}
+        >
           <div
             className="admin-modal-card bye-confirm-card"
             onClick={(e) => e.stopPropagation()}
@@ -7927,7 +8052,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL PARA CAMBIAR FOTO DE JUGADOR */}
       {avatarModalPlayer && (
-        <div className="admin-modal-backdrop" onClick={() => setAvatarModalPlayer(null)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setAvatarModalPlayer(null))}
+        >
           <div
             className="admin-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -8012,7 +8141,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL PARA CREAR NUEVO TORNEO */}
       {showCreateTourneyModal && (
-        <div className="admin-modal-backdrop" onClick={() => setShowCreateTourneyModal(false)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setShowCreateTourneyModal(false))}
+        >
           <div
             className="admin-modal-card tourney-form-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -8343,7 +8476,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL PARA EDITAR TORNEO */}
       {editTourney && (
-        <div className="admin-modal-backdrop" onClick={() => setEditTourney(null)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setEditTourney(null))}
+        >
           <div
             className="admin-modal-card tourney-form-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -8650,7 +8787,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL CREAR / EDITAR NOTICIA EN COMUNIDAD */}
       {showNewsModal && (
-        <div className="admin-modal-backdrop" onClick={() => setShowNewsModal(false)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setShowNewsModal(false))}
+        >
           <div
             className="admin-modal-card news-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -8915,7 +9056,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL REGISTRO RÁPIDO DE JUGADOR (TORNEO FINALIZADO - SOLO NOMBRE Y DNI) */}
       {showQuickPlayerModal && (
-        <div className="admin-modal-backdrop" onClick={() => setShowQuickPlayerModal(false)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setShowQuickPlayerModal(false))}
+        >
           <div
             className="admin-modal-card quick-player-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -9026,7 +9171,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL DE CONFIRMACIÓN DE CIERRE DE TEMPORADA */}
       {showCloseSeasonModal && (
-        <div className="admin-modal-backdrop" onClick={() => !isClosingSeason && setShowCloseSeasonModal(false)}>
+        <div
+          className="admin-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => !isClosingSeason && setShowCloseSeasonModal(false))}
+        >
           <div
             className="admin-modal-card season-confirm-modal"
             onClick={(e) => e.stopPropagation()}
@@ -9106,10 +9255,13 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
       {showBankAddModal && (
         <div
           className="admin-modal-backdrop"
-          onClick={() => {
-            setShowBankAddModal(false)
-            setBankModalTargetField('bank')
-          }}
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) =>
+            handleBackdropClose(e, () => {
+              setShowBankAddModal(false)
+              setBankModalTargetField('bank')
+            })
+          }
         >
           <div
             className="admin-modal-card bank-add-modal-card"
@@ -9314,7 +9466,11 @@ export default function Admin({ usuario, onLoginSuccess, onOpenLogin, onLogout }
 
       {/* MODAL DE CONFIRMACIÓN ELEGANTE (REEMPLAZA window.confirm) */}
       {confirmModal.isOpen && (
-        <div className="atap-confirm-backdrop" onClick={closeConfirmModal}>
+        <div
+          className="atap-confirm-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, closeConfirmModal)}
+        >
           <div
             className="atap-confirm-dialog"
             onClick={(e) => e.stopPropagation()}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CalendarDays, Clock3, Trophy, X, Tag, Award, Layers, CheckCircle2, Flame, Radio } from 'lucide-react'
 import {
   getTournaments,
@@ -22,6 +22,17 @@ export default function Tournaments({ usuario }) {
   const [selectedLiveTourney, setSelectedLiveTourney] = useState(null)
   const [liveModalCategory, setLiveModalCategory] = useState('')
   const [liveMatchesFilter, setLiveMatchesFilter] = useState('all') // 'all' | 'jugados' | 'futuros'
+
+  const backdropMouseDownRef = useRef(false)
+  const handleBackdropMouseDown = (e) => {
+    backdropMouseDownRef.current = (e.target === e.currentTarget)
+  }
+  const handleBackdropClose = (e, closeFn) => {
+    if (backdropMouseDownRef.current && e.target === e.currentTarget) {
+      closeFn()
+    }
+    backdropMouseDownRef.current = false
+  }
 
   function loadTournaments() {
     setTourneyList(getTournaments())
@@ -229,7 +240,11 @@ export default function Tournaments({ usuario }) {
         const filteredAll = filterByCat(all)
 
         return (
-          <div className="tourney-modal-backdrop" onClick={() => setSelectedLiveTourney(null)}>
+          <div
+            className="tourney-modal-backdrop"
+            onMouseDown={handleBackdropMouseDown}
+            onClick={(e) => handleBackdropClose(e, () => setSelectedLiveTourney(null))}
+          >
             <div
               className="tourney-live-modal-card"
               onClick={(e) => e.stopPropagation()}
@@ -545,7 +560,11 @@ export default function Tournaments({ usuario }) {
 
       {/* MODAL DE RESULTADOS OFICIALES DEL TORNEO FINALIZADO */}
       {selectedResultsTourney && (
-        <div className="tourney-modal-backdrop" onClick={() => setSelectedResultsTourney(null)}>
+        <div
+          className="tourney-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setSelectedResultsTourney(null))}
+        >
           <div
             className="tourney-results-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -734,7 +753,11 @@ export default function Tournaments({ usuario }) {
 
       {/* MODAL DE VISUALIZACIÓN DE BRACKET / LLAVES */}
       {bracketTourney && (
-        <div className="tourney-modal-backdrop" onClick={() => setBracketTourney(null)}>
+        <div
+          className="tourney-modal-backdrop"
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClose(e, () => setBracketTourney(null))}
+        >
           <div
             className="tourney-bracket-modal-card"
             onClick={(e) => e.stopPropagation()}

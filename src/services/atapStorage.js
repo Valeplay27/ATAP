@@ -3320,27 +3320,52 @@ export function addPlayerToTournamentBank(tournamentId, playerOrUserData) {
     return exactDni || partialDniMatch || exactName;
   });
 
+  const isTeam = Boolean(
+    playerOrUserData.esEquipo ||
+    (playerOrUserData.integrantes && playerOrUserData.integrantes.length > 0) ||
+    playerOrUserData.nombreEquipo ||
+    playerOrUserData.teamName ||
+    currentTourney.modalidad === 'grupal' ||
+    currentTourney.modalidad === 'equipos'
+  );
+  const teamName = playerOrUserData.nombreEquipo || playerOrUserData.teamName || (isTeam ? cleanNombre : undefined);
+
   if (existingInscIdx !== -1) {
-    // Si ya existe, asegurar que su estado sea aprobado
+    // Si ya existe, asegurar que su estado sea aprobado y sincronizar datos de equipo
     currentTourney.inscripciones[existingInscIdx].estadoPago = 'aprobado';
     if (maskedDni) {
       currentTourney.inscripciones[existingInscIdx].dni = maskedDni;
       currentTourney.inscripciones[existingInscIdx].documentoIdentidad = maskedDni;
     }
+    if (teamName) currentTourney.inscripciones[existingInscIdx].nombreEquipo = teamName;
+    if (isTeam) currentTourney.inscripciones[existingInscIdx].esEquipo = true;
+    if (playerOrUserData.integrantes) currentTourney.inscripciones[existingInscIdx].integrantes = playerOrUserData.integrantes;
+    if (playerOrUserData.logo || playerOrUserData.fotoEquipo) {
+      currentTourney.inscripciones[existingInscIdx].logo = playerOrUserData.logo || playerOrUserData.fotoEquipo;
+      currentTourney.inscripciones[existingInscIdx].fotoEquipo = playerOrUserData.fotoEquipo || playerOrUserData.logo;
+    }
     saveTournaments(tournaments);
+    emitAtapUpdate(STORAGE_KEYS.TOURNEYS, tournaments);
     return currentTourney;
   }
 
   const newRegistration = {
-    id: 'insc-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-    nombre: cleanNombre || 'Jugador ATAP',
+    id: playerOrUserData.id && String(playerOrUserData.id).startsWith('insc-')
+      ? playerOrUserData.id
+      : ('insc-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)),
+    nombre: teamName || cleanNombre || 'Jugador ATAP',
+    nombreEquipo: teamName || undefined,
+    esEquipo: isTeam,
+    integrantes: Array.isArray(playerOrUserData.integrantes) ? playerOrUserData.integrantes : undefined,
+    logo: playerOrUserData.logo || playerOrUserData.fotoEquipo || undefined,
+    fotoEquipo: playerOrUserData.fotoEquipo || playerOrUserData.logo || undefined,
     dni: maskedDni,
     documentoIdentidad: maskedDni,
     email: playerOrUserData.email || '',
     telefono: playerOrUserData.telefono || playerOrUserData.whatsapp || '',
     categoria: playerOrUserData.categoria || currentTourney.categoria || '4ta',
-    avatar: playerOrUserData.avatar || playerOrUserData.image || '/assets/logo.png',
-    image: playerOrUserData.image || playerOrUserData.avatar || '/assets/logo.png',
+    avatar: playerOrUserData.avatar || playerOrUserData.image || playerOrUserData.logo || '/assets/logo.png',
+    image: playerOrUserData.image || playerOrUserData.avatar || playerOrUserData.logo || '/assets/logo.png',
     puntosNum: playerOrUserData.puntosNum !== undefined ? Number(playerOrUserData.puntosNum) : 0,
     points: playerOrUserData.points || `${playerOrUserData.puntosNum || 0} pts`,
     estadoPago: 'aprobado',
@@ -4237,62 +4262,75 @@ export function clearGroupMatchSlot(tournamentId, grupoId, matchId, slotNum) {
   if (tIndex === -1) return { error: 'Torneo no encontrado.' };
 
   const tourney = tournaments[tIndex];
-  const grupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
-  let grupo = grupos.find((g) => g.id === grupoId);
 
-  let match = null;
-  if (grupo) {
-    match = (grupo.partidos || []).find((m) => m.id === matchId);
-  }
-  if (!match) {
-    for (const g of grupos) {
-      const found = (g.partidos || []).find((m) => m.id === matchId);
-      if (found) {
-        grupo = g;
-        match = found;
-        break;
+  const applyClearSlot = (targetMatch) => {
+    if (!targetMatch) return;
+    if (slotNum === 1 || slotNum === '1' || slotNum === '1a') {
+      targetMatch.player1 = null;
+    } else if (slotNum === '1b') {
+      targetMatch.player1b = null;
+    } else if (slotNum === 2 || slotNum === '2' || slotNum === '2a') {
+      targetMatch.player2 = null;
+    } else if (slotNum === '2b') {
+      targetMatch.player2b = null;
+    }
+    targetMatch.winnerSlot = null;
+    targetMatch.winnerName = null;
+    targetMatch.score = '';
+  };
+
+  let foundMatch = null;
+
+  // 1. Search in tourney.faseGrupos
+  if (tourney.faseGrupos) {
+    for (const g of tourney.faseGrupos) {
+      const m = (g.partidos || []).find((pm) => pm.id === matchId);
+      if (m) {
+        applyClearSlot(m);
+        foundMatch = m;
       }
     }
   }
 
-  // Fallback to bracket rounds or series submatches
-  if (!match && tourney.bracket?.rounds) {
+  // 2. Search in tourney.bracket.faseGrupos
+  if (tourney.bracket?.faseGrupos) {
+    for (const g of tourney.bracket.faseGrupos) {
+      const m = (g.partidos || []).find((pm) => pm.id === matchId);
+      if (m) {
+        applyClearSlot(m);
+        foundMatch = m;
+      }
+    }
+  }
+
+  // 3. Search in tourney.bracket.rounds (playoff series submatches)
+  if (tourney.bracket?.rounds) {
     for (const r of tourney.bracket.rounds) {
       for (const m of (r.matches || [])) {
         if (m.id === matchId) {
-          match = m;
-          break;
+          applyClearSlot(m);
+          foundMatch = m;
         }
         if (m.partidos) {
           const sub = m.partidos.find((sm) => sm.id === matchId);
           if (sub) {
-            match = sub;
-            break;
+            applyClearSlot(sub);
+            foundMatch = sub;
           }
         }
       }
-      if (match) break;
     }
   }
 
-  if (!match) return { error: 'Partido no encontrado.' };
+  if (!foundMatch) return { error: 'Partido no encontrado.' };
 
-  if (slotNum === 1 || slotNum === '1' || slotNum === '1a') {
-    match.player1 = null;
-  } else if (slotNum === '1b') {
-    match.player1b = null;
-  } else if (slotNum === 2 || slotNum === '2' || slotNum === '2a') {
-    match.player2 = null;
-  } else if (slotNum === '2b') {
-    match.player2b = null;
-  }
+  const finalGrupos = tourney.faseGrupos || tourney.bracket?.faseGrupos || [];
+  saveManualFixture(tournamentId, {
+    faseGrupos: finalGrupos,
+    rounds: tourney.bracket?.rounds
+  });
 
-  match.winnerSlot = null;
-  match.winnerName = null;
-  match.score = '';
-
-  saveTournaments(tournaments);
-  return { success: true, match, grupos };
+  return { success: true, match: foundMatch, grupos: finalGrupos };
 }
 
 
@@ -4357,6 +4395,49 @@ export function saveManualFixture(tournamentId, { faseGrupos, rounds, bracket, s
       tournaments[index].bracket = {};
     }
     tournaments[index].bracket.faseGrupos = faseGrupos;
+
+    // Sincronizar participantes de grupos con inscripciones para que jamás falten en el banco
+    if (!tournaments[index].inscripciones) {
+      tournaments[index].inscripciones = [];
+    }
+    const inscList = tournaments[index].inscripciones;
+    const norm = (s) => (s || '').toString().trim().toLowerCase();
+
+    (faseGrupos || []).forEach((g) => {
+      (g.participantes || []).forEach((p) => {
+        const pName = norm(p.nombreEquipo || p.nombre);
+        const pId = p.id;
+        const found = inscList.find((i) => {
+          const iName = norm(i.nombreEquipo || i.nombre);
+          return (pId && i.id === pId) || (pName && iName && pName === iName);
+        });
+
+        if (found) {
+          found.estadoPago = 'aprobado';
+          if (p.nombreEquipo && !found.nombreEquipo) found.nombreEquipo = p.nombreEquipo;
+          if (p.integrantes && !found.integrantes) found.integrantes = p.integrantes;
+          if (p.logo && !found.logo) found.logo = p.logo;
+          if (p.fotoEquipo && !found.fotoEquipo) found.fotoEquipo = p.fotoEquipo;
+        } else {
+          inscList.push({
+            id: p.id || 'insc-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            nombre: p.nombreEquipo || p.nombre || 'Participante',
+            nombreEquipo: p.nombreEquipo || undefined,
+            esEquipo: Boolean(p.esEquipo || p.integrantes?.length || tournaments[index].modalidad === 'grupal' || tournaments[index].modalidad === 'equipos'),
+            integrantes: p.integrantes || undefined,
+            logo: p.logo || p.fotoEquipo || undefined,
+            fotoEquipo: p.fotoEquipo || p.logo || undefined,
+            categoria: p.categoria || tournaments[index].categoria || '4ta',
+            dni: p.dni || '',
+            documentoIdentidad: p.dni || '',
+            estadoPago: 'aprobado',
+            fechaRegistro: new Date().toISOString().split('T')[0],
+            metodoPago: 'Aprobado por Administración',
+            comprobanteInfo: 'Asignado a fase de grupos'
+          });
+        }
+      });
+    });
   }
   if (rounds !== undefined || bracket !== undefined || size !== undefined) {
     const determinedSize = size || bracket?.size || tournaments[index].bracket?.size || (rounds?.[0]?.matches?.length === 4 ? 8 : 4);

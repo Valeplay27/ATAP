@@ -531,7 +531,10 @@ export default function TournamentBracket({
                                           <button
                                             type="button"
                                             className="btn-clear-group-slot"
-                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '1a')}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              onClearGroupSlot(grupo.id, m.id, '1a')
+                                            }}
                                             title="Quitar de Dupla 1"
                                           >
                                             ✕
@@ -575,7 +578,10 @@ export default function TournamentBracket({
                                           <button
                                             type="button"
                                             className="btn-clear-group-slot"
-                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '1b')}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              onClearGroupSlot(grupo.id, m.id, '1b')
+                                            }}
                                             title="Quitar de Dupla 1"
                                           >
                                             ✕
@@ -630,7 +636,10 @@ export default function TournamentBracket({
                                           <button
                                             type="button"
                                             className="btn-clear-group-slot"
-                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '2a')}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              onClearGroupSlot(grupo.id, m.id, '2a')
+                                            }}
                                             title="Quitar de Dupla 2"
                                           >
                                             ✕
@@ -674,7 +683,10 @@ export default function TournamentBracket({
                                           <button
                                             type="button"
                                             className="btn-clear-group-slot"
-                                            onClick={() => onClearGroupSlot(grupo.id, m.id, '2b')}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              onClearGroupSlot(grupo.id, m.id, '2b')
+                                            }}
                                             title="Quitar de Dupla 2"
                                           >
                                             ✕
@@ -724,7 +736,10 @@ export default function TournamentBracket({
                                       <button
                                         type="button"
                                         className="btn-clear-group-slot"
-                                        onClick={() => onClearGroupSlot(grupo.id, m.id, 1)}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          onClearGroupSlot(grupo.id, m.id, 1)
+                                        }}
                                         title="Quitar jugador"
                                       >
                                         ✕
@@ -769,7 +784,10 @@ export default function TournamentBracket({
                                       <button
                                         type="button"
                                         className="btn-clear-group-slot"
-                                        onClick={() => onClearGroupSlot(grupo.id, m.id, 2)}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          onClearGroupSlot(grupo.id, m.id, 2)
+                                        }}
                                         title="Quitar jugador"
                                       >
                                         ✕
